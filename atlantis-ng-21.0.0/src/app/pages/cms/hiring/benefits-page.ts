@@ -1,0 +1,166 @@
+import { Component, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { MalikApiService, CareerBenefit } from '@/app/services/malik-api.service';
+import { CardModule } from 'primeng/card';
+import { ButtonModule } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+import { DialogModule } from 'primeng/dialog';
+import { InputTextModule } from 'primeng/inputtext';
+import { TextareaModule } from 'primeng/textarea';
+import { ToastModule } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
+import { ToolbarModule } from 'primeng/toolbar';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ConfirmationService } from 'primeng/api';
+
+@Component({
+    selector: 'app-benefits-page',
+    standalone: true,
+    imports: [
+        CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
+        DialogModule, InputTextModule, TextareaModule, ToastModule, ToolbarModule,
+        ConfirmDialogModule
+    ],
+    providers: [MessageService, ConfirmationService],
+    template: `
+        <p-toast />
+        <p-confirmdialog />
+        <div class="card">
+            <p-toolbar styleClass="mb-4">
+                <ng-template #start>
+                    <p-button label="New Benefit" icon="pi pi-plus" severity="success" class="mr-2" (onClick)="openNew()" />
+                </ng-template>
+            </p-toolbar>
+
+            <p-table [value]="benefits()" [rows]="10" [paginator]="true"
+                [tableStyle]="{ 'min-width': '75rem' }">
+                <ng-template #header>
+                    <tr>
+                        <th>ID</th>
+                        <th>Icon</th>
+                        <th>Title</th>
+                        <th>Description</th>
+                        <th>Actions</th>
+                    </tr>
+                </ng-template>
+                <ng-template #body let-item>
+                    <tr>
+                        <td>{{item.id}}</td>
+                        <td><i class="pi pi-{{item.icon}} text-primary text-xl"></i></td>
+                        <td>{{item.title}}</td>
+                        <td>{{item.description}}</td>
+                        <td>
+                            <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" 
+                                (onClick)="editBenefit(item)" />
+                            <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
+                                (onClick)="deleteBenefit(item)" />
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+
+        <p-dialog [(visible)]="dialog" [style]="{ width: '500px' }" header="Benefit Details" [modal]="true">
+            <ng-template #content>
+                <div class="flex flex-col gap-4">
+                    <div>
+                        <label class="block font-bold mb-2">Title</label>
+                        <input type="text" pInputText [(ngModel)]="benefit.title" fluid />
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-2">Description</label>
+                        <textarea pTextarea [(ngModel)]="benefit.description" rows="3" fluid></textarea>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-2">Icon (pi-*)</label>
+                        <input type="text" pInputText [(ngModel)]="benefit.icon" placeholder="e.g. heart, dollar, clock" fluid />
+                    </div>
+                </div>
+            </ng-template>
+            <ng-template #footer>
+                <p-button label="Cancel" icon="pi pi-times" text (onClick)="hideDialog()" />
+                <p-button label="Save" icon="pi pi-check" (onClick)="saveBenefit()" [loading]="saving" />
+            </ng-template>
+        </p-dialog>
+    `
+})
+export class BenefitsPage implements OnInit {
+    benefits = signal<CareerBenefit[]>([]);
+    dialog = false;
+    benefit: CareerBenefit = { title: '' };
+    saving = false;
+
+    constructor(
+        private api: MalikApiService,
+        private messageService: MessageService,
+        private confirmationService: ConfirmationService
+    ) {}
+
+    ngOnInit() {
+        this.loadBenefits();
+    }
+
+    loadBenefits() {
+        this.api.getBenefits().subscribe({
+            next: (data) => this.benefits.set(data),
+            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load benefits' })
+        });
+    }
+
+    openNew() {
+        this.benefit = { title: '' };
+        this.dialog = true;
+    }
+
+    editBenefit(b: CareerBenefit) {
+        this.benefit = { ...b };
+        this.dialog = true;
+    }
+
+    hideDialog() {
+        this.dialog = false;
+    }
+
+    saveBenefit() {
+        if (!this.benefit.title?.trim()) return;
+        this.saving = true;
+        const data = { ...this.benefit };
+        const request = data.id
+            ? this.api.adminUpdate('career-benefit', data.id, data)
+            : this.api.adminCreate('career-benefit', data);
+
+        request.subscribe({
+            next: () => {
+                this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Benefit saved successfully', life: 3000 });
+                this.loadBenefits();
+                this.dialog = false;
+                this.saving = false;
+            },
+            error: (err) => {
+                this.saving = false;
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to save benefit' });
+            }
+        });
+    }
+
+    deleteBenefit(b: CareerBenefit) {
+        this.confirmationService.confirm({
+            message: `Are you sure you want to delete "${b.title}"?`,
+            header: 'Confirm Delete',
+            icon: 'pi pi-exclamation-triangle',
+            accept: () => {
+                if (!b.id) return;
+                this.api.adminDelete('career-benefit', b.id).subscribe({
+                    next: () => {
+                        this.messageService.add({ severity: 'success', summary: 'Deleted', detail: 'Benefit deleted', life: 3000 });
+                        this.loadBenefits();
+                    },
+                    error: (err) => {
+                        this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to delete benefit' });
+                    }
+                });
+            }
+        });
+    }
+}

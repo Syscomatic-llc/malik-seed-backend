@@ -3,9 +3,24 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 
 from core.database import get_db
-from models.our_brands.model import OurBrand, FlowerPortfolio, TrainingCentre, BrandProduct
+from models.our_brands.model import OurBrand, FlowerPortfolio, TrainingCentre, BrandProduct, BrandCategory
 
 router = APIRouter()
+
+
+@router.get("/categories")
+def get_brand_categories():
+    """Get all brand category options"""
+    return [
+        {"label": "Vegetable Seeds", "value": BrandCategory.VEGETABLE_SEEDS.value},
+        {"label": "Potato Seeds", "value": BrandCategory.POTATO_SEEDS.value},
+        {"label": "Flower", "value": BrandCategory.FLOWER.value},
+        {"label": "Malik's Farms", "value": BrandCategory.MALIK_FARMS.value},
+        {"label": "Innovation", "value": BrandCategory.INNOVATION.value},
+        {"label": "Training", "value": BrandCategory.TRAINING.value},
+        {"label": "Fresh", "value": BrandCategory.FRESH.value},
+        {"label": "Planted by Malik", "value": BrandCategory.PLANTED_BY_MALIK.value},
+    ]
 
 
 @router.get("/brands")
