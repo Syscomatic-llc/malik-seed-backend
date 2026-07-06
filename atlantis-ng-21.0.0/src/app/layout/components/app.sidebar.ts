@@ -13,13 +13,13 @@ const BREAKPOINT = 992;
     template: `
         <div #sidebarRef class="layout-sidebar" (mouseenter)="onMouseEnter()" (mouseleave)="onMouseLeave()">
             <div class="sidebar-header">
-                <a [routerLink]="['/']" class="app-logo" style="cursor: pointer">
+                <a [routerLink]="['/cms/homepage/hero']" class="app-logo" style="cursor: pointer">
                     <div class="app-logo-small h-8">
-                        <img class="inline-block!" [src]="'/demo/images/logo-' + logo() + '.png'" />
+                        <span class="text-2xl font-bold text-primary">MS</span>
                     </div>
-                    <div class="app-logo-normal">
-                        <img class="h-8 inline-block!" [src]="'/demo/images/logo-' + logo() + '.png'" />
-                        <img class="h-8 ml-4 inline-block!" [src]="'/demo/images/appname-' + logo() + '.png'" />
+                    <div class="app-logo-normal flex items-center">
+                        <span class="text-2xl font-bold text-primary">MS</span>
+                        <span class="text-xl font-semibold ml-3">Malik Seed</span>
                     </div>
                 </a>
                 <button class="layout-sidebar-anchor p-link z-20 hover:cursor-pointer" type="button" (click)="onAnchorToggle()"></button>

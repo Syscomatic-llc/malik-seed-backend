@@ -30,7 +30,9 @@
                         ],
                         "styles": [
                             "src/assets/styles.scss",
-                            "src/assets/tailwind.css"
+                            "src/assets/tailwind.css",
+                            "node_modules/quill/dist/quill.core.css",
+                            "node_modules/quill/dist/quill.bubble.css"
                         ],
                         "scripts": [],
                         "allowedCommonJsDependencies": [

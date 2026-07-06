@@ -14,6 +14,10 @@ class NewsCategory(str, enum.Enum):
     PARTNERSHIP = "partnership"
     SUSTAINABILITY = "sustainability"
     RESEARCH = "research"
+    RESEARCH_TRIALS = "research-trials"
+    FARMER_STORIES = "farmer-stories"
+    INNOVATION = "innovation"
+    COMMUNITY_PROGRAMS = "community-programs"
 
 
 class NewsArticle(Base):
@@ -35,7 +39,7 @@ class NewsArticle(Base):
     video_thumbnail = Column(String(500), nullable=True)
 
     # Category & Tags
-    category = Column(Enum(NewsCategory), default=NewsCategory.COMPANY, nullable=False)
+    category = Column(String(100), nullable=False, default="company")
     tags = Column(JSON, default=list)
 
     # Author

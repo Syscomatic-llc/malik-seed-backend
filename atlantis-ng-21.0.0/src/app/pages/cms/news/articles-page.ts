@@ -9,6 +9,7 @@ import { TableModule } from 'primeng/table';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
+import { EditorModule } from 'primeng/editor';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { ToolbarModule } from 'primeng/toolbar';
@@ -23,7 +24,7 @@ import { ConfirmationService } from 'primeng/api';
     standalone: true,
     imports: [
         CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
-        DialogModule, InputTextModule, TextareaModule, ToastModule, ToolbarModule,
+        DialogModule, InputTextModule, TextareaModule, EditorModule, ToastModule, ToolbarModule,
         ToggleSwitchModule, TagModule, SelectModule, ConfirmDialogModule, ImageUpload
     ],
     providers: [MessageService, ConfirmationService],
@@ -78,7 +79,7 @@ import { ConfirmationService } from 'primeng/api';
             </p-table>
         </div>
 
-        <p-dialog [(visible)]="dialog" [style]="{ width: '650px' }" header="Article Details" [modal]="true">
+        <p-dialog [(visible)]="dialog" [style]="{ width: '900px' }" header="Article Details" [modal]="true">
             <ng-template #content>
                 <div class="flex flex-col gap-4">
                     <div>
@@ -95,7 +96,7 @@ import { ConfirmationService } from 'primeng/api';
                     </div>
                     <div>
                         <label class="block font-bold mb-2">Content</label>
-                        <textarea pTextarea [(ngModel)]="article.content" rows="5" fluid></textarea>
+                        <p-editor [(ngModel)]="article.content" [style]="{ height: '320px' }" />
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>

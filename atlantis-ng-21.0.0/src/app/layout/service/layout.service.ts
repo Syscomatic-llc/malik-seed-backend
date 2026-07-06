@@ -35,7 +35,7 @@ export class LayoutService {
         preset: 'Aura',
         primary: 'emerald',
         surface: null,
-        darkTheme: true,
+        darkTheme: false,
         menuMode: 'static'
     });
 
