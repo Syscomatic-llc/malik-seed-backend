@@ -1,0 +1,47 @@
+{
+  "homepage": {
+    "hero_slides": [],
+    "about": {},
+    "services": [],
+    "brands": [],
+    "testimonials": [],
+    "partners": [],
+    "cta_banner": {}
+  },
+  "our_story": {
+    "hero": {},
+    "mission": {},
+    "values": [],
+    "timeline": [],
+    "team": [],
+    "awards": []
+  },
+  "our_brands": {
+    "brands": [],
+    "flower_portfolio": [],
+    "training_centres": [],
+    "products": []
+  },
+  "our_gallery": {
+    "categories": [],
+    "items": [],
+    "videos": []
+  },
+  "hiring": {
+    "positions": [],
+    "benefits": [],
+    "testimonials": [],
+    "page_content": {}
+  },
+  "contact": {
+    "info": {},
+    "faqs": [],
+    "locations": []
+  },
+  "news": {
+    "articles": [],
+    "categories": [],
+    "press_releases": []
+  },
+  "site_settings": {}
+}
