@@ -21,7 +21,7 @@ Deploy or rebuild on the VPS:
 ```bash
 docker compose down --remove-orphans
 docker compose up -d --build --force-recreate
-docker compose logs -f backend
+docker compose logs -f postgres backend
 ```
 
 If Postgres is unhealthy after changing `POSTGRES_DB`, `POSTGRES_USER`, or
@@ -38,6 +38,15 @@ docker compose logs -f postgres backend
 Do not downgrade the Postgres image after a volume has been created. A volume
 initialized by Postgres 17 must keep using `postgres:17` unless you dump and
 restore the database into another version.
+
+This compose file uses the volume `malikseed-postgres17-data`. If an older
+broken container keeps restarting, remove it before deploying:
+
+```bash
+docker rm -f malikseed-postgres malik-seed-backend malik-seed-frontend 2>/dev/null || true
+docker compose up -d --build --force-recreate
+docker compose logs -f postgres backend
+```
 
 The backend is exposed on host port `9000`, and the frontend is exposed on host
 port `6500`.

@@ -13,7 +13,7 @@ services:
       - "5432"
 
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres17_data:/var/lib/postgresql/data
 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432"]
@@ -94,7 +94,8 @@ services:
       - malik-seed-network
 
 volumes:
-  postgres_data:
+  postgres17_data:
+    name: malikseed-postgres17-data
 
 networks:
   malik-seed-network:
