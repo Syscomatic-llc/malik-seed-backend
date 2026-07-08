@@ -11,6 +11,7 @@ import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { DividerModule } from 'primeng/divider';
+import { environment } from '@/environments/environment';
 
 @Component({
     selector: 'app-settings-page',
@@ -87,7 +88,7 @@ import { DividerModule } from 'primeng/divider';
                 <p-card header="SEO Preview" styleClass="h-full">
                     <div class="flex flex-col gap-3">
                         <div *ngIf="settings.logo_url" class="flex justify-center">
-                            <img [src]="'http://localhost:8000/' + settings.logo_url" 
+                            <img [src]="mediaBaseUrl + settings.logo_url"
                                 alt="Logo" class="h-16 object-contain" />
                         </div>
                         <h3 class="text-xl font-bold">{{settings.site_name}}</h3>
@@ -111,6 +112,7 @@ import { DividerModule } from 'primeng/divider';
 export class SettingsPage implements OnInit {
     settings: any = {};
     saving = false;
+    mediaBaseUrl = environment.mediaBaseUrl;
 
     constructor(
         private api: MalikApiService,

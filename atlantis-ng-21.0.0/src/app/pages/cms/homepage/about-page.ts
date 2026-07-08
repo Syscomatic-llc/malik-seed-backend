@@ -9,6 +9,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
+import { environment } from '@/environments/environment';
 
 @Component({
     selector: 'app-about-page',
@@ -55,7 +56,7 @@ import { MessageService } from 'primeng/api';
                 <p-card header="Preview" styleClass="h-full">
                     <div class="flex flex-col gap-3">
                         <div *ngIf="about.image_url">
-                            <img [src]="'http://localhost:8000/' + about.image_url" 
+                            <img [src]="mediaBaseUrl + about.image_url"
                                 alt="About" class="w-full rounded-lg shadow-sm" />
                         </div>
                         <h3 class="text-xl font-bold">{{about.title}}</h3>
@@ -89,6 +90,7 @@ export class AboutPage implements OnInit {
     };
     stats: any[] = [];
     saving = false;
+    mediaBaseUrl = environment.mediaBaseUrl;
 
     constructor(
         private api: MalikApiService,

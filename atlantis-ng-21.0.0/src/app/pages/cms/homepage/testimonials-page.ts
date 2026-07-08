@@ -15,6 +15,7 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { Rating } from 'primeng/rating';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
+import { environment } from '@/environments/environment';
 
 @Component({
     selector: 'app-testimonials-page',
@@ -52,7 +53,7 @@ import { ConfirmationService } from 'primeng/api';
                     <tr>
                         <td>{{item.id}}</td>
                         <td>
-                            <img *ngIf="item.avatar_url" [src]="'http://localhost:8000/' + item.avatar_url" 
+                            <img *ngIf="item.avatar_url" [src]="mediaBaseUrl + item.avatar_url"
                                 alt="{{item.name}}" class="w-10 h-10 rounded-full object-cover" />
                             <span *ngIf="!item.avatar_url" class="text-muted-color">No avatar</span>
                         </td>
@@ -114,6 +115,7 @@ export class TestimonialsPage implements OnInit {
     dialog = false;
     testimonial: HomepageTestimonial = { name: '', content: '' };
     saving = false;
+    mediaBaseUrl = environment.mediaBaseUrl;
 
     constructor(
         private api: MalikApiService,

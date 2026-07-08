@@ -17,6 +17,7 @@ import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
+import { environment } from '@/environments/environment';
 
 
 @Component({
@@ -56,7 +57,7 @@ import { ConfirmationService } from 'primeng/api';
                     <tr>
                         <td>{{item.id}}</td>
                         <td>
-                            <img *ngIf="item.logo_url" [src]="'http://localhost:8000/' + item.logo_url" 
+                            <img *ngIf="item.logo_url" [src]="mediaBaseUrl + item.logo_url"
                                 alt="{{item.name}}" class="w-12 h-12 object-contain rounded" />
                             <span *ngIf="!item.logo_url" class="text-muted-color">No logo</span>
                         </td>
@@ -129,6 +130,7 @@ export class BrandsListPage implements OnInit {
     dialog = false;
     brand: OurBrand = { name: '', slug: '', category: '' };
     saving = false;
+    mediaBaseUrl = environment.mediaBaseUrl;
     categories = signal<{ label: string; value: string }[]>([]);
 
     constructor(

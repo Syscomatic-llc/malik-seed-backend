@@ -9,6 +9,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
+import { environment } from '@/environments/environment';
 
 @Component({
     selector: 'app-mission-page',
@@ -40,7 +41,7 @@ import { MessageService } from 'primeng/api';
                 <p-card header="Preview" styleClass="h-full">
                     <div class="flex flex-col gap-3">
                         <div *ngIf="mission.image_url">
-                            <img [src]="'http://localhost:8000/' + mission.image_url" 
+                            <img [src]="mediaBaseUrl + mission.image_url"
                                 alt="Mission" class="w-full rounded-lg shadow-sm" />
                         </div>
                         <h3 class="text-xl font-bold">{{mission.title}}</h3>
@@ -57,6 +58,7 @@ import { MessageService } from 'primeng/api';
 export class MissionPage implements OnInit {
     mission: OurStoryMission = { title: '', description: '' };
     saving = false;
+    mediaBaseUrl = environment.mediaBaseUrl;
 
     constructor(
         private api: MalikApiService,

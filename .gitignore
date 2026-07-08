@@ -20,6 +20,9 @@ build/
 .venv/
 venv/
 
+# Docker runtime data
+/data/
+
 # Uploads
 uploads/*
 !uploads/.gitkeep

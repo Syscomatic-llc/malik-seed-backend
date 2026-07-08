@@ -9,6 +9,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
+import { environment } from '@/environments/environment';
 
 @Component({
     selector: 'app-story-hero-page',
@@ -44,7 +45,7 @@ import { MessageService } from 'primeng/api';
                 <p-card header="Preview" styleClass="h-full">
                     <div class="flex flex-col gap-3">
                         <div *ngIf="hero.background_image" class="relative">
-                            <img [src]="'http://localhost:8000/' + hero.background_image" 
+                            <img [src]="mediaBaseUrl + hero.background_image"
                                 alt="Hero" class="w-full rounded-lg shadow-sm" />
                             <div class="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center">
                                 <div class="text-center text-white p-4">
@@ -66,6 +67,7 @@ import { MessageService } from 'primeng/api';
 export class StoryHeroPage implements OnInit {
     hero: OurStoryHero = { title: '' };
     saving = false;
+    mediaBaseUrl = environment.mediaBaseUrl;
 
     constructor(
         private api: MalikApiService,

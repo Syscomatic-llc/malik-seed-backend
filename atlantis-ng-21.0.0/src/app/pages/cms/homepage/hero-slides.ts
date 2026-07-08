@@ -17,6 +17,7 @@ import { MessageService } from 'primeng/api';
 import { ToolbarModule } from 'primeng/toolbar';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
+import { environment } from '@/environments/environment';
 
 @Component({
     selector: 'app-hero-slides',
@@ -68,7 +69,7 @@ import { ConfirmationService } from 'primeng/api';
                         <td>{{slide.title}}</td>
                         <td>{{slide.subtitle}}</td>
                         <td>
-                            <img *ngIf="slide.background_image" [src]="'http://localhost:8000/' + slide.background_image" 
+                            <img *ngIf="slide.background_image" [src]="mediaBaseUrl + slide.background_image"
                                 [alt]="slide.title" style="width: 64px" class="rounded shadow-sm" />
                             <span *ngIf="!slide.background_image" class="text-muted-color">No image</span>
                         </td>
@@ -141,6 +142,7 @@ export class HeroSlidesPage implements OnInit {
     slide: HeroSlide = { title: '' };
     submitted = false;
     saving = false;
+    mediaBaseUrl = environment.mediaBaseUrl;
 
     constructor(
         private api: MalikApiService,

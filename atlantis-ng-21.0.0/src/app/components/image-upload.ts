@@ -5,6 +5,7 @@ import { ButtonModule } from 'primeng/button';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { MalikApiService } from '@/app/services/malik-api.service';
 import { MessageService } from 'primeng/api';
+import { environment } from '@/environments/environment';
 
 export interface UploadResult {
     url: string;
@@ -58,9 +59,9 @@ export class ImageUpload {
 
     get imageSrc(): string {
         if (!this.currentImage) return '';
-        return this.currentImage.startsWith('http') 
-            ? this.currentImage 
-            : `http://localhost:8000/${this.currentImage}`;
+        return this.currentImage.startsWith('http')
+            ? this.currentImage
+            : `${environment.mediaBaseUrl}${this.currentImage}`;
     }
 
     onUpload(event: any) {

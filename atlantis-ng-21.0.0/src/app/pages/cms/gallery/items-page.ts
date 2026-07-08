@@ -17,6 +17,7 @@ import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
+import { environment } from '@/environments/environment';
 
 @Component({
     selector: 'app-gallery-items-page',
@@ -54,7 +55,7 @@ import { ConfirmationService } from 'primeng/api';
                     <tr>
                         <td>{{item.id}}</td>
                         <td>
-                            <img *ngIf="item.image_url" [src]="'http://localhost:8000/' + item.image_url" 
+                            <img *ngIf="item.image_url" [src]="mediaBaseUrl + item.image_url"
                                 alt="{{item.title}}" class="w-16 h-12 object-cover rounded" />
                             <span *ngIf="!item.image_url" class="text-muted-color">No image</span>
                         </td>
@@ -115,6 +116,7 @@ export class GalleryItemsPage implements OnInit {
     dialog = false;
     item: GalleryItem = { title: '', image_url: '', category: '' };
     saving = false;
+    mediaBaseUrl = environment.mediaBaseUrl;
 
     constructor(
         private api: MalikApiService,

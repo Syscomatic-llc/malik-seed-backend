@@ -15,6 +15,7 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { SelectModule } from 'primeng/select';
+import { environment } from '@/environments/environment';
 
 @Component({
     selector: 'app-brands-page',
@@ -53,7 +54,7 @@ import { SelectModule } from 'primeng/select';
                     <tr>
                         <td>{{brand.id}}</td>
                         <td>
-                            <img *ngIf="brand.logo_url" [src]="'http://localhost:8000/' + brand.logo_url" 
+                            <img *ngIf="brand.logo_url" [src]="mediaBaseUrl + brand.logo_url"
                                 alt="{{brand.name}}" class="w-16 h-16 object-contain rounded" />
                             <span *ngIf="!brand.logo_url" class="text-muted-color">No logo</span>
                         </td>
@@ -122,6 +123,7 @@ export class BrandsPage implements OnInit {
     brandDialog = false;
     brand: HomepageBrand = { name: '', slug: '' };
     saving = false;
+    mediaBaseUrl = environment.mediaBaseUrl;
 
     constructor(
         private api: MalikApiService,

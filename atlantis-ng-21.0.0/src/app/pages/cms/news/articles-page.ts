@@ -18,6 +18,7 @@ import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
+import { environment } from '@/environments/environment';
 
 @Component({
     selector: 'app-articles-page',
@@ -56,7 +57,7 @@ import { ConfirmationService } from 'primeng/api';
                     <tr>
                         <td>{{item.id}}</td>
                         <td>
-                            <img *ngIf="item.featured_image" [src]="'http://localhost:8000/' + item.featured_image" 
+                            <img *ngIf="item.featured_image" [src]="mediaBaseUrl + item.featured_image"
                                 alt="{{item.title}}" class="w-16 h-12 object-cover rounded" />
                             <span *ngIf="!item.featured_image" class="text-muted-color">No image</span>
                         </td>
@@ -132,6 +133,7 @@ export class ArticlesPage implements OnInit {
     dialog = false;
     article: NewsArticle = { title: '', slug: '', content: '', category: '' };
     saving = false;
+    mediaBaseUrl = environment.mediaBaseUrl;
 
     constructor(
         private api: MalikApiService,
