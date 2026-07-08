@@ -13,7 +13,7 @@ For Docker deployment, do not set `DATABASE_URL` to `localhost` or `127.0.0.1`.
 The compose file builds the correct internal URL automatically:
 
 ```text
-postgres:5432
+malikseed-postgres:5432
 ```
 
 Deploy or rebuild on the VPS:
