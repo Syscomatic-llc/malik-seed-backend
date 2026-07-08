@@ -1,17 +1,49 @@
+version: "3.9"
+
 services:
+
+  postgres:
+    image: postgres:17
+
+    container_name: malikseed-postgres
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: malikseed
+      POSTGRES_USER: malikseed
+      POSTGRES_PASSWORD: password123
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    networks:
+      - malik-seed-network
+
   backend:
     build:
       context: .
       dockerfile: Dockerfile
+
     container_name: malik-seed-backend
+
     restart: unless-stopped
-    ports:
-      - "9000:8000"
+
     env_file:
       - .env
+
+    ports:
+      - "9000:8000"
+
+    depends_on:
+      - postgres
+
     volumes:
-      - ./data/db:/app/data
       - ./data/uploads:/app/uploads
+
     networks:
       - malik-seed-network
 
@@ -20,16 +52,24 @@ services:
       context: ./atlantis-ng-21.0.0
       dockerfile: Dockerfile
       args:
-        - API_BASE_URL=https://apimalikseed.syscomatic.cloud/api/v1
-        - MEDIA_BASE_URL=https://apimalikseed.syscomatic.cloud/
+        API_BASE_URL: https://apimalikseed.syscomatic.cloud/api/v1
+        MEDIA_BASE_URL: https://apimalikseed.syscomatic.cloud/
+
     container_name: malik-seed-frontend
+
     restart: unless-stopped
+
     ports:
       - "6500:80"
+
     depends_on:
       - backend
+
     networks:
       - malik-seed-network
+
+volumes:
+  postgres_data:
 
 networks:
   malik-seed-network:
