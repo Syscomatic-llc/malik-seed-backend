@@ -35,5 +35,9 @@ docker compose up -d --build --force-recreate
 docker compose logs -f postgres backend
 ```
 
+Do not downgrade the Postgres image after a volume has been created. A volume
+initialized by Postgres 17 must keep using `postgres:17` unless you dump and
+restore the database into another version.
+
 The backend is exposed on host port `9000`, and the frontend is exposed on host
 port `6500`.
