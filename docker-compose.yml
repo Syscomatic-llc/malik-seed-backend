@@ -25,7 +25,7 @@ services:
     container_name: malik-seed-frontend
     restart: unless-stopped
     ports:
-      - "3000:80"
+      - "6500:80"
     depends_on:
       - backend
     networks:
