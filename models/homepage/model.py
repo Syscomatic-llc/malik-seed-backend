@@ -155,7 +155,7 @@ class HomepageTimeline(Base):
     __tablename__ = "homepage_timelines"
 
     id = Column(Integer, primary_key=True, index=True)
-    year = Column(String(20), nullable=False)
+    year = Column(String(50), nullable=False)
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
     image_url = Column(String(500), nullable=True)

@@ -70,11 +70,13 @@ pip install -r requirements.txt
 
 ## 5. Run Migrations & Seed Demo Data
 
+### If running directly on the server (venv)
+
 ```bash
 cd /var/www/malik-seed-backend
 source venv/bin/activate
 
-# Add missing columns to existing tables (safe to run multiple times)
+# Add missing columns / resize columns (safe to run multiple times)
 python migrate.py
 
 # Seed demo data (skip if already seeded)
@@ -82,6 +84,21 @@ python seed_figma_data.py
 
 # Force re-seed if you want fresh demo data (WARNING: clears existing data)
 # python seed_figma_data.py --force
+```
+
+### If running with Docker Compose
+
+Run migrations and seeding manually inside the running backend container:
+
+```bash
+# Add missing columns / resize columns (safe to run multiple times)
+docker compose exec backend python migrate.py
+
+# Seed demo data
+docker compose exec backend python seed_figma_data.py
+
+# Force re-seed (WARNING: clears existing data)
+docker compose exec backend python seed_figma_data.py --force
 ```
 
 ---
