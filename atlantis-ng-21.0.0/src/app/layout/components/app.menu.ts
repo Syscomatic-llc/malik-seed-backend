@@ -65,6 +65,11 @@ export class AppMenu {
                     label: 'CTA Banners',
                     icon: 'pi pi-fw pi-megaphone',
                     routerLink: ['/cms/homepage/cta']
+                },
+                {
+                    label: 'Development Partners',
+                    icon: 'pi pi-fw pi-users',
+                    routerLink: ['/cms/homepage/partners']
                 }
             ]
         },

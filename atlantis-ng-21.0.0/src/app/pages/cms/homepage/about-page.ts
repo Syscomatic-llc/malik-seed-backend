@@ -1,8 +1,9 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MalikApiService, HomepageAbout } from '@/app/services/malik-api.service';
 import { ImageUpload } from '@/app/components/image-upload';
+import { ImageGalleryUpload } from '@/app/components/image-gallery-upload';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -16,7 +17,7 @@ import { environment } from '@/environments/environment';
     standalone: true,
     imports: [
         CommonModule, FormsModule, CardModule, ButtonModule,
-        InputTextModule, TextareaModule, ToastModule, ImageUpload
+        InputTextModule, TextareaModule, ToastModule, ImageUpload, ImageGalleryUpload
     ],
     providers: [MessageService],
     template: `
@@ -38,8 +39,12 @@ import { environment } from '@/environments/environment';
                             <textarea pTextarea [(ngModel)]="about.description" rows="6" fluid></textarea>
                         </div>
                         <div>
-                            <app-image-upload label="About Image" folder="homepage"
+                            <app-image-upload label="Primary / Hero Image" folder="homepage"
                                 [(currentImage)]="about.image_url" />
+                        </div>
+                        <div>
+                            <app-image-gallery-upload label="Additional Gallery Images" folder="homepage"
+                                [(images)]="galleryImages" />
                         </div>
                         <div>
                             <label class="block font-bold mb-2">CTA Text</label>
@@ -61,6 +66,10 @@ import { environment } from '@/environments/environment';
                         </div>
                         <h3 class="text-xl font-bold">{{about.title}}</h3>
                         <p class="text-muted-color">{{about.description}}</p>
+                        <div *ngIf="galleryImages.length" class="grid grid-cols-3 gap-2">
+                            <img *ngFor="let img of galleryImages" [src]="mediaBaseUrl + img"
+                                class="w-full h-20 object-cover rounded" />
+                        </div>
                         <p-button [label]="about.cta_text" icon="pi pi-arrow-right" />
                     </div>
                 </p-card>
@@ -88,6 +97,7 @@ export class AboutPage implements OnInit {
         cta_text: 'Learn More',
         cta_link: '/our-story'
     };
+    galleryImages: string[] = [];
     stats: any[] = [];
     saving = false;
     mediaBaseUrl = environment.mediaBaseUrl;
@@ -105,6 +115,7 @@ export class AboutPage implements OnInit {
         this.api.getAbout().subscribe({
             next: (data: any) => {
                 this.about = data;
+                this.galleryImages = this.parseJsonArray(data?.gallery_images);
                 if (data.stats) {
                     try {
                         this.stats = typeof data.stats === 'string' ? JSON.parse(data.stats) : data.stats;
@@ -125,9 +136,9 @@ export class AboutPage implements OnInit {
 
     saveAbout() {
         this.saving = true;
-        const data = { ...this.about, stats: this.stats };
+        const data = { ...this.about, gallery_images: this.galleryImages, stats: this.stats };
         const id = this.about.id;
-        const request = id 
+        const request = id
             ? this.api.adminUpdate('homepage-about', id, data)
             : this.api.adminCreate('homepage-about', data);
 
@@ -151,5 +162,16 @@ export class AboutPage implements OnInit {
                 });
             }
         });
+    }
+
+    private parseJsonArray(value: any): string[] {
+        if (!value) return [];
+        if (Array.isArray(value)) return value;
+        try {
+            const parsed = JSON.parse(value);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            return [];
+        }
     }
 }

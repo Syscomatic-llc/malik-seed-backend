@@ -29,6 +29,7 @@ export interface HomepageAbout {
   description: string;
   image_url?: string;
   video_url?: string;
+  gallery_images?: string[];
   stats?: any[];
   cta_text?: string;
   cta_link?: string;
@@ -61,6 +62,7 @@ export interface HomepageTimeline {
   title: string;
   description?: string;
   image_url?: string;
+  gallery_images?: string[];
   is_milestone?: boolean;
   sort_order?: number;
 }
@@ -99,6 +101,16 @@ export interface HomepageBrand {
   category?: string;
   is_active?: boolean;
   is_featured?: boolean;
+  sort_order?: number;
+}
+
+export interface HomepagePartner {
+  id?: number;
+  name: string;
+  logo_url?: string;
+  logo_white_url?: string;
+  website_url?: string;
+  is_active?: boolean;
   sort_order?: number;
 }
 
@@ -249,6 +261,11 @@ export interface NewsCategory {
   name: string;
   slug: string;
   description?: string;
+  image_url?: string;
+  icon?: string;
+  is_active?: boolean;
+  sort_order?: number;
+  article_count?: number;
 }
 
 // ============ AUTH TYPES ============
@@ -314,6 +331,10 @@ export class MalikApiService {
 
   getHomepageBrands(): Observable<HomepageBrand[]> {
     return this.http.get<HomepageBrand[]>(`${this.apiUrl}/homepage/brands`);
+  }
+
+  getPartners(): Observable<HomepagePartner[]> {
+    return this.http.get<HomepagePartner[]>(`${this.apiUrl}/homepage/partners`);
   }
 
   getBrandCategories(): Observable<{ label: string; value: string }[]> {

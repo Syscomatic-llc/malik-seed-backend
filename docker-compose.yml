@@ -76,8 +76,8 @@ services:
       context: ./atlantis-ng-21.0.0
       dockerfile: Dockerfile
       args:
-        API_BASE_URL: https://apimalikseed.syscomatic.cloud/api/v1
-        MEDIA_BASE_URL: https://apimalikseed.syscomatic.cloud/
+        API_BASE_URL: ${API_BASE_URL:-https://apimalikseed.syscomatic.cloud/api/v1}
+        MEDIA_BASE_URL: ${MEDIA_BASE_URL:-https://apimalikseed.syscomatic.cloud/}
 
     container_name: malik-seed-frontend
 

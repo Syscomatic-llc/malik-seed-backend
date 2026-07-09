@@ -1,11 +1,15 @@
 from contextlib import asynccontextmanager
+import os
+import mimetypes
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 
 from api.v1.api import router as api_router
 from core.database import create_tables
+from core.config import get_upload_directory
 
 
 @asynccontextmanager
@@ -38,8 +42,37 @@ app.add_middleware(
 # Include API routes
 app.include_router(api_router, prefix="/api/v1")
 
-# Static files for uploads
+# Static files for uploads (kept as fallback)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+
+@app.get("/media/{path:path}")
+async def serve_media(path: str):
+    """Serve uploaded media with explicit headers to avoid HTTP/2 proxy issues."""
+    upload_dir = get_upload_directory()
+    file_path = os.path.abspath(os.path.join(upload_dir, path))
+
+    # Security: prevent path traversal
+    if not file_path.startswith(os.path.abspath(upload_dir)):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    media_type, _ = mimetypes.guess_type(file_path)
+    if not media_type:
+        media_type = "application/octet-stream"
+
+    headers = {
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "Accept-Ranges": "bytes",
+    }
+
+    return FileResponse(
+        file_path,
+        media_type=media_type,
+        headers=headers,
+    )
 
 
 @app.get("/")

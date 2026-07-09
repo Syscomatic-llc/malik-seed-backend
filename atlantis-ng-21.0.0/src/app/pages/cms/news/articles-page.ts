@@ -48,7 +48,7 @@ import { environment } from '@/environments/environment';
                         <th>Title</th>
                         <th>Category</th>
                         <th>Author</th>
-                        <th>Published</th>
+                        <th>Status</th>
                         <th>Date</th>
                         <th>Actions</th>
                     </tr>
@@ -65,12 +65,12 @@ import { environment } from '@/environments/environment';
                         <td><p-tag [value]="item.category" severity="info" /></td>
                         <td>{{item.author_name}}</td>
                         <td>
-                            <p-tag [value]="item.is_published ? 'Yes' : 'No'" 
-                                [severity]="item.is_published ? 'success' : 'danger'" />
+                            <p-tag [value]="item.is_published ? 'Published' : 'Draft'"
+                                [severity]="item.is_published ? 'success' : 'warn'" />
                         </td>
                         <td>{{item.published_at | date:'mediumDate'}}</td>
                         <td>
-                            <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" 
+                            <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true"
                                 (onClick)="editArticle(item)" />
                             <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
                                 (onClick)="deleteArticle(item)" />
@@ -102,7 +102,7 @@ import { environment } from '@/environments/environment';
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block font-bold mb-2">Category</label>
-                            <p-select [options]="categories()" [(ngModel)]="article.category" 
+                            <p-select [options]="categories()" [(ngModel)]="article.category"
                                 optionLabel="name" optionValue="name" placeholder="Select Category" fluid appendTo="body" />
                         </div>
                         <div>
@@ -147,14 +147,14 @@ export class ArticlesPage implements OnInit {
     }
 
     loadArticles() {
-        this.api.getArticles().subscribe({
+        this.api.adminList('news-article').subscribe({
             next: (data) => this.articles.set(data),
             error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load articles' })
         });
     }
 
     loadCategories() {
-        this.api.getNewsCategories().subscribe({
+        this.api.adminList('news-category').subscribe({
             next: (data) => this.categories.set(data),
             error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load categories' })
         });
@@ -177,7 +177,13 @@ export class ArticlesPage implements OnInit {
     saveArticle() {
         if (!this.article.title?.trim() || !this.article.slug?.trim()) return;
         this.saving = true;
-        const data = { ...this.article };
+        const data: any = { ...this.article };
+
+        // Auto-set published_at when publishing for the first time
+        if (data.is_published && !data.published_at) {
+            data.published_at = new Date().toISOString();
+        }
+
         const request = data.id
             ? this.api.adminUpdate('news-article', data.id, data)
             : this.api.adminCreate('news-article', data);

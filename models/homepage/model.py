@@ -47,6 +47,7 @@ class HomepageAbout(Base):
     image_url = Column(String(500), nullable=True)
     video_url = Column(String(500), nullable=True)
     video_thumbnail = Column(String(500), nullable=True)
+    gallery_images = Column(JSON, default=list)
 
     # Stats counters
     stats = Column(JSON, default=list)
@@ -158,6 +159,7 @@ class HomepageTimeline(Base):
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
     image_url = Column(String(500), nullable=True)
+    gallery_images = Column(JSON, default=list)
 
     # Highlight/milestone
     is_milestone = Column(Boolean, default=False)

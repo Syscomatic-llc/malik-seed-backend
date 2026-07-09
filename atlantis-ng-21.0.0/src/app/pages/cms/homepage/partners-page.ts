@@ -1,13 +1,13 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MalikApiService, NewsCategory } from '@/app/services/malik-api.service';
+import { MalikApiService, HomepagePartner } from '@/app/services/malik-api.service';
+import { ImageUpload } from '@/app/components/image-upload';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
-import { TextareaModule } from 'primeng/textarea';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
@@ -16,15 +16,15 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TagModule } from 'primeng/tag';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
+import { environment } from '@/environments/environment';
 
 @Component({
-    selector: 'app-news-categories-page',
+    selector: 'app-partners-page',
     standalone: true,
     imports: [
         CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
-        DialogModule, InputTextModule, TextareaModule, InputNumberModule,
-        ToastModule, ToolbarModule, ToggleSwitchModule, TagModule,
-        ConfirmDialogModule
+        DialogModule, InputTextModule, InputNumberModule, ToastModule, ToolbarModule,
+        ToggleSwitchModule, TagModule, ConfirmDialogModule, ImageUpload
     ],
     providers: [MessageService, ConfirmationService],
     template: `
@@ -33,18 +33,18 @@ import { ConfirmationService } from 'primeng/api';
         <div class="card">
             <p-toolbar styleClass="mb-4">
                 <ng-template #start>
-                    <p-button label="New Category" icon="pi pi-plus" severity="success" class="mr-2" (onClick)="openNew()" />
+                    <p-button label="New Partner" icon="pi pi-plus" severity="success" class="mr-2" (onClick)="openNew()" />
                 </ng-template>
             </p-toolbar>
 
-            <p-table [value]="categories()" [rows]="10" [paginator]="true"
-                [tableStyle]="{ 'min-width': '75rem' }">
+            <p-table [value]="partners()" [rows]="10" [paginator]="true"
+                [tableStyle]="{ 'min-width': '60rem' }">
                 <ng-template #header>
                     <tr>
                         <th>ID</th>
+                        <th>Logo</th>
                         <th>Name</th>
-                        <th>Slug</th>
-                        <th>Description</th>
+                        <th>Website</th>
                         <th>Order</th>
                         <th>Active</th>
                         <th>Actions</th>
@@ -53,9 +53,18 @@ import { ConfirmationService } from 'primeng/api';
                 <ng-template #body let-item>
                     <tr>
                         <td>{{item.id}}</td>
+                        <td>
+                            <img *ngIf="item.logo_url" [src]="mediaBaseUrl + item.logo_url"
+                                alt="{{item.name}}" class="h-12 w-auto object-contain" />
+                            <span *ngIf="!item.logo_url" class="text-muted-color">No logo</span>
+                        </td>
                         <td>{{item.name}}</td>
-                        <td>{{item.slug}}</td>
-                        <td>{{item.description}}</td>
+                        <td>
+                            <a *ngIf="item.website_url && item.website_url !== '#'" [href]="item.website_url" target="_blank" class="text-primary hover:underline">
+                                {{item.website_url}}
+                            </a>
+                            <span *ngIf="!item.website_url || item.website_url === '#'" class="text-muted-color">-</span>
+                        </td>
                         <td>{{item.sort_order}}</td>
                         <td>
                             <p-tag [value]="item.is_active ? 'Yes' : 'No'"
@@ -63,54 +72,55 @@ import { ConfirmationService } from 'primeng/api';
                         </td>
                         <td>
                             <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true"
-                                (onClick)="editCategory(item)" />
+                                (onClick)="editItem(item)" />
                             <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
-                                (onClick)="deleteCategory(item)" />
+                                (onClick)="deleteItem(item)" />
                         </td>
                     </tr>
                 </ng-template>
             </p-table>
         </div>
 
-        <p-dialog [(visible)]="dialog" [style]="{ width: '500px' }" header="Category Details" [modal]="true">
+        <p-dialog [(visible)]="dialog" [style]="{ width: '500px' }" header="Development Partner" [modal]="true">
             <ng-template #content>
                 <div class="flex flex-col gap-4">
                     <div>
                         <label class="block font-bold mb-2">Name</label>
-                        <input type="text" pInputText [(ngModel)]="category.name" fluid />
+                        <input type="text" pInputText [(ngModel)]="item.name" fluid />
                     </div>
                     <div>
-                        <label class="block font-bold mb-2">Slug</label>
-                        <input type="text" pInputText [(ngModel)]="category.slug" placeholder="category-name" fluid />
+                        <app-image-upload label="Logo" folder="partners"
+                            [(currentImage)]="item.logo_url" />
                     </div>
                     <div>
-                        <label class="block font-bold mb-2">Description</label>
-                        <textarea pTextarea [(ngModel)]="category.description" rows="2" fluid></textarea>
+                        <label class="block font-bold mb-2">Website URL</label>
+                        <input type="text" pInputText [(ngModel)]="item.website_url" placeholder="https://example.com" fluid />
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block font-bold mb-2">Sort Order</label>
-                            <p-inputnumber [(ngModel)]="category.sort_order" [min]="0" fluid />
+                            <p-inputnumber [(ngModel)]="item.sort_order" [min]="0" fluid />
                         </div>
                         <div class="flex items-center gap-2 pt-6">
                             <label class="font-bold">Active</label>
-                            <p-toggleSwitch [(ngModel)]="category.is_active" />
+                            <p-toggleSwitch [(ngModel)]="item.is_active" />
                         </div>
                     </div>
                 </div>
             </ng-template>
             <ng-template #footer>
                 <p-button label="Cancel" icon="pi pi-times" text (onClick)="hideDialog()" />
-                <p-button label="Save" icon="pi pi-check" (onClick)="saveCategory()" [loading]="saving" />
+                <p-button label="Save" icon="pi pi-check" (onClick)="saveItem()" [loading]="saving" />
             </ng-template>
         </p-dialog>
     `
 })
-export class NewsCategoriesPage implements OnInit {
-    categories = signal<NewsCategory[]>([]);
+export class PartnersPage implements OnInit {
+    partners = signal<HomepagePartner[]>([]);
     dialog = false;
-    category: NewsCategory = { name: '', slug: '' };
+    item: HomepagePartner = { name: '' };
     saving = false;
+    mediaBaseUrl = environment.mediaBaseUrl;
 
     constructor(
         private api: MalikApiService,
@@ -119,23 +129,23 @@ export class NewsCategoriesPage implements OnInit {
     ) {}
 
     ngOnInit() {
-        this.loadCategories();
+        this.loadPartners();
     }
 
-    loadCategories() {
-        this.api.adminList('news-category').subscribe({
-            next: (data) => this.categories.set(data),
-            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load categories' })
+    loadPartners() {
+        this.api.adminList('homepage-partner').subscribe({
+            next: (data) => this.partners.set(data),
+            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load partners' })
         });
     }
 
     openNew() {
-        this.category = { name: '', slug: '', is_active: true, sort_order: 0 };
+        this.item = { name: '', is_active: true, sort_order: 0 };
         this.dialog = true;
     }
 
-    editCategory(c: NewsCategory) {
-        this.category = { ...c };
+    editItem(p: HomepagePartner) {
+        this.item = { ...p };
         this.dialog = true;
     }
 
@@ -143,42 +153,42 @@ export class NewsCategoriesPage implements OnInit {
         this.dialog = false;
     }
 
-    saveCategory() {
-        if (!this.category.name?.trim() || !this.category.slug?.trim()) return;
+    saveItem() {
+        if (!this.item.name?.trim()) return;
         this.saving = true;
-        const data = { ...this.category };
+        const data = { ...this.item };
         const request = data.id
-            ? this.api.adminUpdate('news-category', data.id, data)
-            : this.api.adminCreate('news-category', data);
+            ? this.api.adminUpdate('homepage-partner', data.id, data)
+            : this.api.adminCreate('homepage-partner', data);
 
         request.subscribe({
             next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Category saved successfully', life: 3000 });
-                this.loadCategories();
+                this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Partner saved successfully', life: 3000 });
+                this.loadPartners();
                 this.dialog = false;
                 this.saving = false;
             },
             error: (err) => {
                 this.saving = false;
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to save category' });
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to save partner' });
             }
         });
     }
 
-    deleteCategory(c: NewsCategory) {
+    deleteItem(p: HomepagePartner) {
         this.confirmationService.confirm({
-            message: `Are you sure you want to delete "${c.name}"?`,
+            message: `Are you sure you want to delete "${p.name}"?`,
             header: 'Confirm Delete',
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
-                if (!c.id) return;
-                this.api.adminDelete('news-category', c.id).subscribe({
+                if (!p.id) return;
+                this.api.adminDelete('homepage-partner', p.id).subscribe({
                     next: () => {
-                        this.messageService.add({ severity: 'success', summary: 'Deleted', detail: 'Category deleted', life: 3000 });
-                        this.loadCategories();
+                        this.messageService.add({ severity: 'success', summary: 'Deleted', detail: 'Partner deleted', life: 3000 });
+                        this.loadPartners();
                     },
                     error: (err) => {
-                        this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to delete category' });
+                        this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to delete partner' });
                     }
                 });
             }

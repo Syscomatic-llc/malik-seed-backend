@@ -3,12 +3,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MalikApiService, HomepageTimeline } from '@/app/services/malik-api.service';
 import { ImageUpload } from '@/app/components/image-upload';
+import { ImageGalleryUpload } from '@/app/components/image-gallery-upload';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
+import { InputNumberModule } from 'primeng/inputnumber';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { ToolbarModule } from 'primeng/toolbar';
@@ -22,8 +24,9 @@ import { ConfirmationService } from 'primeng/api';
     standalone: true,
     imports: [
         CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
-        DialogModule, InputTextModule, TextareaModule, ToastModule, ToolbarModule,
-        ToggleSwitchModule, TagModule, ConfirmDialogModule, ImageUpload
+        DialogModule, InputTextModule, TextareaModule, InputNumberModule,
+        ToastModule, ToolbarModule, ToggleSwitchModule, TagModule,
+        ConfirmDialogModule, ImageUpload, ImageGalleryUpload
     ],
     providers: [MessageService, ConfirmationService],
     template: `
@@ -56,12 +59,12 @@ import { ConfirmationService } from 'primeng/api';
                         <td>{{item.title}}</td>
                         <td>{{item.description | slice:0:60}}...</td>
                         <td>
-                            <p-tag [value]="item.is_milestone ? 'Yes' : 'No'" 
+                            <p-tag [value]="item.is_milestone ? 'Yes' : 'No'"
                                 [severity]="item.is_milestone ? 'success' : 'secondary'" />
                         </td>
                         <td>{{item.sort_order}}</td>
                         <td>
-                            <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" 
+                            <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true"
                                 (onClick)="editItem(item)" />
                             <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
                                 (onClick)="deleteItem(item)" />
@@ -71,7 +74,7 @@ import { ConfirmationService } from 'primeng/api';
             </p-table>
         </div>
 
-        <p-dialog [(visible)]="dialog" [style]="{ width: '500px' }" header="Timeline Entry" [modal]="true">
+        <p-dialog [(visible)]="dialog" [style]="{ width: '560px' }" header="Timeline Entry" [modal]="true">
             <ng-template #content>
                 <div class="flex flex-col gap-4">
                     <div>
@@ -86,13 +89,25 @@ import { ConfirmationService } from 'primeng/api';
                         <label class="block font-bold mb-2">Description</label>
                         <textarea pTextarea [(ngModel)]="item.description" rows="3" fluid></textarea>
                     </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block font-bold mb-2">Sort Order</label>
+                            <p-inputnumber [(ngModel)]="item.sort_order" [min]="0" fluid />
+                        </div>
+                        <div class="flex items-end pb-2">
+                            <div class="flex items-center gap-2">
+                                <label class="font-bold">Milestone</label>
+                                <p-toggleSwitch [(ngModel)]="item.is_milestone" />
+                            </div>
+                        </div>
+                    </div>
                     <div>
-                        <app-image-upload label="Image" folder="homepage"
+                        <app-image-upload label="Primary Image" folder="homepage"
                             [(currentImage)]="item.image_url" />
                     </div>
                     <div>
-                        <label class="block font-bold mb-2">Milestone</label>
-                        <p-toggleSwitch [(ngModel)]="item.is_milestone" />
+                        <app-image-gallery-upload label="Gallery Images" folder="homepage"
+                            [(images)]="galleryImages" />
                     </div>
                 </div>
             </ng-template>
@@ -107,6 +122,7 @@ export class TimelinePage implements OnInit {
     timeline = signal<HomepageTimeline[]>([]);
     dialog = false;
     item: HomepageTimeline = { year: '', title: '' };
+    galleryImages: string[] = [];
     saving = false;
 
     constructor(
@@ -128,11 +144,13 @@ export class TimelinePage implements OnInit {
 
     openNew() {
         this.item = { year: '', title: '', is_milestone: false, sort_order: 0 };
+        this.galleryImages = [];
         this.dialog = true;
     }
 
     editItem(t: HomepageTimeline) {
         this.item = { ...t };
+        this.galleryImages = this.parseJsonArray(t.gallery_images);
         this.dialog = true;
     }
 
@@ -143,7 +161,7 @@ export class TimelinePage implements OnInit {
     saveItem() {
         if (!this.item.year?.trim() || !this.item.title?.trim()) return;
         this.saving = true;
-        const data = { ...this.item };
+        const data = { ...this.item, gallery_images: this.galleryImages };
         const request = data.id
             ? this.api.adminUpdate('homepage-timeline', data.id, data)
             : this.api.adminCreate('homepage-timeline', data);
@@ -180,5 +198,16 @@ export class TimelinePage implements OnInit {
                 });
             }
         });
+    }
+
+    private parseJsonArray(value: any): string[] {
+        if (!value) return [];
+        if (Array.isArray(value)) return value;
+        try {
+            const parsed = JSON.parse(value);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            return [];
+        }
     }
 }

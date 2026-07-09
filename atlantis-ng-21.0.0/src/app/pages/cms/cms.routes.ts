@@ -44,6 +44,11 @@ export default [
         loadComponent: () => import('./homepage/cta-page').then((c) => c.CTAPage),
         data: { breadcrumb: 'CTA Banners' }
     },
+    {
+        path: 'homepage/partners',
+        loadComponent: () => import('./homepage/partners-page').then((c) => c.PartnersPage),
+        data: { breadcrumb: 'Development Partners' }
+    },
 
     // ===== OUR STORY =====
     {

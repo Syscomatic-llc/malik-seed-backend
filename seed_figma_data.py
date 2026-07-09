@@ -8,7 +8,7 @@ from pathlib import Path
 from datetime import datetime
 
 from core.database import SessionLocal, Base, engine
-from models.site_settings.model import SiteSettings, MenuItem
+from models.site_settings.model import SiteSettings, MenuItem, SocialLink, PageSEO
 from models.homepage.model import (
     HomepageHeroSlide, HomepageAbout, HomepageService,
     HomepageBrand, HomepageTestimonial, HomepageTimeline,
@@ -19,16 +19,17 @@ from models.our_story.model import (
     OurStoryTimeline, OurStoryTeam, OurStoryAwards
 )
 from models.our_brands.model import OurBrand, FlowerPortfolio, TrainingCentre, BrandProduct
-from models.our_gallery.model import GalleryItem, GalleryCategory
-from models.hiring.model import JobPosition, CareerBenefit, HiringTestimonial, HiringPageContent
-from models.contact.model import ContactInfo, OfficeLocation, FAQ
-from models.news.model import NewsArticle, NewsCategoryModel, PressRelease
+from models.our_gallery.model import GalleryItem, GalleryCategory, GalleryVideo
+from models.hiring.model import JobPosition, JobApplication, AssessmentQuestion, CareerBenefit, HiringTestimonial, HiringPageContent
+from models.contact.model import ContactInfo, ContactMessage, OfficeLocation, FAQ
+from models.news.model import NewsArticle, NewsCategoryModel, PressRelease, NewsletterSubscriber
 
 
 def ensure_uploads_dir():
     """Create uploads directories"""
-    dirs = ['uploads/homepage', 'uploads/our_story', 'uploads/brands', 
-            'uploads/gallery', 'uploads/news', 'uploads/hiring', 'uploads/team']
+    dirs = ['uploads/homepage', 'uploads/our_story', 'uploads/brands',
+            'uploads/gallery', 'uploads/news', 'uploads/hiring', 'uploads/team',
+            'uploads/partners']
     for d in dirs:
         Path(d).mkdir(parents=True, exist_ok=True)
 
@@ -214,6 +215,30 @@ def seed_homepage(db):
     
     db.commit()
     print("✓ Homepage data seeded")
+
+
+def seed_partners(db):
+    """Seed development partners"""
+    partners = [
+        HomepagePartner(name="Dutch Embassy / RVO", logo_url="uploads/partners/dutch_embassy.png", website_url="https://www.netherlandsandyou.nl", sort_order=1, is_active=True),
+        HomepagePartner(name="JICA", logo_url="uploads/partners/jica.png", website_url="https://www.jica.go.jp", sort_order=2, is_active=True),
+        HomepagePartner(name="Cordaid", logo_url="uploads/partners/cordaid.png", website_url="https://www.cordaid.org", sort_order=3, is_active=True),
+        HomepagePartner(name="BAEN", logo_url="uploads/partners/baen.png", website_url="https://www.baen.org", sort_order=4, is_active=True),
+        HomepagePartner(name="DFCD", logo_url="uploads/partners/dfcd.png", website_url="https://www.dutchfundforclimatechange.org", sort_order=5, is_active=True),
+        HomepagePartner(name="KFW DEG", logo_url="uploads/partners/kfw_deg.png", website_url="https://www.deginvest.de", sort_order=6, is_active=True),
+        HomepagePartner(name="HELVETAS", logo_url="uploads/partners/helvetas.png", website_url="https://www.helvetas.org", sort_order=7, is_active=True),
+        HomepagePartner(name="IFAD", logo_url="uploads/partners/ifad.png", website_url="https://www.ifad.org", sort_order=8, is_active=True),
+        HomepagePartner(name="swisscontact", logo_url="uploads/partners/swisscontact.png", website_url="https://www.swisscontact.org", sort_order=9, is_active=True),
+        HomepagePartner(name="SNV", logo_url="uploads/partners/snv.png", website_url="https://www.snv.org", sort_order=10, is_active=True),
+        HomepagePartner(name="ODSD", logo_url="uploads/partners/odsd.png", website_url="#", sort_order=11, is_active=True),
+        HomepagePartner(name="SAKATA", logo_url="uploads/partners/sakata.png", website_url="https://www.sakata.com", sort_order=12, is_active=True),
+        HomepagePartner(name="World Vision", logo_url="uploads/partners/world_vision.png", website_url="https://www.wvi.org", sort_order=13, is_active=True),
+    ]
+    for p in partners:
+        db.add(p)
+    
+    db.commit()
+    print("✓ Development partners seeded")
 
 
 def seed_our_story(db):
@@ -566,26 +591,49 @@ def seed_news(db):
 
 def main():
     """Main seed function"""
+    import argparse
+    parser = argparse.ArgumentParser(description="Seed Malik Seeds CMS")
+    parser.add_argument("--force", action="store_true", help="Re-seed even if data already exists")
+    args = parser.parse_args()
+
     print("=" * 50)
     print("SEEDING MALIK SEEDS CMS WITH FIGMA DATA")
     print("=" * 50)
-    
+
     # Ensure upload directories exist
     ensure_uploads_dir()
-    
+
     # Create tables
     Base.metadata.create_all(bind=engine)
     print("✓ Database tables created")
-    
+
     db = SessionLocal()
     try:
         # Check if already seeded
         existing = db.query(SiteSettings).first()
-        if existing:
-            print("\\nDatabase already seeded. Skipping...")
-            print("To re-seed, delete the database file and run again.")
+        if existing and not args.force:
+            print("\nDatabase already seeded. Skipping...")
+            print("To re-seed, run: python seed_figma_data.py --force")
             return
-        
+
+        if args.force:
+            print("\n--force enabled. Clearing existing seeded data...")
+            # Clear tables in reverse dependency order (basic implementation)
+            for table in [
+                NewsArticle, NewsCategoryModel, PressRelease, NewsletterSubscriber,
+                GalleryItem, GalleryCategory, GalleryVideo,
+                HomepageHeroSlide, HomepageAbout, HomepageService, HomepageBrand,
+                HomepageTestimonial, HomepageTimeline, HomepagePartner, HomepageNewsItem, HomepageCTABanner,
+                OurStoryHero, OurStoryMission, OurStoryValue, OurStoryTimeline, OurStoryTeam, OurStoryAwards,
+                OurBrand, FlowerPortfolio, TrainingCentre, BrandProduct,
+                JobPosition, JobApplication, AssessmentQuestion, CareerBenefit, HiringTestimonial, HiringPageContent,
+                ContactInfo, ContactMessage, OfficeLocation, FAQ,
+                SiteSettings, MenuItem, SocialLink, PageSEO,
+            ]:
+                db.query(table).delete(synchronize_session=False)
+            db.commit()
+            print("✓ Existing data cleared")
+
         seed_site_settings(db)
         seed_homepage(db)
         seed_our_story(db)
@@ -594,11 +642,12 @@ def main():
         seed_hiring(db)
         seed_contact(db)
         seed_news(db)
-        
-        print("\\n" + "=" * 50)
+        seed_partners(db)
+
+        print("\n" + "=" * 50)
         print("SEEDING COMPLETE!")
         print("=" * 50)
-        print("\\nYou can now test the API at:")
+        print("\nYou can now test the API at:")
         print("  - http://localhost:8000/docs")
         print("  - http://localhost:8000/api/v1/homepage")
         print("  - http://localhost:8000/api/v1/our-story")
@@ -607,9 +656,9 @@ def main():
         print("  - http://localhost:8000/api/v1/hiring")
         print("  - http://localhost:8000/api/v1/contact")
         print("  - http://localhost:8000/api/v1/news")
-        
+
     except Exception as e:
-        print(f"\\nError during seeding: {e}")
+        print(f"\nError during seeding: {e}")
         import traceback
         traceback.print_exc()
     finally:
