@@ -13,6 +13,7 @@ class OurStoryHero(Base):
     subtitle = Column(String(500), nullable=True)
     description = Column(Text, nullable=True)
     background_image = Column(String(500), nullable=True)
+    background_images = Column(JSON, default=list)
     background_video = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

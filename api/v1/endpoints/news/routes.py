@@ -12,10 +12,11 @@ router = APIRouter()
 def get_articles(
     category: Optional[str] = None,
     featured: Optional[bool] = None,
+    page: int = 1,
     limit: int = 10,
     db: Session = Depends(get_db)
 ):
-    """Get news articles"""
+    """Get news articles with pagination (default 10 per page)"""
     query = db.query(NewsArticle).filter(
         NewsArticle.is_published == True,
         NewsArticle.is_active == True
@@ -24,7 +25,24 @@ def get_articles(
         query = query.filter(NewsArticle.category == category)
     if featured:
         query = query.filter(NewsArticle.is_featured == True)
-    return query.order_by(NewsArticle.published_at.desc()).limit(limit).all()
+
+    total = query.count()
+    page = max(1, page)
+    limit = max(1, min(limit, 100))
+    offset = (page - 1) * limit
+
+    items = query.order_by(NewsArticle.published_at.desc()).offset(offset).limit(limit).all()
+    pages = (total + limit - 1) // limit
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": pages,
+        "has_next": page < pages,
+        "has_prev": page > 1
+    }
 
 
 @router.get("/articles/featured")

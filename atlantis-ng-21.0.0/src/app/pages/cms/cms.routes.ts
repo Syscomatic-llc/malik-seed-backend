@@ -83,12 +83,12 @@ export default [
     {
         path: 'gallery/items',
         loadComponent: () => import('./gallery/items-page').then((c) => c.GalleryItemsPage),
-        data: { breadcrumb: 'Gallery Items' }
+        data: { breadcrumb: 'Gallery' }
     },
     {
-        path: 'gallery/categories',
-        loadComponent: () => import('./gallery/categories-page').then((c) => c.GalleryCategoriesPage),
-        data: { breadcrumb: 'Categories' }
+        path: 'gallery',
+        redirectTo: 'gallery/items',
+        pathMatch: 'full'
     },
 
     // ===== HIRING =====

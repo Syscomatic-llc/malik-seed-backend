@@ -75,6 +75,56 @@ def ensure_varchar_length(table_name: str, column_name: str, min_length: int):
     print(f"  ✓ Resized {table_name}.{column_name} to VARCHAR({min_length})")
 
 
+def make_column_nullable(table_name: str, column_name: str):
+    if not table_exists(table_name):
+        return
+
+    dialect = engine.dialect.name
+    if dialect == "postgresql":
+        with engine.connect() as conn:
+            conn.execute(text(f'ALTER TABLE {table_name} ALTER COLUMN {column_name} DROP NOT NULL'))
+            conn.commit()
+        print(f"  ✓ Made {table_name}.{column_name} nullable")
+    elif dialect == "sqlite":
+        # SQLite columns are nullable by default; dropping NOT NULL requires table recreate.
+        print(f"  ~ {table_name}.{column_name} SQLite nullable check skipped")
+    else:
+        print(f"  ✗ Unsupported dialect: {dialect}")
+
+
+def backfill_story_hero_images():
+    if not table_exists("our_story_heroes"):
+        return
+
+    dialect = engine.dialect.name
+    if dialect == "postgresql":
+        with engine.connect() as conn:
+            conn.execute(text(
+                """
+                UPDATE our_story_heroes
+                SET background_images = to_jsonb(array[background_image])
+                WHERE background_image IS NOT NULL
+                  AND (background_images IS NULL OR jsonb_array_length(background_images) = 0)
+                """
+            ))
+            conn.commit()
+    elif dialect == "sqlite":
+        with engine.connect() as conn:
+            conn.execute(text(
+                """
+                UPDATE our_story_heroes
+                SET background_images = '["' || background_image || '"]'
+                WHERE background_image IS NOT NULL
+                  AND (background_images IS NULL OR background_images = '[]')
+                """
+            ))
+            conn.commit()
+    else:
+        return
+
+    print("  ✓ Backfilled our_story_heroes.background_images from background_image")
+
+
 def main():
     print("Running migrations...")
 
@@ -85,6 +135,11 @@ def main():
 
     add_json_column("homepage_abouts", "gallery_images")
     add_json_column("homepage_timelines", "gallery_images")
+    add_json_column("our_story_heroes", "background_images")
+    backfill_story_hero_images()
+
+    make_column_nullable("gallery_items", "title")
+    make_column_nullable("gallery_items", "category")
 
     ensure_varchar_length("homepage_timelines", "year", 50)
     ensure_varchar_length("our_story_timelines", "year", 50)

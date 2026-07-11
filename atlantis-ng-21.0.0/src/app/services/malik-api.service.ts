@@ -121,6 +121,7 @@ export interface OurStoryHero {
   subtitle?: string;
   description?: string;
   background_image?: string;
+  background_images: string[];
 }
 
 export interface OurStoryMission {
@@ -166,10 +167,10 @@ export interface OurBrand {
 // ============ GALLERY TYPES ============
 export interface GalleryItem {
   id?: number;
-  title: string;
+  title?: string;
   description?: string;
   image_url: string;
-  category: string;
+  category?: string;
   is_featured?: boolean;
   sort_order?: number;
 }
@@ -223,6 +224,7 @@ export interface ContactInfo {
   email_primary?: string;
   facebook_url?: string;
   instagram_url?: string;
+  youtube_url?: string;
 }
 
 export interface OfficeLocation {
@@ -252,6 +254,8 @@ export interface NewsArticle {
   featured_image?: string;
   category: string;
   author_name?: string;
+  author_title?: string;
+  author_avatar?: string;
   is_published?: boolean;
   published_at?: string;
 }
@@ -403,8 +407,11 @@ export class MalikApiService {
   }
 
   // ============ NEWS ============
-  getArticles(): Observable<NewsArticle[]> {
-    return this.http.get<NewsArticle[]>(`${this.apiUrl}/news/articles`);
+  getArticles(page: number = 1, limit: number = 10, category?: string, featured?: boolean): Observable<{ items: NewsArticle[]; total: number; page: number; limit: number; pages: number; has_next: boolean; has_prev: boolean }> {
+    let params: any = { page, limit };
+    if (category) params.category = category;
+    if (featured !== undefined) params.featured = featured;
+    return this.http.get<{ items: NewsArticle[]; total: number; page: number; limit: number; pages: number; has_next: boolean; has_prev: boolean }>(`${this.apiUrl}/news/articles`, { params });
   }
 
   getArticleBySlug(slug: string): Observable<NewsArticle> {
@@ -416,11 +423,17 @@ export class MalikApiService {
   }
 
   // ============ FILE UPLOAD ============
-  uploadImage(file: File, folder: string = 'general'): Observable<{ status: string; url: string; filename: string }> {
+  uploadImage(file: File, folder: string = 'general', options?: { resize?: boolean; maxWidth?: number; maxHeight?: number; quality?: number }): Observable<{ status: string; url: string; filename: string; original_url?: string; resized?: boolean; width?: number; height?: number }> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('folder', folder);
-    return this.http.post<{ status: string; url: string; filename: string }>(`${this.apiUrl}/admin/upload/image`, formData);
+    if (options) {
+      if (options.resize) formData.append('resize', 'true');
+      if (options.maxWidth !== undefined) formData.append('max_width', options.maxWidth.toString());
+      if (options.maxHeight !== undefined) formData.append('max_height', options.maxHeight.toString());
+      if (options.quality !== undefined) formData.append('quality', options.quality.toString());
+    }
+    return this.http.post<{ status: string; url: string; filename: string; original_url?: string; resized?: boolean; width?: number; height?: number }>(`${this.apiUrl}/admin/upload/image`, formData);
   }
 
   // ============ ADMIN CRUD HELPERS ============
@@ -442,6 +455,10 @@ export class MalikApiService {
 
   adminDelete(resource: string, id: number): Observable<any> {
     return this.http.delete<any>(`${this.apiUrl}/admin/${resource}/${id}`);
+  }
+
+  reorderGalleryItems(order: number[]): Observable<{ status: string }> {
+    return this.http.post<{ status: string }>(`${this.apiUrl}/admin/gallery-items/reorder`, order);
   }
 
   // ============ ASSESSMENT QUESTIONS ============

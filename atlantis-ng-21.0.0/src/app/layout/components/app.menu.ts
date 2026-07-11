@@ -115,14 +115,9 @@ export class AppMenu {
             icon: 'pi pi-images',
             items: [
                 {
-                    label: 'Gallery Items',
+                    label: 'Gallery Images',
                     icon: 'pi pi-fw pi-image',
                     routerLink: ['/cms/gallery/items']
-                },
-                {
-                    label: 'Categories',
-                    icon: 'pi pi-fw pi-folder',
-                    routerLink: ['/cms/gallery/categories']
                 }
             ]
         },

@@ -1,13 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from datetime import datetime
 import os
 import shutil
 import json
 
+from PIL import Image
+
+from core.config import MAX_FILE_SIZE, get_upload_directory
+
 from core.database import get_db
-from core.config import get_upload_directory
 
 # Import all models
 from models.homepage.model import (
@@ -217,9 +220,13 @@ def delete_item(resource: str, item_id: int, db: Session = Depends(get_db)):
 @router.post("/upload/image")
 def upload_image(
     file: UploadFile = File(...),
-    folder: Optional[str] = Form("general")
+    folder: Optional[str] = Form("general"),
+    resize: bool = Form(False),
+    max_width: Optional[int] = Form(None),
+    max_height: Optional[int] = Form(None),
+    quality: int = Form(85),
 ):
-    """Upload image file for CMS content"""
+    """Upload image file for CMS content. Optional resize with max_width/max_height/quality."""
     allowed_extensions = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".pdf"}
     file_ext = os.path.splitext(file.filename)[1].lower()
 
@@ -229,23 +236,82 @@ def upload_image(
             detail=f"Invalid file type. Allowed: {', '.join(allowed_extensions)}"
         )
 
+    # Enforce 10MB size limit
+    file.file.seek(0, 2)
+    file_size = file.file.tell()
+    file.file.seek(0)
+    if file_size > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Maximum allowed size is {MAX_FILE_SIZE / 1024 / 1024:.0f}MB."
+        )
+
     # Sanitize folder name
     folder = "".join(c for c in folder if c.isalnum() or c in "-_")
     target_dir = os.path.join(UPLOAD_DIR, folder)
     os.makedirs(target_dir, exist_ok=True)
 
-    filename = f"{folder}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{os.urandom(4).hex()}{file_ext}"
-    file_path = os.path.join(target_dir, filename)
+    base_name = f"{folder}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{os.urandom(4).hex()}"
+    original_filename = f"{base_name}{file_ext}"
+    original_path = os.path.join(target_dir, original_filename)
 
-    with open(file_path, "wb") as buffer:
+    with open(original_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+
+    final_filename = original_filename
+    final_path = original_path
+    resized = False
+    final_width: Optional[int] = None
+    final_height: Optional[int] = None
+
+    # Resize image if requested and dimensions are image-compatible
+    if resize and file_ext != ".pdf" and (max_width or max_height):
+        max_width = max_width or 1920
+        max_height = max_height or 1920
+        quality = max(1, min(quality, 100))
+        resized_filename = f"{base_name}_r{max_width}x{max_height}{file_ext}"
+        resized_path = os.path.join(target_dir, resized_filename)
+
+        try:
+            with Image.open(original_path) as img:
+                if file_ext in (".jpg", ".jpeg") and img.mode in ("RGBA", "P"):
+                    img = img.convert("RGB")
+                img.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
+                save_kwargs = {}
+                if file_ext in (".jpg", ".jpeg"):
+                    save_kwargs["quality"] = quality
+                    save_kwargs["optimize"] = True
+                elif file_ext == ".webp":
+                    save_kwargs["quality"] = quality
+                img.save(resized_path, **save_kwargs)
+                final_width, final_height = img.width, img.height
+
+            final_filename = resized_filename
+            final_path = resized_path
+            resized = True
+        except Exception:
+            # If resizing fails for any reason, fall back to the original file
+            pass
 
     return {
         "status": "success",
-        "filename": filename,
-        "url": f"uploads/{folder}/{filename}",
-        "path": file_path
+        "filename": final_filename,
+        "url": f"uploads/{folder}/{final_filename}",
+        "path": final_path,
+        "original_url": f"uploads/{folder}/{original_filename}",
+        "resized": resized,
+        "width": final_width,
+        "height": final_height,
     }
+
+
+@router.post("/gallery-items/reorder")
+def reorder_gallery_items(order: List[int], db: Session = Depends(get_db)):
+    """Update gallery item sort_order based on provided ordered id list."""
+    for idx, item_id in enumerate(order):
+        db.query(GalleryItem).filter(GalleryItem.id == item_id).update({"sort_order": idx})
+    db.commit()
+    return {"status": "success"}
 
 
 # ============== ASSESSMENT QUESTIONS ==============

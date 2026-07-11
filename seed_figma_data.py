@@ -248,6 +248,7 @@ def seed_our_story(db):
         title="Our Story",
         subtitle="Cultivating the Future of Agriculture in Bangladesh",
         background_image="uploads/our_story/hero.jpg",
+        background_images=json.dumps(["uploads/our_story/hero.jpg"]),
         is_active=True
     )
     db.add(hero)

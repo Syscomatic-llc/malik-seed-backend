@@ -52,6 +52,10 @@ import { MessageService } from 'primeng/api';
                                 <input type="text" pInputText [(ngModel)]="info.instagram_url" fluid />
                             </div>
                         </div>
+                        <div>
+                            <label class="block font-bold mb-2">YouTube URL</label>
+                            <input type="text" pInputText [(ngModel)]="info.youtube_url" fluid />
+                        </div>
                     </div>
                 </p-card>
             </div>

@@ -2,7 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MalikApiService, OurStoryHero } from '@/app/services/malik-api.service';
-import { ImageUpload } from '@/app/components/image-upload';
+import { ImageGalleryUpload } from '@/app/components/image-gallery-upload';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -14,7 +14,7 @@ import { environment } from '@/environments/environment';
 @Component({
     selector: 'app-story-hero-page',
     standalone: true,
-    imports: [CommonModule, FormsModule, CardModule, ButtonModule, InputTextModule, TextareaModule, ToastModule, ImageUpload],
+    imports: [CommonModule, FormsModule, CardModule, ButtonModule, InputTextModule, TextareaModule, ToastModule, ImageGalleryUpload],
     providers: [MessageService],
     template: `
         <p-toast />
@@ -35,8 +35,8 @@ import { environment } from '@/environments/environment';
                             <textarea pTextarea [(ngModel)]="hero.description" rows="4" fluid></textarea>
                         </div>
                         <div>
-                            <app-image-upload label="Background Image" folder="our-story"
-                                [(currentImage)]="hero.background_image" />
+                            <app-image-gallery-upload label="Background Images" folder="our-story"
+                                [(images)]="hero.background_images" />
                         </div>
                     </div>
                 </p-card>
@@ -44,8 +44,8 @@ import { environment } from '@/environments/environment';
             <div class="col-span-12 lg:col-span-4">
                 <p-card header="Preview" styleClass="h-full">
                     <div class="flex flex-col gap-3">
-                        <div *ngIf="hero.background_image" class="relative">
-                            <img [src]="mediaBaseUrl + hero.background_image"
+                        <div *ngIf="hero.background_images.length || hero.background_image" class="relative">
+                            <img [src]="mediaBaseUrl + (hero.background_images[0] || hero.background_image)"
                                 alt="Hero" class="w-full rounded-lg shadow-sm" />
                             <div class="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center">
                                 <div class="text-center text-white p-4">
@@ -65,7 +65,7 @@ import { environment } from '@/environments/environment';
     `
 })
 export class StoryHeroPage implements OnInit {
-    hero: OurStoryHero = { title: '' };
+    hero: OurStoryHero = { title: '', background_images: [] };
     saving = false;
     mediaBaseUrl = environment.mediaBaseUrl;
 
@@ -80,8 +80,16 @@ export class StoryHeroPage implements OnInit {
 
     loadHero() {
         this.api.getStoryHero().subscribe({
-            next: (data) => this.hero = data,
-            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load hero' })
+            next: (data) => {
+                this.hero = data;
+                if (!this.hero.background_images || !this.hero.background_images.length) {
+                    this.hero.background_images = this.hero.background_image ? [this.hero.background_image] : [];
+                }
+            },
+            error: () => {
+                this.hero = { title: '', background_images: [] };
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load hero' });
+            }
         });
     }
 

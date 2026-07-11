@@ -9,12 +9,12 @@ class GalleryItem(Base):
     __tablename__ = "gallery_items"
 
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(200), nullable=False)
+    title = Column(String(200), nullable=True)
     description = Column(Text, nullable=True)
     image_url = Column(String(500), nullable=False)
     thumbnail_url = Column(String(500), nullable=True)
 
-    category = Column(String(100), nullable=False)
+    category = Column(String(100), nullable=True)
     tags = Column(JSON, default=list)
 
     location = Column(String(200), nullable=True)

@@ -63,7 +63,16 @@ import { environment } from '@/environments/environment';
                         </td>
                         <td>{{item.title}}</td>
                         <td><p-tag [value]="item.category" severity="info" /></td>
-                        <td>{{item.author_name}}</td>
+                        <td>
+                            <div class="flex items-center gap-2">
+                                <img *ngIf="item.author_avatar" [src]="mediaBaseUrl + item.author_avatar"
+                                    alt="" class="w-8 h-8 rounded-full object-cover" />
+                                <div>
+                                    <div class="font-medium">{{item.author_name}}</div>
+                                    <div *ngIf="item.author_title" class="text-xs text-muted-color">{{item.author_title}}</div>
+                                </div>
+                            </div>
+                        </td>
                         <td>
                             <p-tag [value]="item.is_published ? 'Published' : 'Draft'"
                                 [severity]="item.is_published ? 'success' : 'warn'" />
@@ -99,7 +108,7 @@ import { environment } from '@/environments/environment';
                         <label class="block font-bold mb-2">Content</label>
                         <p-editor [(ngModel)]="article.content" [style]="{ height: '320px' }" />
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-3 gap-4">
                         <div>
                             <label class="block font-bold mb-2">Category</label>
                             <p-select [options]="categories()" [(ngModel)]="article.category"
@@ -109,10 +118,20 @@ import { environment } from '@/environments/environment';
                             <label class="block font-bold mb-2">Author</label>
                             <input type="text" pInputText [(ngModel)]="article.author_name" fluid />
                         </div>
+                        <div>
+                            <label class="block font-bold mb-2">Author Role</label>
+                            <input type="text" pInputText [(ngModel)]="article.author_title" fluid />
+                        </div>
                     </div>
-                    <div>
-                        <app-image-upload label="Featured Image" folder="news"
-                            [(currentImage)]="article.featured_image" />
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <app-image-upload label="Featured Image" folder="news"
+                                [(currentImage)]="article.featured_image" />
+                        </div>
+                        <div>
+                            <app-image-upload label="Author Image" folder="news"
+                                [(currentImage)]="article.author_avatar" />
+                        </div>
                     </div>
                     <div>
                         <label class="block font-bold mb-2">Published</label>
@@ -131,7 +150,7 @@ export class ArticlesPage implements OnInit {
     articles = signal<NewsArticle[]>([]);
     categories = signal<NewsCategory[]>([]);
     dialog = false;
-    article: NewsArticle = { title: '', slug: '', content: '', category: '' };
+    article: NewsArticle = { title: '', slug: '', content: '', category: '', author_name: '', author_title: '', author_avatar: '' };
     saving = false;
     mediaBaseUrl = environment.mediaBaseUrl;
 
@@ -161,7 +180,7 @@ export class ArticlesPage implements OnInit {
     }
 
     openNew() {
-        this.article = { title: '', slug: '', content: '', category: '', is_published: false };
+        this.article = { title: '', slug: '', content: '', category: '', author_name: '', author_title: '', author_avatar: '', is_published: false };
         this.dialog = true;
     }
 

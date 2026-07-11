@@ -1,31 +1,24 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MalikApiService, GalleryItem, GalleryCategory } from '@/app/services/malik-api.service';
-import { ImageUpload } from '@/app/components/image-upload';
+import { MalikApiService, GalleryItem } from '@/app/services/malik-api.service';
+import { ImageGalleryUpload } from '@/app/components/image-gallery-upload';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
-import { TableModule } from 'primeng/table';
-import { DialogModule } from 'primeng/dialog';
-import { InputTextModule } from 'primeng/inputtext';
-import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { ToolbarModule } from 'primeng/toolbar';
-import { ToggleSwitchModule } from 'primeng/toggleswitch';
-import { TagModule } from 'primeng/tag';
-import { SelectModule } from 'primeng/select';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
+import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { environment } from '@/environments/environment';
 
 @Component({
     selector: 'app-gallery-items-page',
     standalone: true,
     imports: [
-        CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
-        DialogModule, InputTextModule, TextareaModule, ToastModule, ToolbarModule,
-        ToggleSwitchModule, TagModule, SelectModule, ConfirmDialogModule, ImageUpload
+        CommonModule, FormsModule, CardModule, ButtonModule, ToastModule, ToolbarModule,
+        ConfirmDialogModule, ImageGalleryUpload, DragDropModule
     ],
     providers: [MessageService, ConfirmationService],
     template: `
@@ -34,88 +27,60 @@ import { environment } from '@/environments/environment';
         <div class="card">
             <p-toolbar styleClass="mb-4">
                 <ng-template #start>
-                    <p-button label="New Item" icon="pi pi-plus" severity="success" class="mr-2" (onClick)="openNew()" />
+                    <span class="font-bold text-lg">Gallery</span>
                 </ng-template>
             </p-toolbar>
 
-            <p-table [value]="items()" [rows]="10" [paginator]="true"
-                [tableStyle]="{ 'min-width': '75rem' }">
-                <ng-template #header>
-                    <tr>
-                        <th>ID</th>
-                        <th>Image</th>
-                        <th>Title</th>
-                        <th>Category</th>
-                        <th>Description</th>
-                        <th>Featured</th>
-                        <th>Actions</th>
-                    </tr>
-                </ng-template>
-                <ng-template #body let-item>
-                    <tr>
-                        <td>{{item.id}}</td>
-                        <td>
-                            <img *ngIf="item.image_url" [src]="mediaBaseUrl + item.image_url"
-                                alt="{{item.title}}" class="w-16 h-12 object-cover rounded" />
-                            <span *ngIf="!item.image_url" class="text-muted-color">No image</span>
-                        </td>
-                        <td>{{item.title}}</td>
-                        <td><p-tag [value]="item.category" severity="info" /></td>
-                        <td>{{item.description | slice:0:60}}...</td>
-                        <td>
-                            <p-tag [value]="item.is_featured ? 'Yes' : 'No'" 
-                                [severity]="item.is_featured ? 'success' : 'secondary'" />
-                        </td>
-                        <td>
-                            <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" 
-                                (onClick)="editItem(item)" />
-                            <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
-                                (onClick)="deleteItem(item)" />
-                        </td>
-                    </tr>
-                </ng-template>
-            </p-table>
-        </div>
+            <div class="mb-6">
+                <app-image-gallery-upload label="Upload Multiple Images" folder="gallery"
+                    [images]="pendingImages" (imagesChange)="onPendingImagesChange($event)"
+                    [showResizeControls]="true" />
+            </div>
 
-        <p-dialog [(visible)]="dialog" [style]="{ width: '550px' }" header="Gallery Item" [modal]="true">
-            <ng-template #content>
-                <div class="flex flex-col gap-4">
-                    <div>
-                        <label class="block font-bold mb-2">Title</label>
-                        <input type="text" pInputText [(ngModel)]="item.title" fluid />
-                    </div>
-                    <div>
-                        <label class="block font-bold mb-2">Description</label>
-                        <textarea pTextarea [(ngModel)]="item.description" rows="2" fluid></textarea>
-                    </div>
-                    <div>
-                        <label class="block font-bold mb-2">Category</label>
-                        <p-select [options]="categories()" [(ngModel)]="item.category" 
-                            optionLabel="name" optionValue="name" placeholder="Select Category" fluid appendTo="body" />
-                    </div>
-                    <div>
-                        <app-image-upload label="Gallery Image" folder="gallery"
-                            [(currentImage)]="item.image_url" />
-                    </div>
-                    <div>
-                        <label class="block font-bold mb-2">Featured</label>
-                        <p-toggleSwitch [(ngModel)]="item.is_featured" />
+            <p-card header="Arrange Images (drag & drop)">
+                <div *ngIf="!items().length" class="text-center text-muted-color py-6">
+                    No images yet. Upload some images above.
+                </div>
+
+                <div cdkDropList class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
+                    (cdkDropListDropped)="drop($event)">
+                    <div *ngFor="let item of items(); let i = index" cdkDrag
+                        class="relative group rounded-lg border border-surface-200 overflow-hidden cursor-move">
+                        <img [src]="mediaBaseUrl + item.image_url" [alt]="item.title || 'Gallery image ' + (i + 1)"
+                            class="w-full h-40 object-cover" />
+
+                        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                            <i class="pi pi-arrows-alt text-white text-xl"></i>
+                            <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [text]="true"
+                                (onClick)="deleteItem(item, $event)" />
+                        </div>
+
+                        <div *ngIf="item.title" class="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-2 py-1 truncate">
+                            {{ item.title }}
+                        </div>
                     </div>
                 </div>
-            </ng-template>
-            <ng-template #footer>
-                <p-button label="Cancel" icon="pi pi-times" text (onClick)="hideDialog()" />
-                <p-button label="Save" icon="pi pi-check" (onClick)="saveItem()" [loading]="saving" />
-            </ng-template>
-        </p-dialog>
-    `
+            </p-card>
+        </div>
+    `,
+    styles: [`
+        .cdk-drag-preview {
+            opacity: 0.9;
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            border-radius: 0.5rem;
+        }
+        .cdk-drag-placeholder {
+            opacity: 0.3;
+        }
+        .cdk-drag-animating {
+            transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+        }
+    `]
 })
 export class GalleryItemsPage implements OnInit {
     items = signal<GalleryItem[]>([]);
-    categories = signal<GalleryCategory[]>([]);
-    dialog = false;
-    item: GalleryItem = { title: '', image_url: '', category: '' };
-    saving = false;
+    pendingImages: string[] = [];
     mediaBaseUrl = environment.mediaBaseUrl;
 
     constructor(
@@ -126,7 +91,6 @@ export class GalleryItemsPage implements OnInit {
 
     ngOnInit() {
         this.loadItems();
-        this.loadCategories();
     }
 
     loadItems() {
@@ -136,63 +100,73 @@ export class GalleryItemsPage implements OnInit {
         });
     }
 
-    loadCategories() {
-        this.api.getGalleryCategories().subscribe({
-            next: (data) => this.categories.set(data),
-            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load categories' })
+    onPendingImagesChange(images: string[]) {
+        const previous = new Set(this.pendingImages);
+        const added = images.filter(img => !previous.has(img));
+        this.pendingImages = images;
+        if (!added.length) return;
+
+        const maxOrder = this.items().reduce((max, it) => Math.max(max, it.sort_order || 0), 0);
+        let processed = 0;
+        const errors: string[] = [];
+
+        added.forEach((url, idx) => {
+            const data = {
+                title: 'Gallery Image',
+                image_url: url,
+                sort_order: maxOrder + idx + 1,
+                is_active: true
+            };
+            this.api.adminCreate('gallery-item', data).subscribe({
+                next: () => {
+                    processed++;
+                    if (processed === added.length) {
+                        this.pendingImages = [];
+                        this.loadItems();
+                        if (!errors.length) {
+                            this.messageService.add({ severity: 'success', summary: 'Added', detail: `${added.length} image(s) added to gallery`, life: 3000 });
+                        }
+                    }
+                },
+                error: (err) => {
+                    processed++;
+                    errors.push(err.error?.detail || 'Failed to add image');
+                    if (processed === added.length) {
+                        this.pendingImages = [];
+                        this.loadItems();
+                    }
+                }
+            });
         });
     }
 
-    openNew() {
-        this.item = { title: '', image_url: '', category: '', is_featured: false, sort_order: 0 };
-        this.dialog = true;
-    }
+    drop(event: CdkDragDrop<GalleryItem[]>) {
+        const reordered = [...this.items()];
+        moveItemInArray(reordered, event.previousIndex, event.currentIndex);
+        this.items.set(reordered);
 
-    editItem(i: GalleryItem) {
-        this.item = { ...i };
-        this.dialog = true;
-    }
-
-    hideDialog() {
-        this.dialog = false;
-    }
-
-    saveItem() {
-        if (!this.item.title?.trim() || !this.item.category) return;
-        this.saving = true;
-        const data = { ...this.item };
-        const request = data.id
-            ? this.api.adminUpdate('gallery-item', data.id, data)
-            : this.api.adminCreate('gallery-item', data);
-
-        request.subscribe({
-            next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Gallery item saved successfully', life: 3000 });
-                this.loadItems();
-                this.dialog = false;
-                this.saving = false;
-            },
-            error: (err) => {
-                this.saving = false;
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to save gallery item' });
-            }
+        const order = reordered.map(it => it.id).filter((id): id is number => !!id);
+        this.api.reorderGalleryItems(order).subscribe({
+            next: () => this.messageService.add({ severity: 'success', summary: 'Reordered', detail: 'Gallery order saved', life: 2000 }),
+            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to save gallery order' })
         });
     }
 
-    deleteItem(item: GalleryItem) {
+    deleteItem(item: GalleryItem, event: MouseEvent) {
+        event.stopPropagation();
         this.confirmationService.confirm({
-            message: `Are you sure you want to delete "${item.title}"?`,
+            message: 'Are you sure you want to delete this image?',
             header: 'Confirm Delete',
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
                 if (!item.id) return;
                 this.api.adminDelete('gallery-item', item.id).subscribe({
                     next: () => {
-                        this.messageService.add({ severity: 'success', summary: 'Deleted', detail: 'Gallery item deleted', life: 3000 });
+                        this.messageService.add({ severity: 'success', summary: 'Deleted', detail: 'Image deleted', life: 3000 });
                         this.loadItems();
                     },
                     error: (err) => {
-                        this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to delete gallery item' });
+                        this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to delete image' });
                     }
                 });
             }
