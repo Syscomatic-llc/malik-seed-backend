@@ -11,6 +11,7 @@ from PIL import Image
 from core.config import MAX_FILE_SIZE, get_upload_directory
 
 from core.database import get_db
+from api.deps import require_admin
 
 # Import all models
 from models.homepage.model import (
@@ -41,7 +42,7 @@ from models.site_settings.model import (
     SiteSettings, MenuItem, SocialLink, PageSEO
 )
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_admin)])
 
 UPLOAD_DIR = get_upload_directory()
 os.makedirs(UPLOAD_DIR, exist_ok=True)

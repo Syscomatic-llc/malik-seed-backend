@@ -8,14 +8,42 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 
 from api.v1.api import router as api_router
-from core.database import create_tables
-from core.config import get_upload_directory
+from core.database import create_tables, SessionLocal
+from core.config import get_upload_directory, FIRST_ADMIN_EMAIL, FIRST_ADMIN_PASSWORD
+from core.security import hash_password
+from models.user.model import User, UserRole, UserStatus
+
+
+def ensure_admin_user():
+    db = SessionLocal()
+    try:
+        if db.query(User).first():
+            return
+
+        email = FIRST_ADMIN_EMAIL or "malikseed.admin@gmail.com"
+        password = FIRST_ADMIN_PASSWORD or "M@lik@2026"
+
+        admin = User(
+            first_name="Admin",
+            last_name="User",
+            email=email,
+            password_hash=hash_password(password),
+            role=UserRole.ADMIN,
+            status=UserStatus.ACTIVE,
+            email_verified=True,
+        )
+        db.add(admin)
+        db.commit()
+        print(f"Created admin user: {email}")
+    finally:
+        db.close()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Starting Application")
     create_tables()
+    ensure_admin_user()
     print("Database Created Successfully")
     yield
     print("Shutting Down Application...")

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
@@ -286,9 +286,18 @@ def logout():
 
 # ============== GET CURRENT USER ==============
 @router.get("/me")
-def get_me(token: str, db: Session = Depends(get_db)):
-    """Get current user from token"""
+def get_me(request: Request, db: Session = Depends(get_db)):
+    """Get current user from token (Authorization: Bearer <token> or ?token=)"""
     from core.security import verify_token
+    auth_header = request.headers.get("Authorization")
+    token = None
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+    if not token:
+        token = request.query_params.get("token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Token required")
+
     payload = verify_token(token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired token")

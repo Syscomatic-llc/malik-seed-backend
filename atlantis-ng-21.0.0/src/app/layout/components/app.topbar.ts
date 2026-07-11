@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { StyleClassModule } from 'primeng/styleclass';
 import { LayoutService } from '@/app/layout/service/layout.service';
+import { AuthService } from '@/app/services/auth.service';
 import { Ripple } from 'primeng/ripple';
 import { InputText } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
@@ -100,8 +101,8 @@ import { AppBreadcrumb } from '@/app/layout/components/app.breadcrumb';
                         </li>
                         <li role="menuitem" class="m-0!">
                             <a
-                                href="#"
-                                class="flex items-center hover:text-primary-500 duration-200"
+                                (click)="logout()"
+                                class="flex items-center hover:text-primary-500 duration-200 cursor-pointer"
                                 pStyleClass="@grandparent"
                                 enterFromClass="!hidden"
                                 enterActiveClass="animate-scalein"
@@ -138,7 +139,14 @@ export class AppTopbar {
 
     el = inject(ElementRef);
 
-    constructor(public layoutService: LayoutService) {}
+    constructor(
+        public layoutService: LayoutService,
+        private authService: AuthService
+    ) {}
+
+    logout() {
+        this.authService.logout();
+    }
 
     searchBarActive = computed(() => this.layoutService.layoutState().searchBarActive);
 

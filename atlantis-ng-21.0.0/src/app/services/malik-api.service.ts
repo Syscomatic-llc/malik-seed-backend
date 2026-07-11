@@ -300,8 +300,8 @@ export class MalikApiService {
     return this.http.post<AuthResponse>(`${this.apiUrl}/auth/login`, credentials);
   }
 
-  getMe(token: string): Observable<AuthResponse> {
-    return this.http.get<AuthResponse>(`${this.apiUrl}/auth/me?token=${token}`);
+  getMe(): Observable<AuthResponse> {
+    return this.http.get<AuthResponse>(`${this.apiUrl}/auth/me`);
   }
 
   // ============ HOMEPAGE ============

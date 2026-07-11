@@ -1,10 +1,12 @@
 import { Routes } from '@angular/router';
 import { AppLayout } from '@/app/layout/components/app.layout';
+import { authGuard } from '@/app/guards/auth.guard';
 
 export const appRoutes: Routes = [
     {
         path: '',
         component: AppLayout,
+        canActivate: [authGuard],
         children: [
             { path: '', pathMatch: 'full', redirectTo: 'cms' },
             {
