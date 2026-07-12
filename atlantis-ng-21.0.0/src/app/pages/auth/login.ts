@@ -32,7 +32,7 @@ import { MessageService } from 'primeng/api';
                 >
                     <div class="flex flex-col">
                         <div class="flex flex-col items-center mb-8">
-                            <img src="/assets/images/malikLogo.svg" style="width: 120px" alt="Malik Seed" />
+                            <img src="/assets/images/malikLogo.svg" style="width: 300px" alt="Malik Seed" />
                             <h1 class="text-2xl font-bold text-primary mt-4">Welcome to Malik Seed Admin</h1>
                         </div>
                         <div class="form-container">
