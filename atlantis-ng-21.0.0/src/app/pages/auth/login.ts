@@ -24,12 +24,7 @@ import { MessageService } from 'primeng/api';
     template: `
         <p-toast />
         <div [class]="'flex min-h-screen  ' + (layoutService.isDarkTheme() ? 'layout-dark' : 'layout-light')">
-            <div *ngIf="layoutService.isDarkTheme()" class="w-6/12 h-screen hidden md:block shrink-0" style="max-width: 490px; background-image: url('/demo/images/pages/login-ondark.png'); background-repeat: no-repeat; background-size: cover"></div>
-            <div
-                *ngIf="!layoutService.isDarkTheme()"
-                class="w-6/12 h-screen hidden md:block shrink-0"
-                style="max-width: 490px; background-image: url('/demo/images/pages/login-onlight.png'); background-repeat: no-repeat; background-size: cover"
-            ></div>
+            <div class="w-6/12 h-screen hidden md:block shrink-0" style="max-width: 690px; background-image: url('/assets/images/cover.png'); background-repeat: no-repeat; background-size: cover; background-position: center;"></div>
             <div class="w-full" style="background: var(--surface-ground)">
                 <p-fluid
                     class="min-h-screen text-center w-full flex items-center md:items-start justify-center flex-col bg-auto md:bg-contain bg-no-repeat!"
@@ -59,7 +54,7 @@ import { MessageService } from 'primeng/api';
                     </div>
 
                     <div class="flex items-center absolute" style="bottom: 75px">
-                        <span class="text-sm text-surface-500 dark:text-surface-400 mr-2">Copyright</span>
+                        <span class="text-sm text-surface-500 dark:text-surface-400 mr-2">Developed By</span>
                         <a href="https://syscomatic.com/" target="_blank" class="text-sm text-primary hover:underline">Syscomatic LLC</a>
                     </div>
                 </p-fluid>
