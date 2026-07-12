@@ -28,6 +28,10 @@ import { MessageService } from 'primeng/api';
                             <label class="block font-bold mb-2">Description</label>
                             <textarea pTextarea [(ngModel)]="info.description" rows="3" fluid></textarea>
                         </div>
+                        <div>
+                            <label class="block font-bold mb-2">Footer Description</label>
+                            <textarea pTextarea [(ngModel)]="info.footer_description" rows="3" fluid></textarea>
+                        </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block font-bold mb-2">Primary Phone</label>

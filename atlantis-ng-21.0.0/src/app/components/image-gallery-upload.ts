@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { FileUploadModule } from 'primeng/fileupload';
 import { ButtonModule } from 'primeng/button';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { ProgressBarModule } from 'primeng/progressbar';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MalikApiService } from '@/app/services/malik-api.service';
@@ -13,7 +14,7 @@ import { environment } from '@/environments/environment';
 @Component({
     selector: 'app-image-gallery-upload',
     standalone: true,
-    imports: [CommonModule, FormsModule, FileUploadModule, ButtonModule, ProgressSpinnerModule, InputNumberModule, DragDropModule],
+    imports: [CommonModule, FormsModule, FileUploadModule, ButtonModule, ProgressSpinnerModule, ProgressBarModule, InputNumberModule, DragDropModule],
     providers: [MessageService],
     template: `
         <div class="flex flex-col gap-2">
@@ -59,6 +60,16 @@ import { environment } from '@/environments/environment';
                 [auto]="true" accept="image/*" [maxFileSize]="MAX_FILE_SIZE"
                 [multiple]="multiple" (uploadHandler)="onUpload($event)" />
 
+            <div *ngIf="uploadingFiles.length" class="flex flex-col gap-2 mt-2">
+                <div *ngFor="let fileName of uploadingFiles" class="flex flex-col gap-1">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="truncate max-w-[250px]">{{ fileName }}</span>
+                        <span>{{ progress[fileName] || 0 }}%</span>
+                    </div>
+                    <p-progressBar [value]="progress[fileName] || 0" [showValue]="false" styleClass="h-2" />
+                </div>
+            </div>
+
             <div *ngIf="uploading" class="flex items-center gap-2 text-sm text-muted-color">
                 <p-progress-spinner [style]="{ width: '20px', height: '20px' }" />
                 Uploading...
@@ -79,6 +90,8 @@ export class ImageGalleryUpload {
     uniqueId = Math.random().toString(36).substring(2, 9);
 
     uploading = false;
+    uploadingFiles: string[] = [];
+    progress: { [fileName: string]: number } = {};
     resizeEnabled = false;
     maxWidth: number = 1920;
     maxHeight: number = 1920;
@@ -116,33 +129,28 @@ export class ImageGalleryUpload {
         }
 
         this.uploading = true;
+        this.uploadingFiles = files.map(f => f.name);
+        this.progress = {};
         let completed = 0;
         const newImages = [...(this.images || [])];
         const resizeOptions = this.resizeEnabled ? { resize: true, maxWidth: this.maxWidth, maxHeight: this.maxHeight, quality: this.quality } : undefined;
 
         files.forEach((file: File) => {
-            this.api.uploadImage(file, this.folder, resizeOptions).subscribe({
-                next: (res) => {
-                    newImages.push(res.url);
-                    completed++;
-                    if (completed === files.length) {
-                        this.images = newImages;
-                        this.imagesChange.emit(this.images);
-                        this.uploading = false;
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: 'Uploaded',
-                            detail: `${files.length} image(s) uploaded`,
-                            life: 3000
-                        });
+            this.api.uploadImageWithProgress(file, this.folder, resizeOptions).subscribe({
+                next: (event) => {
+                    if (event.type === 1) { // HttpEventType.UploadProgress
+                        const total = event.total || file.size;
+                        this.progress[file.name] = Math.round((event.loaded / total) * 100);
+                    } else if ((event as any).body) {
+                        const res = (event as any).body;
+                        newImages.push(res.url);
                     }
                 },
                 error: (err) => {
                     completed++;
+                    this.progress[file.name] = 0;
                     if (completed === files.length) {
-                        this.uploading = false;
-                        this.images = newImages;
-                        this.imagesChange.emit(this.images);
+                        this.finishUpload(newImages, files.length);
                     }
                     this.messageService.add({
                         severity: 'error',
@@ -150,8 +158,29 @@ export class ImageGalleryUpload {
                         detail: err.error?.detail || `Failed to upload ${file.name}`,
                         life: 5000
                     });
+                },
+                complete: () => {
+                    completed++;
+                    this.progress[file.name] = 100;
+                    if (completed === files.length) {
+                        this.finishUpload(newImages, files.length);
+                    }
                 }
             });
+        });
+    }
+
+    private finishUpload(newImages: string[], count: number) {
+        this.images = newImages;
+        this.imagesChange.emit(this.images);
+        this.uploading = false;
+        this.uploadingFiles = [];
+        this.progress = {};
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Uploaded',
+            detail: `${count} image(s) uploaded`,
+            life: 3000
         });
     }
 

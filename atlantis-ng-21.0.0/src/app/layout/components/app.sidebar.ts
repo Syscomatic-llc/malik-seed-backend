@@ -14,12 +14,11 @@ const BREAKPOINT = 992;
         <div #sidebarRef class="layout-sidebar" (mouseenter)="onMouseEnter()" (mouseleave)="onMouseLeave()">
             <div class="sidebar-header">
                 <a [routerLink]="['/cms/homepage/hero']" class="app-logo" style="cursor: pointer">
-                    <div class="app-logo-small h-8">
-                        <span class="text-2xl font-bold text-primary">MS</span>
+                    <div class="app-logo-small h-8 flex items-center justify-center">
+                        <img src="/assets/images/malikLogo.svg" style="height: 32px" alt="Malik Seed" />
                     </div>
                     <div class="app-logo-normal flex items-center">
-                        <span class="text-2xl font-bold text-primary">MS</span>
-                        <span class="text-xl font-semibold ml-3">Malik Seed</span>
+                        <img src="/assets/images/malikLogo.svg" style="height: 40px" alt="Malik Seed" />
                     </div>
                 </a>
                 <button class="layout-sidebar-anchor p-link z-20 hover:cursor-pointer" type="button" (click)="onAnchorToggle()"></button>

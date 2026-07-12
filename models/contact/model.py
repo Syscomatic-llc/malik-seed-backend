@@ -12,6 +12,7 @@ class ContactInfo(Base):
     title = Column(String(200), nullable=False, default="Contact Us")
     subtitle = Column(String(500), nullable=True)
     description = Column(Text, nullable=True)
+    footer_description = Column(Text, nullable=True)
 
     # Address
     address = Column(String(500), nullable=True)

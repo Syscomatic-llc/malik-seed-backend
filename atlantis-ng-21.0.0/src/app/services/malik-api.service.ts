@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpEventType } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
@@ -146,6 +146,7 @@ export interface OurStoryTimeline {
   title: string;
   description?: string;
   image_url?: string;
+  gallery_images?: string[];
   is_milestone?: boolean;
   sort_order?: number;
 }
@@ -219,6 +220,7 @@ export interface ContactInfo {
   id?: number;
   title: string;
   description?: string;
+  footer_description?: string;
   address?: string;
   phone_primary?: string;
   email_primary?: string;
@@ -285,6 +287,72 @@ export interface AuthResponse {
     token?: string;
     user?: any;
   };
+}
+
+// ============ SITE SETTINGS / SEO / USERS ============
+export interface SiteSettings {
+  id?: number;
+  site_name?: string;
+  site_tagline?: string;
+  site_description?: string;
+  logo_url?: string;
+  logo_dark_url?: string;
+  favicon_url?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  contact_address?: string;
+  facebook_url?: string;
+  twitter_url?: string;
+  instagram_url?: string;
+  linkedin_url?: string;
+  youtube_url?: string;
+  meta_title?: string;
+  meta_description?: string;
+  meta_keywords?: string;
+  google_analytics_id?: string;
+  google_search_console_verification?: string;
+  footer_text?: string;
+  copyright_text?: string;
+  primary_color?: string;
+  secondary_color?: string;
+  accent_color?: string;
+  maintenance_mode?: boolean;
+}
+
+export interface PageSEO {
+  id?: number;
+  page_path: string;
+  title?: string;
+  meta_title?: string;
+  meta_description?: string;
+  meta_keywords?: string;
+  og_image?: string;
+  og_title?: string;
+  og_description?: string;
+  is_active?: boolean;
+}
+
+export interface Sitemap {
+  id?: number;
+  url_path: string;
+  last_modified?: string;
+  changefreq?: string;
+  priority?: string;
+  is_active?: boolean;
+}
+
+export interface CMSUser {
+  id?: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  role: string;
+  status: string;
+  email_verified?: boolean;
+  avatar_url?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 @Injectable({
@@ -436,6 +504,27 @@ export class MalikApiService {
     return this.http.post<{ status: string; url: string; filename: string; original_url?: string; resized?: boolean; width?: number; height?: number }>(`${this.apiUrl}/admin/upload/image`, formData);
   }
 
+  uploadImageWithProgress(
+    file: File,
+    folder: string = 'general',
+    options?: { resize?: boolean; maxWidth?: number; maxHeight?: number; quality?: number }
+  ): Observable<HttpEvent<{ status: string; url: string; filename: string; original_url?: string; resized?: boolean; width?: number; height?: number }>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('folder', folder);
+    if (options) {
+      if (options.resize) formData.append('resize', 'true');
+      if (options.maxWidth !== undefined) formData.append('max_width', options.maxWidth.toString());
+      if (options.maxHeight !== undefined) formData.append('max_height', options.maxHeight.toString());
+      if (options.quality !== undefined) formData.append('quality', options.quality.toString());
+    }
+    return this.http.post<{ status: string; url: string; filename: string; original_url?: string; resized?: boolean; width?: number; height?: number }>(
+      `${this.apiUrl}/admin/upload/image`,
+      formData,
+      { reportProgress: true, observe: 'events' }
+    );
+  }
+
   // ============ ADMIN CRUD HELPERS ============
   adminList(resource: string): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/admin/${resource}`);
@@ -476,5 +565,63 @@ export class MalikApiService {
 
   deleteAssessmentQuestion(positionId: number, questionId: number): Observable<any> {
     return this.http.delete<any>(`${this.apiUrl}/admin/hiring/positions/${positionId}/questions/${questionId}`);
+  }
+
+  // ============ SITE SETTINGS / SEO / SITEMAP ============
+  getPublicSiteSettings(): Observable<SiteSettings> {
+    return this.http.get<SiteSettings>(`${this.apiUrl}/site-settings`);
+  }
+
+  getPageSEOList(): Observable<PageSEO[]> {
+    return this.http.get<PageSEO[]>(`${this.apiUrl}/admin/page-seo`);
+  }
+
+  createPageSEO(data: PageSEO): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/admin/page-seo`, data);
+  }
+
+  updatePageSEO(id: number, data: PageSEO): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/admin/page-seo/${id}`, data);
+  }
+
+  deletePageSEO(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/admin/page-seo/${id}`);
+  }
+
+  getSitemapList(): Observable<Sitemap[]> {
+    return this.http.get<Sitemap[]>(`${this.apiUrl}/admin/sitemap`);
+  }
+
+  createSitemap(data: Sitemap): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/admin/sitemap`, data);
+  }
+
+  updateSitemap(id: number, data: Sitemap): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/admin/sitemap/${id}`, data);
+  }
+
+  deleteSitemap(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/admin/sitemap/${id}`);
+  }
+
+  // ============ USER MANAGEMENT ============
+  getUsers(): Observable<CMSUser[]> {
+    return this.http.get<CMSUser[]>(`${this.apiUrl}/admin/users`);
+  }
+
+  createUser(data: Partial<CMSUser> & { password: string }): Observable<CMSUser> {
+    return this.http.post<CMSUser>(`${this.apiUrl}/admin/users`, data);
+  }
+
+  updateUser(id: number, data: Partial<CMSUser>): Observable<CMSUser> {
+    return this.http.put<CMSUser>(`${this.apiUrl}/admin/users/${id}`, data);
+  }
+
+  updateUserPassword(id: number, password: string): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/admin/users/${id}/password`, { password });
+  }
+
+  deleteUser(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/admin/users/${id}`);
   }
 }

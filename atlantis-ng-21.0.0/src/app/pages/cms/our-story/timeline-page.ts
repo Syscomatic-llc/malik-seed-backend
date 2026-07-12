@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MalikApiService, OurStoryTimeline } from '@/app/services/malik-api.service';
 import { ImageUpload } from '@/app/components/image-upload';
+import { ImageGalleryUpload } from '@/app/components/image-gallery-upload';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
@@ -23,7 +24,7 @@ import { ConfirmationService } from 'primeng/api';
     imports: [
         CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
         DialogModule, InputTextModule, TextareaModule, ToastModule, ToolbarModule,
-        ToggleSwitchModule, TagModule, ConfirmDialogModule, ImageUpload
+        ToggleSwitchModule, TagModule, ConfirmDialogModule, ImageUpload, ImageGalleryUpload
     ],
     providers: [MessageService, ConfirmationService],
     template: `
@@ -71,7 +72,7 @@ import { ConfirmationService } from 'primeng/api';
             </p-table>
         </div>
 
-        <p-dialog [(visible)]="dialog" [style]="{ width: '500px' }" header="Timeline Entry" [modal]="true">
+        <p-dialog [(visible)]="dialog" [style]="{ width: '560px' }" header="Timeline Entry" [modal]="true">
             <ng-template #content>
                 <div class="flex flex-col gap-4">
                     <div>
@@ -87,8 +88,12 @@ import { ConfirmationService } from 'primeng/api';
                         <textarea pTextarea [(ngModel)]="item.description" rows="3" fluid></textarea>
                     </div>
                     <div>
-                        <app-image-upload label="Image" folder="our-story"
+                        <app-image-upload label="Primary Image" folder="our-story"
                             [(currentImage)]="item.image_url" />
+                    </div>
+                    <div>
+                        <app-image-gallery-upload label="Gallery Images" folder="our-story"
+                            [(images)]="galleryImages" />
                     </div>
                     <div>
                         <label class="block font-bold mb-2">Milestone</label>
@@ -107,6 +112,7 @@ export class StoryTimelinePage implements OnInit {
     timeline = signal<OurStoryTimeline[]>([]);
     dialog = false;
     item: OurStoryTimeline = { year: '', title: '' };
+    galleryImages: string[] = [];
     saving = false;
 
     constructor(
@@ -128,11 +134,13 @@ export class StoryTimelinePage implements OnInit {
 
     openNew() {
         this.item = { year: '', title: '', is_milestone: false, sort_order: 0 };
+        this.galleryImages = [];
         this.dialog = true;
     }
 
     editItem(t: OurStoryTimeline) {
         this.item = { ...t };
+        this.galleryImages = this.parseJsonArray(t.gallery_images);
         this.dialog = true;
     }
 
@@ -143,7 +151,7 @@ export class StoryTimelinePage implements OnInit {
     saveItem() {
         if (!this.item.year?.trim() || !this.item.title?.trim()) return;
         this.saving = true;
-        const data = { ...this.item };
+        const data = { ...this.item, gallery_images: this.galleryImages };
         const request = data.id
             ? this.api.adminUpdate('our-story-timeline', data.id, data)
             : this.api.adminCreate('our-story-timeline', data);
@@ -180,5 +188,16 @@ export class StoryTimelinePage implements OnInit {
                 });
             }
         });
+    }
+
+    private parseJsonArray(value: any): string[] {
+        if (!value) return [];
+        if (Array.isArray(value)) return value;
+        try {
+            const parsed = JSON.parse(value);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            return [];
+        }
     }
 }

@@ -36,9 +36,9 @@ import { MessageService } from 'primeng/api';
                     style="padding: 20% 10% 20% 10%; background: var(--exception-pages-image); background-size: contain;"
                 >
                     <div class="flex flex-col">
-                        <div class="flex items-center mb-12">
-                            <img src="/demo/images/logo-{{ layoutService.isDarkTheme() ? 'light' : 'dark' }}.png" style="width: 45px" alt="logo" />
-                            <img src="/demo/images/appname-{{ layoutService.isDarkTheme() ? 'light' : 'dark' }}.png" class="ml-4" style="width: 100px" alt="logo" />
+                        <div class="flex flex-col items-center mb-8">
+                            <img src="/assets/images/malikLogo.svg" style="width: 120px" alt="Malik Seed" />
+                            <h1 class="text-2xl font-bold text-primary mt-4">Welcome to Malik Seed Admin</h1>
                         </div>
                         <div class="form-container">
                             <p-iconfield>
@@ -59,11 +59,8 @@ import { MessageService } from 'primeng/api';
                     </div>
 
                     <div class="flex items-center absolute" style="bottom: 75px">
-                        <div class="flex items-center pr-6 mr-6 border-r border-surface-200 dark:border-surface-700">
-                            <img src="/demo/images/logo-gray.png" style="width: 22px" />
-                            <img src="/demo/images/appname-gray.png" class="ml-2" style="width: 45px" />
-                        </div>
-                        <span class="text-sm text-surface-500 dark:text-surface-400 mr-4">Copyright 2026</span>
+                        <span class="text-sm text-surface-500 dark:text-surface-400 mr-2">Copyright</span>
+                        <a href="https://syscomatic.com/" target="_blank" class="text-sm text-primary hover:underline">Syscomatic LLC</a>
                     </div>
                 </p-fluid>
             </div>

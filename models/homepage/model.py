@@ -5,22 +5,22 @@ from models.base import Base
 
 
 class HomepageHeroSlide(Base):
-    """Hero carousel slides - matches Figma hero-section with video/image backgrounds"""
+    """Hero carousel slides - simplified: title + background image only"""
     __tablename__ = "homepage_hero_slides"
 
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(500), nullable=False)
-    subtitle = Column(String(500), nullable=True)
-    description = Column(Text, nullable=True)
+    title = Column(String(500), nullable=True)
 
     # Media
     background_image = Column(String(500), nullable=True)
+
+    # Legacy fields kept for existing data; no longer exposed in CMS
+    subtitle = Column(String(500), nullable=True)
+    description = Column(Text, nullable=True)
     background_video = Column(String(500), nullable=True)
     mobile_image = Column(String(500), nullable=True)
-
-    # CTA Buttons
-    primary_cta_text = Column(String(100), nullable=True, default="Discover More")
-    primary_cta_link = Column(String(500), nullable=True, default="/our-story")
+    primary_cta_text = Column(String(100), nullable=True)
+    primary_cta_link = Column(String(500), nullable=True)
     secondary_cta_text = Column(String(100), nullable=True)
     secondary_cta_link = Column(String(500), nullable=True)
 

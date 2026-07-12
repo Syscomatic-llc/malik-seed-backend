@@ -29,10 +29,12 @@ class SiteSettings(Base):
     youtube_url = Column(String(500), nullable=True)
 
     # SEO
+    site_description = Column(Text, nullable=True)
     meta_title = Column(String(200), nullable=True)
     meta_description = Column(String(500), nullable=True)
     meta_keywords = Column(String(500), nullable=True)
     google_analytics_id = Column(String(100), nullable=True)
+    google_search_console_verification = Column(Text, nullable=True)
 
     # Footer
     footer_text = Column(Text, nullable=True)
@@ -56,6 +58,23 @@ class SiteSettings(Base):
 
     def __repr__(self):
         return f"<SiteSettings {self.site_name}>"
+
+
+class Sitemap(Base):
+    """Sitemap URLs - admin can manage. Used to generate /sitemap.xml"""
+    __tablename__ = "sitemaps"
+
+    id = Column(Integer, primary_key=True, index=True)
+    url_path = Column(String(500), nullable=False)
+    last_modified = Column(DateTime(timezone=True), nullable=True)
+    changefreq = Column(String(20), nullable=True, default="monthly")
+    priority = Column(String(10), nullable=True, default="0.5")
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    def __repr__(self):
+        return f"<Sitemap {self.url_path}>"
 
 
 class MenuItem(Base):

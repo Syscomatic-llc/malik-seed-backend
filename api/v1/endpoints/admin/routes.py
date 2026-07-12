@@ -39,7 +39,7 @@ from models.news.model import (
     NewsArticle, NewsCategoryModel, PressRelease, NewsletterSubscriber
 )
 from models.site_settings.model import (
-    SiteSettings, MenuItem, SocialLink, PageSEO
+    SiteSettings, MenuItem, SocialLink, PageSEO, Sitemap
 )
 
 router = APIRouter(dependencies=[Depends(require_admin)])
@@ -101,6 +101,7 @@ MODEL_REGISTRY: Dict[str, tuple] = {
     "menu-item": (MenuItem, False),
     "social-link": (SocialLink, False),
     "page-seo": (PageSEO, False),
+    "sitemap": (Sitemap, False),
 }
 
 

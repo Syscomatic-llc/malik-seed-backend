@@ -38,9 +38,9 @@ import { environment } from '@/environments/environment';
                 </ng-template>
             </p-toolbar>
 
-            <p-table [value]="heroSlides()" [rows]="10" [paginator]="true" 
-                [globalFilterFields]="['title', 'subtitle']"
-                [tableStyle]="{ 'min-width': '75rem' }"
+            <p-table [value]="heroSlides()" [rows]="10" [paginator]="true"
+                [globalFilterFields]="['title']"
+                [tableStyle]="{ 'min-width': '50rem' }"
                 currentPageReportTemplate="Showing {first} to {last} of {totalRecords} slides"
                 [showCurrentPageReport]="true">
                 <ng-template #caption>
@@ -56,10 +56,7 @@ import { environment } from '@/environments/environment';
                     <tr>
                         <th style="min-width: 4rem">ID</th>
                         <th style="min-width: 16rem">Title</th>
-                        <th>Subtitle</th>
                         <th>Background Image</th>
-                        <th>CTA</th>
-                        <th>Status</th>
                         <th style="min-width: 8rem">Actions</th>
                     </tr>
                 </ng-template>
@@ -67,24 +64,13 @@ import { environment } from '@/environments/environment';
                     <tr>
                         <td>{{slide.id}}</td>
                         <td>{{slide.title}}</td>
-                        <td>{{slide.subtitle}}</td>
                         <td>
                             <img *ngIf="slide.background_image" [src]="mediaBaseUrl + slide.background_image"
                                 [alt]="slide.title" style="width: 64px" class="rounded shadow-sm" />
                             <span *ngIf="!slide.background_image" class="text-muted-color">No image</span>
                         </td>
                         <td>
-                            <div class="flex flex-col gap-1">
-                                <span class="text-sm">{{slide.primary_cta_text}}</span>
-                                <span class="text-xs text-muted-color">{{slide.primary_cta_link}}</span>
-                            </div>
-                        </td>
-                        <td>
-                            <p-tag [value]="slide.is_active ? 'Active' : 'Inactive'" 
-                                [severity]="slide.is_active ? 'success' : 'danger'" />
-                        </td>
-                        <td>
-                            <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" 
+                            <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true"
                                 (onClick)="editSlide(slide)" />
                             <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
                                 (onClick)="deleteSlide(slide)" />
@@ -94,7 +80,7 @@ import { environment } from '@/environments/environment';
             </p-table>
         </div>
 
-        <p-dialog [(visible)]="slideDialog" [style]="{ width: '650px' }" header="Hero Slide Details" [modal]="true">
+        <p-dialog [(visible)]="slideDialog" [style]="{ width: '500px' }" header="Hero Slide Details" [modal]="true">
             <ng-template #content>
                 <div class="flex flex-col gap-4">
                     <div>
@@ -102,30 +88,8 @@ import { environment } from '@/environments/environment';
                         <input type="text" pInputText id="title" [(ngModel)]="slide.title" required fluid />
                     </div>
                     <div>
-                        <label for="subtitle" class="block font-bold mb-2">Subtitle</label>
-                        <input type="text" pInputText id="subtitle" [(ngModel)]="slide.subtitle" fluid />
-                    </div>
-                    <div>
-                        <label for="description" class="block font-bold mb-2">Description</label>
-                        <textarea id="description" pTextarea [(ngModel)]="slide.description" rows="3" fluid></textarea>
-                    </div>
-                    <div>
                         <app-image-upload label="Background Image" folder="homepage"
                             [(currentImage)]="slide.background_image" />
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="ctaText" class="block font-bold mb-2">CTA Text</label>
-                            <input type="text" pInputText id="ctaText" [(ngModel)]="slide.primary_cta_text" fluid />
-                        </div>
-                        <div>
-                            <label for="ctaLink" class="block font-bold mb-2">CTA Link</label>
-                            <input type="text" pInputText id="ctaLink" [(ngModel)]="slide.primary_cta_link" fluid />
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block font-bold mb-2">Active</label>
-                        <p-inputSwitch [(ngModel)]="slide.is_active" />
                     </div>
                 </div>
             </ng-template>
@@ -172,6 +136,7 @@ export class HeroSlidesPage implements OnInit {
         this.submitted = false;
         this.slideDialog = true;
     }
+
 
     editSlide(slide: HeroSlide) {
         this.slide = { ...slide };

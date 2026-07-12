@@ -31,6 +31,27 @@ def get_column_length(table_name: str, column_name: str) -> int:
     return 0
 
 
+def add_column(table_name: str, column_name: str, column_def: str):
+    """Add a column if it does not already exist."""
+    if not table_exists(table_name):
+        return
+    if column_exists(table_name, column_name):
+        print(f"  ✓ {table_name}.{column_name} already exists")
+        return
+
+    dialect = engine.dialect.name
+    with engine.connect() as conn:
+        if dialect == "sqlite":
+            conn.execute(text(f'ALTER TABLE {table_name} ADD COLUMN {column_name} {column_def}'))
+        elif dialect == "postgresql":
+            conn.execute(text(f'ALTER TABLE {table_name} ADD COLUMN {column_name} {column_def}'))
+        else:
+            print(f"  ✗ Unsupported dialect: {dialect}")
+            return
+        conn.commit()
+    print(f"  ✓ Added {table_name}.{column_name}")
+
+
 def add_json_column(table_name: str, column_name: str):
     if column_exists(table_name, column_name):
         print(f"  ✓ {table_name}.{column_name} already exists")
@@ -143,6 +164,54 @@ def main():
 
     ensure_varchar_length("homepage_timelines", "year", 50)
     ensure_varchar_length("our_story_timelines", "year", 50)
+
+    # Contact info footer description
+    add_column("contact_infos", "footer_description", "TEXT")
+
+    # Site settings new fields
+    add_column("site_settings", "site_description", "TEXT")
+    add_column("site_settings", "google_search_console_verification", "TEXT")
+
+    # Sitemaps table
+    if not table_exists("sitemaps"):
+        dialect = engine.dialect.name
+        with engine.connect() as conn:
+            if dialect == "postgresql":
+                conn.execute(text(
+                    """
+                    CREATE TABLE sitemaps (
+                        id SERIAL PRIMARY KEY,
+                        url_path VARCHAR(500) NOT NULL,
+                        last_modified TIMESTAMP WITH TIME ZONE,
+                        changefreq VARCHAR(20) DEFAULT 'monthly',
+                        priority VARCHAR(10) DEFAULT '0.5',
+                        is_active BOOLEAN DEFAULT TRUE,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                        updated_at TIMESTAMP WITH TIME ZONE
+                    )
+                    """
+                ))
+            elif dialect == "sqlite":
+                conn.execute(text(
+                    """
+                    CREATE TABLE sitemaps (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        url_path VARCHAR(500) NOT NULL,
+                        last_modified TIMESTAMP,
+                        changefreq VARCHAR(20) DEFAULT 'monthly',
+                        priority VARCHAR(10) DEFAULT '0.5',
+                        is_active BOOLEAN DEFAULT 1,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP
+                    )
+                    """
+                ))
+            else:
+                print(f"  ✗ Unsupported dialect: {dialect}")
+            conn.commit()
+        print("  ✓ Created sitemaps table")
+    else:
+        print("  ✓ sitemaps table already exists")
 
     print("Migrations complete.")
 

@@ -35,6 +35,7 @@ def create_tables():
         MenuItem,
         SocialLink,
         PageSEO,
+        Sitemap,
     )
 
     from models.homepage.model import (

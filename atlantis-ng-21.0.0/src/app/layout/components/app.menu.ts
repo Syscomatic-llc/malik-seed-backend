@@ -185,9 +185,15 @@ export class AppMenu {
             ]
         },
         {
-            label: 'Site Settings',
+            label: 'Settings',
             icon: 'pi pi-cog',
-            routerLink: ['/cms/settings']
+            items: [
+                {
+                    label: 'CMS Settings',
+                    icon: 'pi pi-fw pi-cog',
+                    routerLink: ['/cms/settings']
+                }
+            ]
         }
     ];
 }
