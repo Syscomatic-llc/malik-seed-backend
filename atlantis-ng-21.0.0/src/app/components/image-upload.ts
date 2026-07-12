@@ -8,6 +8,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { MalikApiService } from '@/app/services/malik-api.service';
 import { MessageService } from 'primeng/api';
 import { environment } from '@/environments/environment';
+import { ImageCropperDialog } from './image-cropper-dialog';
 
 export interface UploadResult {
     url: string;
@@ -17,7 +18,7 @@ export interface UploadResult {
 @Component({
     selector: 'app-image-upload',
     standalone: true,
-    imports: [CommonModule, FormsModule, FileUploadModule, ButtonModule, ProgressSpinnerModule, InputNumberModule],
+    imports: [CommonModule, FormsModule, FileUploadModule, ButtonModule, ProgressSpinnerModule, InputNumberModule, ImageCropperDialog],
     providers: [MessageService],
     template: `
         <div class="flex flex-col gap-2">
@@ -62,6 +63,12 @@ export interface UploadResult {
                 <p-progress-spinner [style]="{ width: '20px', height: '20px' }" />
                 Uploading...
             </div>
+
+            <app-image-cropper-dialog
+                [imageFile]="fileToCrop"
+                [(visible)]="cropVisible"
+                (cropped)="onCropped($event)"
+                (cancel)="onCropCancel()" />
         </div>
     `
 })
@@ -82,6 +89,9 @@ export class ImageUpload {
     maxWidth: number = 1920;
     maxHeight: number = 1920;
     quality: number = 85;
+
+    cropVisible = false;
+    fileToCrop?: File;
 
     constructor(
         private api: MalikApiService,
@@ -109,6 +119,12 @@ export class ImageUpload {
             return;
         }
 
+        this.fileToCrop = file;
+        this.cropVisible = true;
+    }
+
+    onCropped(file: File) {
+        this.fileToCrop = undefined;
         this.uploading = true;
         const resizeOptions = this.resizeEnabled ? { resize: true, maxWidth: this.maxWidth, maxHeight: this.maxHeight, quality: this.quality } : undefined;
 
@@ -135,6 +151,10 @@ export class ImageUpload {
                 });
             }
         });
+    }
+
+    onCropCancel() {
+        this.fileToCrop = undefined;
     }
 
     removeImage() {

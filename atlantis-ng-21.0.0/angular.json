@@ -37,7 +37,8 @@
                         "scripts": [],
                         "allowedCommonJsDependencies": [
                             "quill",
-                            "quill-delta"
+                            "quill-delta",
+                            "cropperjs"
                         ]
                     },
                     "configurations": {

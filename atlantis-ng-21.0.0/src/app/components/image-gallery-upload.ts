@@ -10,11 +10,12 @@ import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-
 import { MalikApiService } from '@/app/services/malik-api.service';
 import { MessageService } from 'primeng/api';
 import { environment } from '@/environments/environment';
+import { ImageCropperDialog } from './image-cropper-dialog';
 
 @Component({
     selector: 'app-image-gallery-upload',
     standalone: true,
-    imports: [CommonModule, FormsModule, FileUploadModule, ButtonModule, ProgressSpinnerModule, ProgressBarModule, InputNumberModule, DragDropModule],
+    imports: [CommonModule, FormsModule, FileUploadModule, ButtonModule, ProgressSpinnerModule, ProgressBarModule, InputNumberModule, DragDropModule, ImageCropperDialog],
     providers: [MessageService],
     template: `
         <div class="flex flex-col gap-2">
@@ -74,6 +75,12 @@ import { environment } from '@/environments/environment';
                 <p-progress-spinner [style]="{ width: '20px', height: '20px' }" />
                 Uploading...
             </div>
+
+            <app-image-cropper-dialog
+                [imageFile]="fileToCrop"
+                [(visible)]="cropVisible"
+                (cropped)="onCropped($event)"
+                (cancel)="onCropCancel()" />
         </div>
     `
 })
@@ -96,6 +103,13 @@ export class ImageGalleryUpload {
     maxWidth: number = 1920;
     maxHeight: number = 1920;
     quality: number = 85;
+
+    cropVisible = false;
+    fileToCrop?: File;
+    pendingFiles: File[] = [];
+    private totalFilesToProcess = 0;
+    private processedFiles = 0;
+    private newImagesAfterCrop: string[] = [];
 
     constructor(
         private api: MalikApiService,
@@ -131,42 +145,80 @@ export class ImageGalleryUpload {
         this.uploading = true;
         this.uploadingFiles = files.map(f => f.name);
         this.progress = {};
-        let completed = 0;
-        const newImages = [...(this.images || [])];
+        this.totalFilesToProcess = files.length;
+        this.processedFiles = 0;
+        this.newImagesAfterCrop = [...(this.images || [])];
+        this.pendingFiles = [...files];
+
+        this.processNextFile();
+    }
+
+    private processNextFile() {
+        if (this.pendingFiles.length === 0) {
+            this.finishUpload(this.newImagesAfterCrop, this.totalFilesToProcess);
+            return;
+        }
+        const file = this.pendingFiles.shift();
+        if (!file) return;
+        this.fileToCrop = file;
+        this.cropVisible = true;
+    }
+
+    onCropped(file: File) {
+        this.fileToCrop = undefined;
+        this.cropVisible = false;
+        this.uploadCroppedFile(file);
+    }
+
+    onCropCancel() {
+        this.fileToCrop = undefined;
+        this.cropVisible = false;
+        this.processedFiles++;
+        if (this.processedFiles === this.totalFilesToProcess) {
+            this.finishUpload(this.newImagesAfterCrop, this.totalFilesToProcess);
+        } else {
+            this.processNextFile();
+        }
+    }
+
+    private uploadCroppedFile(file: File) {
+        const originalName = file.name;
         const resizeOptions = this.resizeEnabled ? { resize: true, maxWidth: this.maxWidth, maxHeight: this.maxHeight, quality: this.quality } : undefined;
 
-        files.forEach((file: File) => {
-            this.api.uploadImageWithProgress(file, this.folder, resizeOptions).subscribe({
-                next: (event) => {
-                    if (event.type === 1) { // HttpEventType.UploadProgress
-                        const total = event.total || file.size;
-                        this.progress[file.name] = Math.round((event.loaded / total) * 100);
-                    } else if ((event as any).body) {
-                        const res = (event as any).body;
-                        newImages.push(res.url);
-                    }
-                },
-                error: (err) => {
-                    completed++;
-                    this.progress[file.name] = 0;
-                    if (completed === files.length) {
-                        this.finishUpload(newImages, files.length);
-                    }
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Upload Failed',
-                        detail: err.error?.detail || `Failed to upload ${file.name}`,
-                        life: 5000
-                    });
-                },
-                complete: () => {
-                    completed++;
-                    this.progress[file.name] = 100;
-                    if (completed === files.length) {
-                        this.finishUpload(newImages, files.length);
-                    }
+        this.api.uploadImageWithProgress(file, this.folder, resizeOptions).subscribe({
+            next: (event) => {
+                if (event.type === 1) { // HttpEventType.UploadProgress
+                    const total = event.total || file.size;
+                    this.progress[originalName] = Math.round((event.loaded / total) * 100);
+                } else if ((event as any).body) {
+                    const res = (event as any).body;
+                    this.newImagesAfterCrop.push(res.url);
                 }
-            });
+            },
+            error: (err) => {
+                this.processedFiles++;
+                this.progress[originalName] = 0;
+                if (this.processedFiles === this.totalFilesToProcess) {
+                    this.finishUpload(this.newImagesAfterCrop, this.totalFilesToProcess);
+                } else {
+                    this.processNextFile();
+                }
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Upload Failed',
+                    detail: err.error?.detail || `Failed to upload ${originalName}`,
+                    life: 5000
+                });
+            },
+            complete: () => {
+                this.processedFiles++;
+                this.progress[originalName] = 100;
+                if (this.processedFiles === this.totalFilesToProcess) {
+                    this.finishUpload(this.newImagesAfterCrop, this.totalFilesToProcess);
+                } else {
+                    this.processNextFile();
+                }
+            }
         });
     }
 
