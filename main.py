@@ -9,7 +9,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from api.v1.api import router as api_router
 from core.database import create_tables, SessionLocal
-from core.config import get_upload_directory, FIRST_ADMIN_EMAIL, FIRST_ADMIN_PASSWORD
+from core.config import get_upload_directory, FIRST_ADMIN_EMAIL, FIRST_ADMIN_PASSWORD, CORS_ORIGINS
 from core.security import hash_password
 from models.user.model import User, UserRole, UserStatus
 
@@ -61,7 +61,7 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

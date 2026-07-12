@@ -74,7 +74,7 @@ export class ImageUpload {
     @Output() currentImageChange = new EventEmitter<string | undefined>();
     @Output() uploaded = new EventEmitter<UploadResult>();
 
-    MAX_FILE_SIZE = 10 * 1024 * 1024;
+    MAX_FILE_SIZE = 50 * 1024 * 1024;
     uniqueId = Math.random().toString(36).substring(2, 9);
 
     uploading = false;
@@ -103,7 +103,7 @@ export class ImageUpload {
             this.messageService.add({
                 severity: 'error',
                 summary: 'File too large',
-                detail: 'Maximum image size is 10MB.',
+                detail: 'Maximum image size is 50MB.',
                 life: 5000
             });
             return;

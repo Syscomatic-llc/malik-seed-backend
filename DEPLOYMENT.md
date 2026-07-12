@@ -40,7 +40,10 @@ DATABASE_URL=postgresql+psycopg://malikseed_user:STRONG_PASSWORD@localhost:5432/
 SECRET_KEY=your-super-secret-key-min-32-chars
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 UPLOAD_DIR=/var/www/malik-seed-backend/uploads
-MAX_FILE_SIZE=10485760
+MAX_FILE_SIZE=52428800
+
+# CORS origins (comma-separated)
+CORS_ORIGINS=https://cmsmalik.syscomatic.cloud,https://apimalikseed.syscomatic.cloud
 
 SMTP_HOST=smtp.example.com
 SMTP_PORT=587
@@ -292,4 +295,4 @@ Then rebuild and re-upload the frontend if you changed Angular code.
 | Database column errors | Run `python migrate.py`. |
 | No demo data | Run `python seed_figma_data.py`. Use `--force` to reset. |
 | Admin routes exposed | Add JWT dependency to `api/v1/endpoints/admin/routes.py` (future hardening). |
-| CORS errors | Already configured `allow_origins=["*"]` in `main.py`. Restrict in production. |
+| CORS errors | Update `CORS_ORIGINS` in `.env` or `core/config.py` to include your frontend domain. Wildcard (`*`) is no longer used because credentials are enabled. |

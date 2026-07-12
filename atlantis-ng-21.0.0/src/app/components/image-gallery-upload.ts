@@ -75,7 +75,7 @@ export class ImageGalleryUpload {
     @Input() showResizeControls: boolean = true;
     @Output() imagesChange = new EventEmitter<string[]>();
 
-    MAX_FILE_SIZE = 10 * 1024 * 1024;
+    MAX_FILE_SIZE = 50 * 1024 * 1024;
     uniqueId = Math.random().toString(36).substring(2, 9);
 
     uploading = false;
@@ -109,7 +109,7 @@ export class ImageGalleryUpload {
             this.messageService.add({
                 severity: 'error',
                 summary: 'File too large',
-                detail: `Each image must be under 10MB. ${oversized.length} file(s) exceeded the limit.`,
+                detail: `Each image must be under 50MB. ${oversized.length} file(s) exceeded the limit.`,
                 life: 5000
             });
             return;

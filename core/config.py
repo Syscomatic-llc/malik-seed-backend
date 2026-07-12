@@ -14,8 +14,21 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
 
 MAX_FILE_SIZE = int(
-    os.getenv("MAX_FILE_SIZE", "10485760")
+    os.getenv("MAX_FILE_SIZE", str(50 * 1024 * 1024))
 )
+
+CORS_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("CORS_ORIGINS", "").split(",")
+    if origin.strip()
+]
+if not CORS_ORIGINS:
+    CORS_ORIGINS = [
+        "http://localhost:4200",
+        "https://localhost:4200",
+        "https://cmsmalik.syscomatic.cloud",
+        "https://apimalikseed.syscomatic.cloud",
+    ]
 
 SMTP_HOST = os.getenv("SMTP_HOST", "")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
