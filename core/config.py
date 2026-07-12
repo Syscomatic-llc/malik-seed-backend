@@ -26,9 +26,11 @@ if not CORS_ORIGINS:
     CORS_ORIGINS = [
         "http://localhost:4200",
         "https://localhost:4200",
+        "https://localhost:6500",
         "https://cmsmalik.syscomatic.cloud",
         "https://apimalikseed.syscomatic.cloud",
-        "https://apimalikseed.syscomatic.cloud/api/v1/admin/"
+        "https://apimalikseed.syscomatic.cloud/api/v1/admin/",
+
     ]
 
 SMTP_HOST = os.getenv("SMTP_HOST", "")
