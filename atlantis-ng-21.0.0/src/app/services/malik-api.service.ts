@@ -128,6 +128,7 @@ export interface OurStoryMission {
   id?: number;
   title: string;
   description: string;
+  vision_description?: string;
   image_url?: string;
 }
 

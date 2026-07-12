@@ -31,6 +31,10 @@ import { environment } from '@/environments/environment';
                             <textarea pTextarea [(ngModel)]="mission.description" rows="6" fluid></textarea>
                         </div>
                         <div>
+                            <label class="block font-bold mb-2">Our Vision Description</label>
+                            <textarea pTextarea [(ngModel)]="mission.vision_description" rows="6" fluid></textarea>
+                        </div>
+                        <div>
                             <app-image-upload label="Image" folder="our-story"
                                 [(currentImage)]="mission.image_url" />
                         </div>
@@ -46,6 +50,8 @@ import { environment } from '@/environments/environment';
                         </div>
                         <h3 class="text-xl font-bold">{{mission.title}}</h3>
                         <p class="text-muted-color">{{mission.description}}</p>
+                        <h4 class="text-lg font-bold mt-3">Our Vision</h4>
+                        <p class="text-muted-color">{{mission.vision_description}}</p>
                     </div>
                 </p-card>
             </div>
@@ -56,7 +62,7 @@ import { environment } from '@/environments/environment';
     `
 })
 export class MissionPage implements OnInit {
-    mission: OurStoryMission = { title: '', description: '' };
+    mission: OurStoryMission = { title: '', description: '', vision_description: '' };
     saving = false;
     mediaBaseUrl = environment.mediaBaseUrl;
 

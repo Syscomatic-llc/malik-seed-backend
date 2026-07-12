@@ -168,6 +168,9 @@ def main():
     # Contact info footer description
     add_column("contact_infos", "footer_description", "TEXT")
 
+    # Our Story mission vision description
+    add_column("our_story_missions", "vision_description", "TEXT")
+
     # Site settings new fields
     add_column("site_settings", "site_description", "TEXT")
     add_column("site_settings", "google_search_console_verification", "TEXT")

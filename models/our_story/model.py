@@ -30,6 +30,7 @@ class OurStoryMission(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(200), nullable=False, default="OUR MISSION")
     description = Column(Text, nullable=False)
+    vision_description = Column(Text, nullable=True)
     image_url = Column(String(500), nullable=True)
     icon = Column(String(100), nullable=True)
     is_active = Column(Boolean, default=True)

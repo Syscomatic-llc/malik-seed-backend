@@ -58,49 +58,15 @@ import { environment } from '@/environments/environment';
                                         <label class="block font-bold mb-2">Site Description</label>
                                         <textarea pTextarea [(ngModel)]="settings.site_description" rows="3" fluid></textarea>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <app-image-upload label="Logo" folder="site" [(currentImage)]="settings.logo_url" />
-                                        </div>
-                                        <div>
-                                            <app-image-upload label="Favicon" folder="site" [(currentImage)]="settings.favicon_url" />
-                                        </div>
-                                    </div>
-                                    <p-divider />
-                                    <div class="grid grid-cols-3 gap-4">
-                                        <div>
-                                            <label class="block font-bold mb-2">Primary Color</label>
-                                            <input type="text" pInputText [(ngModel)]="settings.primary_color" placeholder="#2c5530" fluid />
-                                        </div>
-                                        <div>
-                                            <label class="block font-bold mb-2">Secondary Color</label>
-                                            <input type="text" pInputText [(ngModel)]="settings.secondary_color" placeholder="#4a7c59" fluid />
-                                        </div>
-                                        <div>
-                                            <label class="block font-bold mb-2">Accent Color</label>
-                                            <input type="text" pInputText [(ngModel)]="settings.accent_color" placeholder="#f4a261" fluid />
-                                        </div>
+                                    <div>
+                                        <app-image-upload label="Logo" folder="site" [(currentImage)]="settings.logo_url" />
                                     </div>
                                 </div>
                             </p-card>
                         </div>
                         <div class="col-span-12 lg:col-span-4 flex flex-col gap-4">
-                            <p-card header="Contact & SEO">
+                            <p-card header="SEO & Tools">
                                 <div class="flex flex-col gap-4">
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label class="block font-bold mb-2">Contact Email</label>
-                                            <input type="text" pInputText [(ngModel)]="settings.contact_email" fluid />
-                                        </div>
-                                        <div>
-                                            <label class="block font-bold mb-2">Contact Phone</label>
-                                            <input type="text" pInputText [(ngModel)]="settings.contact_phone" fluid />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label class="block font-bold mb-2">Contact Address</label>
-                                        <textarea pTextarea [(ngModel)]="settings.contact_address" rows="2" fluid></textarea>
-                                    </div>
                                     <div>
                                         <label class="block font-bold mb-2">Google Analytics ID</label>
                                         <input type="text" pInputText [(ngModel)]="settings.google_analytics_id" placeholder="G-XXXXXXXXXX" fluid />
