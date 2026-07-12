@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 import os
 import mimetypes
+import asyncio
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
@@ -10,6 +11,7 @@ from starlette.middleware.cors import CORSMiddleware
 from api.v1.api import router as api_router
 from core.database import create_tables, SessionLocal
 from core.config import get_upload_directory, FIRST_ADMIN_EMAIL, FIRST_ADMIN_PASSWORD, CORS_ORIGINS
+import migrate as migrate_module
 from core.security import hash_password
 from models.user.model import User, UserRole, UserStatus
 
@@ -43,6 +45,7 @@ def ensure_admin_user():
 async def lifespan(app: FastAPI):
     print("Starting Application")
     create_tables()
+    await asyncio.to_thread(migrate_module.main)
     ensure_admin_user()
     print("Database Created Successfully")
     yield

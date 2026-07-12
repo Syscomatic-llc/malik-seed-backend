@@ -91,7 +91,7 @@ python seed_figma_data.py
 
 ### If running with Docker Compose
 
-Run migrations and seeding manually inside the running backend container:
+Migrations now run automatically on backend startup, but you can also run them manually:
 
 ```bash
 # Add missing columns / resize columns (safe to run multiple times)
@@ -292,7 +292,7 @@ Then rebuild and re-upload the frontend if you changed Angular code.
 | Problem | Solution |
 |---|---|
 | Images fail with `ERR_HTTP2_PROTOCOL_ERROR` | Serve `/uploads/` directly via nginx; disable proxy buffering. |
-| Database column errors | Run `python migrate.py`. |
+| Database column errors | Migrations run on startup; run `python migrate.py` manually if needed. |
 | No demo data | Run `python seed_figma_data.py`. Use `--force` to reset. |
 | Admin routes exposed | Add JWT dependency to `api/v1/endpoints/admin/routes.py` (future hardening). |
 | CORS errors | Update `CORS_ORIGINS` in `.env` or `core/config.py` to include your frontend domain. Wildcard (`*`) is no longer used because credentials are enabled. |
