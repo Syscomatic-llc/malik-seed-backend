@@ -19,6 +19,7 @@ import { SelectModule } from 'primeng/select';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { environment } from '@/environments/environment';
+import { slugify } from '@/app/utils/slugify';
 
 @Component({
     selector: 'app-articles-page',
@@ -94,7 +95,7 @@ import { environment } from '@/environments/environment';
                 <div class="flex flex-col gap-4">
                     <div>
                         <label class="block font-bold mb-2">Title</label>
-                        <input type="text" pInputText [(ngModel)]="article.title" fluid />
+                        <input type="text" pInputText [(ngModel)]="article.title" (ngModelChange)="onTitleChange($event)" fluid />
                     </div>
                     <div>
                         <label class="block font-bold mb-2">Slug</label>
@@ -187,6 +188,12 @@ export class ArticlesPage implements OnInit {
     editArticle(a: NewsArticle) {
         this.article = { ...a };
         this.dialog = true;
+    }
+
+    onTitleChange(title: string) {
+        if (!this.article.slug) {
+            this.article.slug = slugify(title);
+        }
     }
 
     hideDialog() {

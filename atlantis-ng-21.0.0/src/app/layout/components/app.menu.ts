@@ -144,6 +144,11 @@ export class AppMenu {
                     label: 'Assessments',
                     icon: 'pi pi-fw pi-clipboard',
                     routerLink: ['/cms/hiring/assessments']
+                },
+                {
+                    label: 'Resume',
+                    icon: 'pi pi-fw pi-file-pdf',
+                    routerLink: ['/cms/hiring/resumes']
                 }
             ]
         },

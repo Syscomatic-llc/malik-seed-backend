@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MalikApiService, SiteSettings, PageSEO, Sitemap, CMSUser } from '@/app/services/malik-api.service';
+import { AuthService } from '@/app/services/auth.service';
 import { ImageUpload } from '@/app/components/image-upload';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
@@ -366,7 +367,8 @@ export class SettingsPage implements OnInit {
     constructor(
         private api: MalikApiService,
         private messageService: MessageService,
-        private confirmationService: ConfirmationService
+        private confirmationService: ConfirmationService,
+        private authService: AuthService
     ) {}
 
     ngOnInit() {
@@ -561,10 +563,18 @@ export class SettingsPage implements OnInit {
             ? this.api.updateUser(this.user.id, payload)
             : this.api.createUser(payload);
         request.subscribe({
-            next: () => {
+            next: (saved: CMSUser) => {
                 this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'User saved', life: 3000 });
                 this.userDialog = false;
                 this.loadUsers();
+
+                // If the admin updated their own profile, refresh the topbar avatar.
+                const current = this.authService.user();
+                if (current && saved.id === current.id) {
+                    const updated = { ...current, ...saved };
+                    this.authService.user.set(updated);
+                    localStorage.setItem('cms_user', JSON.stringify(updated));
+                }
             },
             error: (err) => this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to save user' })
         });

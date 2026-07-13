@@ -11,7 +11,7 @@ from core.security import verify_token
 from core.config import get_upload_directory
 from models.hiring.model import (
     JobPosition, JobApplication, AssessmentQuestion,
-    CareerBenefit, HiringTestimonial, HiringPageContent
+    CareerBenefit, HiringTestimonial, HiringPageContent, ResumeUpload
 )
 from models.user.model import User
 
@@ -488,6 +488,63 @@ def get_applications_by_email(
         result.append({"application": app, "position": position})
 
     return result
+
+
+# ============== PUBLIC CV UPLOAD ==============
+
+@router.post("/upload-cv")
+def upload_cv(
+    file: UploadFile = File(...),
+    name: Optional[str] = Form(None),
+    email: Optional[str] = Form(None),
+    phone: Optional[str] = Form(None),
+    position: Optional[str] = Form(None),
+    message: Optional[str] = Form(None),
+    db: Session = Depends(get_db)
+):
+    """Public endpoint for uploading a CV/resume without applying to a specific position"""
+    allowed_extensions = {".pdf", ".doc", ".docx"}
+    file_ext = os.path.splitext(file.filename)[1].lower()
+
+    if file_ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: {', '.join(allowed_extensions)}"
+        )
+
+    resumes_dir = os.path.join(UPLOAD_DIR, "resumes")
+    os.makedirs(resumes_dir, exist_ok=True)
+
+    safe_email = (email or "anonymous").replace("@", "_").replace(".", "_")
+    filename = f"cv_{safe_email}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{file_ext}"
+    file_path = os.path.join(resumes_dir, filename)
+
+    file_size = 0
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        file_size = os.path.getsize(file_path)
+
+    upload = ResumeUpload(
+        name=name,
+        email=email,
+        phone=phone,
+        position=position,
+        message=message,
+        filename=filename,
+        file_url=f"/uploads/resumes/{filename}",
+        file_size=file_size,
+    )
+    db.add(upload)
+    db.commit()
+    db.refresh(upload)
+
+    return {
+        "status": "success",
+        "message": "CV uploaded successfully",
+        "id": upload.id,
+        "url": upload.file_url,
+        "filename": filename
+    }
 
 
 # ============== FILE UPLOAD ==============

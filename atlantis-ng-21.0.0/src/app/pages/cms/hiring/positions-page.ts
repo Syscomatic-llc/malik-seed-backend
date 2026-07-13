@@ -17,6 +17,7 @@ import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
+import { slugify } from '@/app/utils/slugify';
 
 const DEPARTMENTS = [
     { label: 'Sales', value: 'sales' },
@@ -112,7 +113,7 @@ const LOCATIONS = [
                 <div class="flex flex-col gap-4">
                     <div>
                         <label class="block font-bold mb-2">Title *</label>
-                        <input type="text" pInputText [(ngModel)]="position.title" fluid />
+                        <input type="text" pInputText [(ngModel)]="position.title" (ngModelChange)="onTitleChange($event)" fluid />
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -196,6 +197,12 @@ export class PositionsPage implements OnInit {
     editPosition(p: JobPosition) {
         this.position = { ...p };
         this.dialog = true;
+    }
+
+    onTitleChange(title: string) {
+        if (!this.position.slug) {
+            this.position.slug = slugify(title);
+        }
     }
 
     hideDialog() {

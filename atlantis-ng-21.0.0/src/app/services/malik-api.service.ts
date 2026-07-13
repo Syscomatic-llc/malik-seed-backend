@@ -216,6 +216,21 @@ export interface HiringTestimonial {
   content: string;
 }
 
+export interface ResumeUpload {
+  id?: number;
+  name?: string;
+  email?: string;
+  phone?: string;
+  position?: string;
+  message?: string;
+  filename?: string;
+  file_url?: string;
+  file_size?: number;
+  is_reviewed?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // ============ CONTACT TYPES ============
 export interface ContactInfo {
   id?: number;
@@ -474,6 +489,18 @@ export class MalikApiService {
 
   getHiringTestimonials(): Observable<HiringTestimonial[]> {
     return this.http.get<HiringTestimonial[]>(`${this.apiUrl}/hiring/testimonials`);
+  }
+
+  uploadPublicCV(formData: FormData): Observable<{ status: string; message: string; id: number; url: string; filename: string }> {
+    return this.http.post<{ status: string; message: string; id: number; url: string; filename: string }>(`${this.apiUrl}/hiring/upload-cv`, formData);
+  }
+
+  getResumes(): Observable<ResumeUpload[]> {
+    return this.http.get<ResumeUpload[]>(`${this.apiUrl}/admin/resume`);
+  }
+
+  deleteResume(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/admin/resume/${id}`);
   }
 
   // ============ CONTACT ============

@@ -18,6 +18,7 @@ import { SelectModule } from 'primeng/select';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { environment } from '@/environments/environment';
+import { slugify } from '@/app/utils/slugify';
 
 
 @Component({
@@ -85,7 +86,7 @@ import { environment } from '@/environments/environment';
                 <div class="flex flex-col gap-4">
                     <div>
                         <label class="block font-bold mb-2">Name</label>
-                        <input type="text" pInputText [(ngModel)]="brand.name" fluid />
+                        <input type="text" pInputText [(ngModel)]="brand.name" (ngModelChange)="onNameChange($event)" fluid />
                     </div>
                     <div>
                         <label class="block font-bold mb-2">Slug</label>
@@ -166,6 +167,12 @@ export class BrandsListPage implements OnInit {
     editBrand(b: OurBrand) {
         this.brand = { ...b };
         this.dialog = true;
+    }
+
+    onNameChange(name: string) {
+        if (!this.brand.slug) {
+            this.brand.slug = slugify(name);
+        }
     }
 
     hideDialog() {

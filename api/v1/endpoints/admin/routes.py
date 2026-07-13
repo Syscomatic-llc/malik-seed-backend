@@ -32,7 +32,7 @@ from models.our_gallery.model import (
 )
 from models.hiring.model import (
     JobPosition, JobApplication, AssessmentQuestion,
-    CareerBenefit, HiringTestimonial, HiringPageContent
+    CareerBenefit, HiringTestimonial, HiringPageContent, ResumeUpload
 )
 from models.contact.model import (
     ContactInfo, ContactMessage, OfficeLocation, FAQ
@@ -87,6 +87,7 @@ MODEL_REGISTRY: Dict[str, tuple] = {
     "career-benefit": (CareerBenefit, False),
     "hiring-testimonial": (HiringTestimonial, False),
     "hiring-page-content": (HiringPageContent, True),
+    "resume": (ResumeUpload, False),
 
     # Contact
     "contact-info": (ContactInfo, True),
@@ -268,12 +269,10 @@ def delete_item(resource: str, item_id: int, db: Session = Depends(get_db), user
         raise HTTPException(status_code=404, detail="Item not found")
 
     if resource == "news-category":
-        linked_article = db.query(NewsArticle).filter(NewsArticle.category == item.slug).first()
-        if linked_article:
-            raise HTTPException(
-                status_code=400,
-                detail="Cannot delete category: articles are linked to it. Delete the articles first.",
-            )
+        # Cascade delete: remove all articles linked to this category automatically.
+        linked_articles = db.query(NewsArticle).filter(NewsArticle.category == item.name).all()
+        for article in linked_articles:
+            db.delete(article)
 
     db.delete(item)
     db.commit()

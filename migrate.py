@@ -182,6 +182,55 @@ def main():
     add_column("site_settings", "hero_secondary_cta_text", "VARCHAR(100)")
     add_column("site_settings", "hero_secondary_cta_link", "VARCHAR(500)")
 
+    # Resume uploads table
+    if not table_exists("resume_uploads"):
+        dialect = engine.dialect.name
+        with engine.connect() as conn:
+            if dialect == "postgresql":
+                conn.execute(text(
+                    """
+                    CREATE TABLE resume_uploads (
+                        id SERIAL PRIMARY KEY,
+                        name VARCHAR(200),
+                        email VARCHAR(255),
+                        phone VARCHAR(50),
+                        position VARCHAR(200),
+                        message TEXT,
+                        filename VARCHAR(300) NOT NULL,
+                        file_url VARCHAR(500) NOT NULL,
+                        file_size INTEGER,
+                        is_reviewed BOOLEAN DEFAULT FALSE,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                        updated_at TIMESTAMP WITH TIME ZONE
+                    )
+                    """
+                ))
+            elif dialect == "sqlite":
+                conn.execute(text(
+                    """
+                    CREATE TABLE resume_uploads (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name VARCHAR(200),
+                        email VARCHAR(255),
+                        phone VARCHAR(50),
+                        position VARCHAR(200),
+                        message TEXT,
+                        filename VARCHAR(300) NOT NULL,
+                        file_url VARCHAR(500) NOT NULL,
+                        file_size INTEGER,
+                        is_reviewed BOOLEAN DEFAULT 0,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP
+                    )
+                    """
+                ))
+            else:
+                print(f"  ✗ Unsupported dialect: {dialect}")
+            conn.commit()
+        print("  ✓ Created resume_uploads table")
+    else:
+        print("  ✓ resume_uploads table already exists")
+
     # Sitemaps table
     if not table_exists("sitemaps"):
         dialect = engine.dialect.name

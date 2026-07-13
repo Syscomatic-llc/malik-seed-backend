@@ -124,6 +124,11 @@ export default [
         loadComponent: () => import('./hiring/assessment-page').then((c) => c.AssessmentPage),
         data: { breadcrumb: 'Assessment Questions' }
     },
+    {
+        path: 'hiring/resumes',
+        loadComponent: () => import('./hiring/resumes-page').then((c) => c.ResumesPage),
+        data: { breadcrumb: 'Resumes' }
+    },
 
     // ===== CONTACT =====
     {

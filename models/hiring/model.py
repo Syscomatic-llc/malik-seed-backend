@@ -277,3 +277,26 @@ class HiringPageContent(Base):
 
     def __repr__(self):
         return f"<HiringPageContent {self.hero_title}>"
+
+
+class ResumeUpload(Base):
+    """Public CV/resume uploads - stored for HR review"""
+    __tablename__ = "resume_uploads"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(200), nullable=True)
+    email = Column(String(255), nullable=True)
+    phone = Column(String(50), nullable=True)
+    position = Column(String(200), nullable=True)
+    message = Column(Text, nullable=True)
+
+    filename = Column(String(300), nullable=False)
+    file_url = Column(String(500), nullable=False)
+    file_size = Column(Integer, nullable=True)
+
+    is_reviewed = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    def __repr__(self):
+        return f"<ResumeUpload {self.email} - {self.filename}>"

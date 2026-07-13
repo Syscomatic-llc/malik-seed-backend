@@ -79,6 +79,7 @@ def create_tables():
         CareerBenefit,
         HiringTestimonial,
         HiringPageContent,
+        ResumeUpload,
     )
 
     from models.contact.model import (

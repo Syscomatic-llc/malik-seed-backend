@@ -16,6 +16,7 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TagModule } from 'primeng/tag';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
+import { slugify } from '@/app/utils/slugify';
 
 @Component({
     selector: 'app-news-categories-page',
@@ -77,7 +78,7 @@ import { ConfirmationService } from 'primeng/api';
                 <div class="flex flex-col gap-4">
                     <div>
                         <label class="block font-bold mb-2">Name</label>
-                        <input type="text" pInputText [(ngModel)]="category.name" fluid />
+                        <input type="text" pInputText [(ngModel)]="category.name" (ngModelChange)="onNameChange($event)" fluid />
                     </div>
                     <div>
                         <label class="block font-bold mb-2">Slug</label>
@@ -137,6 +138,12 @@ export class NewsCategoriesPage implements OnInit {
     editCategory(c: NewsCategory) {
         this.category = { ...c };
         this.dialog = true;
+    }
+
+    onNameChange(name: string) {
+        if (!this.category.slug) {
+            this.category.slug = slugify(name);
+        }
     }
 
     hideDialog() {
