@@ -270,6 +270,9 @@ import { environment } from '@/environments/environment';
         <!-- User Dialog -->
         <p-dialog [(visible)]="userDialog" [style]="{width: '500px'}" header="User Details" [modal]="true">
             <div class="flex flex-col gap-4">
+                <div>
+                    <app-image-upload label="Avatar" folder="team" [(currentImage)]="user.avatar_url" />
+                </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block font-bold mb-2">First Name</label>

@@ -25,7 +25,7 @@ export class AppMenu {
         {
             label: 'Dashboard',
             icon: 'pi pi-home',
-            routerLink: ['/']
+            routerLink: ['/cms/dashboard']
         },
         {
             label: 'Homepage',
@@ -155,16 +155,6 @@ export class AppMenu {
                     label: 'Contact Info',
                     icon: 'pi pi-fw pi-info-circle',
                     routerLink: ['/cms/contact/info']
-                },
-                {
-                    label: 'Locations',
-                    icon: 'pi pi-fw pi-map-marker',
-                    routerLink: ['/cms/contact/locations']
-                },
-                {
-                    label: 'FAQs',
-                    icon: 'pi pi-fw pi-question-circle',
-                    routerLink: ['/cms/contact/faqs']
                 }
             ]
         },

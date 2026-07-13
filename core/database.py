@@ -96,5 +96,6 @@ def create_tables():
     )
 
     from models.user.model import User
+    from models.activity_log.model import ActivityLog
 
     Base.metadata.create_all(bind=engine)

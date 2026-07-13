@@ -11,7 +11,9 @@ from PIL import Image
 from core.config import MAX_FILE_SIZE, get_upload_directory
 
 from core.database import get_db
-from api.deps import require_admin
+from api.deps import require_admin, get_current_user
+from models.user.model import User
+from models.activity_log.model import ActivityLog
 
 # Import all models
 from models.homepage.model import (
@@ -135,6 +137,49 @@ def _apply_data(obj, data: Dict[str, Any]):
 
 # ============== GENERIC ADMIN CRUD ==============
 
+def _get_resource_name(data: dict, item: any = None) -> str:
+    """Extract a human-readable name from payload or model instance."""
+    if data:
+        for key in ("title", "name", "slug", "email", "page_path", "url_path"):
+            if key in data and data[key]:
+                return str(data[key])[:300]
+    if item is not None:
+        for attr in ("title", "name", "slug", "email", "page_path", "url_path"):
+            val = getattr(item, attr, None)
+            if val:
+                return str(val)[:300]
+    return ""
+
+
+def _log_activity(
+    db: Session,
+    user: User,
+    action: str,
+    resource: str,
+    resource_id: int,
+    resource_name: str = "",
+    details: dict = None,
+):
+    log = ActivityLog(
+        user_id=user.id,
+        user_email=user.email,
+        action=action,
+        resource_type=resource,
+        resource_id=resource_id,
+        resource_name=resource_name or "",
+        details=details or {},
+    )
+    db.add(log)
+    db.commit()
+
+
+@router.get("/activity-logs")
+def get_activity_logs(db: Session = Depends(get_db)):
+    """Get recent admin activity logs (latest 50)"""
+    logs = db.query(ActivityLog).order_by(ActivityLog.created_at.desc()).limit(50).all()
+    return logs
+
+
 @router.get("/{resource}")
 def list_items(resource: str, db: Session = Depends(get_db)):
     """List all items for a resource (including inactive)"""
@@ -160,7 +205,7 @@ def get_item(resource: str, item_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{resource}")
-def create_item(resource: str, data: Dict[str, Any], db: Session = Depends(get_db)):
+def create_item(resource: str, data: Dict[str, Any], db: Session = Depends(get_db), user: User = Depends(require_admin)):
     """Create new item"""
     if resource not in MODEL_REGISTRY:
         raise HTTPException(status_code=404, detail=f"Resource '{resource}' not found")
@@ -181,11 +226,16 @@ def create_item(resource: str, data: Dict[str, Any], db: Session = Depends(get_d
     db.add(item)
     db.commit()
     db.refresh(item)
+    _log_activity(
+        db, user, "create", resource, item.id,
+        resource_name=_get_resource_name(data, item),
+        details={"created_id": item.id},
+    )
     return {"status": "success", "id": item.id, "data": _model_to_dict(item)}
 
 
 @router.put("/{resource}/{item_id}")
-def update_item(resource: str, item_id: int, data: Dict[str, Any], db: Session = Depends(get_db)):
+def update_item(resource: str, item_id: int, data: Dict[str, Any], db: Session = Depends(get_db), user: User = Depends(require_admin)):
     """Update existing item"""
     if resource not in MODEL_REGISTRY:
         raise HTTPException(status_code=404, detail=f"Resource '{resource}' not found")
@@ -198,11 +248,16 @@ def update_item(resource: str, item_id: int, data: Dict[str, Any], db: Session =
     _apply_data(item, data)
     db.commit()
     db.refresh(item)
+    _log_activity(
+        db, user, "update", resource, item.id,
+        resource_name=_get_resource_name(data, item),
+        details={"updated_fields": list(data.keys())},
+    )
     return {"status": "success", "id": item.id, "data": _model_to_dict(item)}
 
 
 @router.delete("/{resource}/{item_id}")
-def delete_item(resource: str, item_id: int, db: Session = Depends(get_db)):
+def delete_item(resource: str, item_id: int, db: Session = Depends(get_db), user: User = Depends(require_admin)):
     """Delete item"""
     if resource not in MODEL_REGISTRY:
         raise HTTPException(status_code=404, detail=f"Resource '{resource}' not found")
@@ -212,8 +267,21 @@ def delete_item(resource: str, item_id: int, db: Session = Depends(get_db)):
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
 
+    if resource == "news-category":
+        linked_article = db.query(NewsArticle).filter(NewsArticle.category == item.slug).first()
+        if linked_article:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot delete category: articles are linked to it. Delete the articles first.",
+            )
+
     db.delete(item)
     db.commit()
+    _log_activity(
+        db, user, "delete", resource, item_id,
+        resource_name=_get_resource_name({}, item),
+        details={},
+    )
     return {"status": "success", "message": "Item deleted"}
 
 

@@ -76,11 +76,26 @@ import { environment } from '@/environments/environment';
             </div>
             <div class="col-span-12">
                 <p-card header="Stats">
-                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <div *ngFor="let stat of stats" class="text-center p-4 bg-primary/5 rounded-lg">
-                            <div class="text-2xl font-bold text-primary">{{stat.value}}</div>
-                            <div class="text-sm text-muted-color">{{stat.label}}</div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div *ngFor="let stat of stats; let i = index" class="p-4 bg-primary/5 rounded-lg flex flex-col gap-2">
+                            <div class="flex justify-end">
+                                <button pButton type="button" icon="pi pi-times"
+                                    class="w-6 h-6 p-0"
+                                    severity="danger" [rounded]="true" [text]="true"
+                                    (click)="removeStat(i)"></button>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-1">Value</label>
+                                <input type="text" pInputText [(ngModel)]="stat.value" fluid />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-1">Label</label>
+                                <input type="text" pInputText [(ngModel)]="stat.label" fluid />
+                            </div>
                         </div>
+                    </div>
+                    <div class="mt-4">
+                        <p-button label="Add Stat" icon="pi pi-plus" (onClick)="addStat()" />
                     </div>
                 </p-card>
             </div>
@@ -162,6 +177,14 @@ export class AboutPage implements OnInit {
                 });
             }
         });
+    }
+
+    addStat() {
+        this.stats.push({ value: '', label: '' });
+    }
+
+    removeStat(index: number) {
+        this.stats.splice(index, 1);
     }
 
     private parseJsonArray(value: any): string[] {

@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { StyleClassModule } from 'primeng/styleclass';
 import { LayoutService } from '@/app/layout/service/layout.service';
 import { AuthService } from '@/app/services/auth.service';
+import { environment } from '@/environments/environment';
 import { Ripple } from 'primeng/ripple';
 import { InputText } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
@@ -41,26 +42,10 @@ import { AppBreadcrumb } from '@/app/layout/components/app.breadcrumb';
 
                 <li class="profile-item topbar-item mr-3">
                     <a pStyleClass="@next" enterFromClass="!hidden" enterActiveClass="animate-scalein" leaveToClass="!hidden" leaveActiveClass="animate-fadeout" [hideOnOutsideClick]="true" class="cursor-pointer">
-                        <img class="rounded-full" src="/demo/images/avatar-m-1.jpg" />
+                        <img class="rounded-full" [src]="avatarUrl()" />
                     </a>
 
                     <ul class="topbar-menu active-topbar-menu p-6! w-60 z-50 !hidden rounded shadow-xl">
-                        <li role="menuitem" class="m-0! mb-4!">
-                            <a
-                                href="#"
-                                class="flex items-center hover:text-primary-500 duration-200"
-                                pStyleClass="@grandparent"
-                                enterFromClass="!hidden"
-                                enterActiveClass="animate-scalein"
-                                leaveToClass="!hidden"
-                                leaveActiveClass="animate-fadeout"
-                                [hideOnOutsideClick]="true"
-                            >
-                                <i class="pi pi-fw pi-lock mr-2"></i>
-                                <span>Privacy</span>
-                            </a>
-                        </li>
-
                         <li role="menuitem" class="m-0! mb-4!">
                             <a
                                 [routerLink]="['/cms/settings']"
@@ -103,6 +88,14 @@ import { AppBreadcrumb } from '@/app/layout/components/app.breadcrumb';
 })
 export class AppTopbar {
     menu: MenuItem[] = [];
+
+    avatarUrl = computed(() => {
+        const user = this.authService.user();
+        if (!user?.avatar_url) return '/demo/images/avatar-m-1.jpg';
+        return user.avatar_url.startsWith('http')
+            ? user.avatar_url
+            : `${environment.mediaBaseUrl}${user.avatar_url}`;
+    });
 
     @ViewChild('searchinput') searchInput!: ElementRef<HTMLElement>;
 

@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from core.database import get_db
 from core.security import generate_otp, hash_password, verify_password, create_access_token, is_otp_valid
 from models.user.model import User, UserRole, UserStatus
+from models.activity_log.model import ActivityLog
 
 router = APIRouter()
 
@@ -138,6 +139,7 @@ def verify_otp(request: VerifyOTPRequest, db: Session = Depends(get_db)):
                 "last_name": user.last_name,
                 "email": user.email,
                 "role": user.role.value,
+                "avatar_url": user.avatar_url,
                 "email_verified": user.email_verified
             }
         }
@@ -188,6 +190,18 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     db.commit()
 
     token = create_access_token({"sub": str(user.id), "email": user.email, "role": user.role.value})
+
+    log = ActivityLog(
+        user_id=user.id,
+        user_email=user.email,
+        action="login",
+        resource_type="auth",
+        resource_id=user.id,
+        resource_name=f"{user.first_name} {user.last_name}".strip() or user.email,
+        details={"role": user.role.value},
+    )
+    db.add(log)
+    db.commit()
 
     return {
         "status": "success",

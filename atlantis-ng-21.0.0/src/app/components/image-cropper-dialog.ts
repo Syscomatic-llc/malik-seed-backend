@@ -60,6 +60,7 @@ export class ImageCropperDialog implements OnChanges, OnDestroy {
     @ViewChild('image') imageElement?: ElementRef<HTMLImageElement>;
 
     @Input() imageFile?: File;
+    @Input() imageUrlInput?: string;
     @Input() visible: boolean = false;
     @Output() visibleChange = new EventEmitter<boolean>();
     @Output() cropped = new EventEmitter<File>();
@@ -75,6 +76,9 @@ export class ImageCropperDialog implements OnChanges, OnDestroy {
     ngOnChanges(changes: SimpleChanges) {
         if (changes['imageFile']?.currentValue && this.visible) {
             this.loadImageFile();
+        }
+        if (changes['imageUrlInput']?.currentValue && this.visible) {
+            this.loadImageUrl();
         }
     }
 
@@ -95,6 +99,24 @@ export class ImageCropperDialog implements OnChanges, OnDestroy {
         if (this.imageFile) {
             this.imageUrl = URL.createObjectURL(this.imageFile);
         }
+    }
+
+    private loadImageUrl() {
+        this.revokeImageUrl();
+        this.destroyCropper();
+        if (!this.imageUrlInput) return;
+
+        // Fetch the image as a blob and create an object URL so Cropper.js can
+        // read it without CORS / canvas-taint issues.
+        fetch(this.imageUrlInput)
+            .then((res) => res.blob())
+            .then((blob) => {
+                this.imageUrl = URL.createObjectURL(blob);
+            })
+            .catch(() => {
+                // Fallback to the original URL if fetching fails.
+                this.imageUrl = this.imageUrlInput;
+            });
     }
 
     private initCropper() {
@@ -150,7 +172,7 @@ export class ImageCropperDialog implements OnChanges, OnDestroy {
     }
 
     onCrop() {
-        if (!this.cropper || !this.imageFile) return;
+        if (!this.cropper) return;
 
         const canvas = this.cropper.getCroppedCanvas({
             fillColor: '#fff',
@@ -158,8 +180,23 @@ export class ImageCropperDialog implements OnChanges, OnDestroy {
             maxHeight: 4096
         });
 
-        const originalType = this.imageFile.type || 'image/png';
-        const originalName = this.imageFile.name || 'cropped-image';
+        let originalType = 'image/png';
+        let originalName = 'cropped-image';
+
+        if (this.imageFile) {
+            originalType = this.imageFile.type || originalType;
+            originalName = this.imageFile.name || originalName;
+        } else if (this.imageUrlInput) {
+            const url = this.imageUrlInput;
+            const pathname = url.split('?')[0];
+            const ext = pathname.split('.').pop()?.toLowerCase();
+            const matchedType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'webp' ? 'image/webp' : ext === 'gif' ? 'image/gif' : ext === 'png' ? 'image/png' : 'image/png';
+            originalType = matchedType;
+            const nameFromPath = pathname.substring(pathname.lastIndexOf('/') + 1) || 'cropped-image';
+            originalName = nameFromPath;
+        } else {
+            return;
+        }
 
         canvas.toBlob((blob) => {
             if (!blob) return;

@@ -2,7 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { MalikApiService, HeroSlide } from '@/app/services/malik-api.service';
+import { MalikApiService, HeroSlide, SiteSettings } from '@/app/services/malik-api.service';
 import { ImageUpload } from '@/app/components/image-upload';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
@@ -98,6 +98,24 @@ import { environment } from '@/environments/environment';
                 <p-button label="Save" icon="pi pi-check" (onClick)="saveSlide()" [loading]="saving" />
             </ng-template>
         </p-dialog>
+
+        <p-card header="Hero CTA Buttons" styleClass="mt-4">
+            <div class="flex flex-col gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-bold mb-2">Primary CTA Text</label>
+                        <input type="text" pInputText [(ngModel)]="ctaSettings.hero_primary_cta_text" fluid />
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-2">Primary CTA Link</label>
+                        <input type="text" pInputText [(ngModel)]="ctaSettings.hero_primary_cta_link" fluid />
+                    </div>
+                </div>
+                <div>
+                    <p-button label="Save CTA Buttons" icon="pi pi-check" severity="success" (onClick)="saveCTASettings()" [loading]="savingCTA" />
+                </div>
+            </div>
+        </p-card>
     `
 })
 export class HeroSlidesPage implements OnInit {
@@ -106,7 +124,9 @@ export class HeroSlidesPage implements OnInit {
     slide: HeroSlide = { title: '' };
     submitted = false;
     saving = false;
+    savingCTA = false;
     mediaBaseUrl = environment.mediaBaseUrl;
+    ctaSettings: SiteSettings = {};
 
     constructor(
         private api: MalikApiService,
@@ -116,6 +136,7 @@ export class HeroSlidesPage implements OnInit {
 
     ngOnInit() {
         this.loadSlides();
+        this.loadCTASettings();
     }
 
     loadSlides() {
@@ -146,6 +167,36 @@ export class HeroSlidesPage implements OnInit {
     hideDialog() {
         this.slideDialog = false;
         this.submitted = false;
+    }
+
+    loadCTASettings() {
+        this.api.adminList('site-settings').subscribe({
+            next: (data: any[]) => {
+                this.ctaSettings = data[0] || {};
+            },
+            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load CTA settings' })
+        });
+    }
+
+    saveCTASettings() {
+        this.savingCTA = true;
+        const data = { ...this.ctaSettings };
+        const id = this.ctaSettings.id;
+        const request = id
+            ? this.api.adminUpdate('site-settings', id, data)
+            : this.api.adminCreate('site-settings', data);
+
+        request.subscribe({
+            next: () => {
+                this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'CTA buttons saved successfully', life: 3000 });
+                this.loadCTASettings();
+                this.savingCTA = false;
+            },
+            error: (err) => {
+                this.savingCTA = false;
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to save CTA buttons' });
+            }
+        });
     }
 
     saveSlide() {

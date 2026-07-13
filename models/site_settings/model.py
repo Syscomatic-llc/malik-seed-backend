@@ -36,6 +36,12 @@ class SiteSettings(Base):
     google_analytics_id = Column(String(100), nullable=True)
     google_search_console_verification = Column(Text, nullable=True)
 
+    # Hero CTA buttons (global, shown on homepage hero section)
+    hero_primary_cta_text = Column(String(100), nullable=True)
+    hero_primary_cta_link = Column(String(500), nullable=True)
+    hero_secondary_cta_text = Column(String(100), nullable=True)
+    hero_secondary_cta_link = Column(String(500), nullable=True)
+
     # Footer
     footer_text = Column(Text, nullable=True)
     footer_links = Column(JSON, default=list)

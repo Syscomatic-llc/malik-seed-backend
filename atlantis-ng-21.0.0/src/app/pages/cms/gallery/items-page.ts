@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MalikApiService, GalleryItem } from '@/app/services/malik-api.service';
 import { ImageGalleryUpload } from '@/app/components/image-gallery-upload';
+import { ImageCropperDialog } from '@/app/components/image-cropper-dialog';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
@@ -18,7 +19,7 @@ import { environment } from '@/environments/environment';
     standalone: true,
     imports: [
         CommonModule, FormsModule, CardModule, ButtonModule, ToastModule, ToolbarModule,
-        ConfirmDialogModule, ImageGalleryUpload, DragDropModule
+        ConfirmDialogModule, ImageGalleryUpload, ImageCropperDialog, DragDropModule
     ],
     providers: [MessageService, ConfirmationService],
     template: `
@@ -51,8 +52,12 @@ import { environment } from '@/environments/environment';
 
                         <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                             <i class="pi pi-arrows-alt text-white text-xl"></i>
-                            <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [text]="true"
-                                (onClick)="deleteItem(item, $event)" />
+                            <div class="flex gap-2">
+                                <p-button icon="pi pi-pencil" severity="info" [rounded]="true" [text]="true"
+                                    (onClick)="editItem(item, $event)" />
+                                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [text]="true"
+                                    (onClick)="deleteItem(item, $event)" />
+                            </div>
                         </div>
 
                         <div *ngIf="item.title" class="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-2 py-1 truncate">
@@ -61,6 +66,12 @@ import { environment } from '@/environments/environment';
                     </div>
                 </div>
             </p-card>
+
+            <app-image-cropper-dialog
+                [imageUrlInput]="cropImageUrl"
+                [(visible)]="cropVisible"
+                (cropped)="onCropped($event)"
+                (cancel)="onCropCancel()" />
         </div>
     `,
     styles: [`
@@ -82,6 +93,10 @@ export class GalleryItemsPage implements OnInit {
     items = signal<GalleryItem[]>([]);
     pendingImages: string[] = [];
     mediaBaseUrl = environment.mediaBaseUrl;
+
+    cropVisible = false;
+    cropImageUrl?: string;
+    cropItem?: GalleryItem;
 
     constructor(
         private api: MalikApiService,
@@ -150,6 +165,43 @@ export class GalleryItemsPage implements OnInit {
             next: () => this.messageService.add({ severity: 'success', summary: 'Reordered', detail: 'Gallery order saved', life: 2000 }),
             error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to save gallery order' })
         });
+    }
+
+    editItem(item: GalleryItem, event: MouseEvent) {
+        event.stopPropagation();
+        this.cropItem = item;
+        this.cropImageUrl = item.image_url?.startsWith('http')
+            ? item.image_url
+            : `${this.mediaBaseUrl}${item.image_url}`;
+        this.cropVisible = true;
+    }
+
+    onCropped(file: File) {
+        if (!this.cropItem) return;
+        this.cropVisible = false;
+        this.cropImageUrl = undefined;
+        const item = this.cropItem;
+        this.cropItem = undefined;
+
+        this.api.uploadImage(file, 'gallery').subscribe({
+            next: (res) => {
+                if (!item.id) return;
+                this.api.adminUpdate('gallery-item', item.id, { image_url: res.url }).subscribe({
+                    next: () => {
+                        this.messageService.add({ severity: 'success', summary: 'Updated', detail: 'Image updated successfully', life: 3000 });
+                        this.loadItems();
+                    },
+                    error: (err) => this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to update image' })
+                });
+            },
+            error: (err) => this.messageService.add({ severity: 'error', summary: 'Upload Failed', detail: err.error?.detail || 'Failed to upload cropped image' })
+        });
+    }
+
+    onCropCancel() {
+        this.cropVisible = false;
+        this.cropImageUrl = undefined;
+        this.cropItem = undefined;
     }
 
     deleteItem(item: GalleryItem, event: MouseEvent) {

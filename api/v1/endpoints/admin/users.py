@@ -26,6 +26,7 @@ class UserUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     phone: Optional[str] = None
+    avatar_url: Optional[str] = None
     role: Optional[UserRole] = None
     status: Optional[UserStatus] = None
 

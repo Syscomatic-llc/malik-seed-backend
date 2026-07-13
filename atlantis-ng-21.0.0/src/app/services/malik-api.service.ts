@@ -312,6 +312,8 @@ export interface SiteSettings {
   meta_keywords?: string;
   google_analytics_id?: string;
   google_search_console_verification?: string;
+  hero_primary_cta_text?: string;
+  hero_primary_cta_link?: string;
   footer_text?: string;
   copyright_text?: string;
   primary_color?: string;
@@ -340,6 +342,18 @@ export interface Sitemap {
   changefreq?: string;
   priority?: string;
   is_active?: boolean;
+}
+
+export interface ActivityLog {
+  id?: number;
+  user_id?: number;
+  user_email?: string;
+  action: string;
+  resource_type?: string;
+  resource_id?: number;
+  resource_name?: string;
+  details?: any;
+  created_at?: string;
 }
 
 export interface CMSUser {
@@ -603,6 +617,11 @@ export class MalikApiService {
 
   deleteSitemap(id: number): Observable<any> {
     return this.http.delete<any>(`${this.apiUrl}/admin/sitemap/${id}`);
+  }
+
+  // ============ ACTIVITY LOGS ============
+  getActivityLogs(): Observable<ActivityLog[]> {
+    return this.http.get<ActivityLog[]>(`${this.apiUrl}/admin/activity-logs`);
   }
 
   // ============ USER MANAGEMENT ============

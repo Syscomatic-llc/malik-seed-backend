@@ -152,6 +152,7 @@ def main():
     # Ensure tables exist first
     from core.database import Base
     from models.homepage.model import HomepageAbout, HomepageTimeline
+    from models.activity_log.model import ActivityLog
     Base.metadata.create_all(bind=engine)
 
     add_json_column("homepage_abouts", "gallery_images")
@@ -174,6 +175,12 @@ def main():
     # Site settings new fields
     add_column("site_settings", "site_description", "TEXT")
     add_column("site_settings", "google_search_console_verification", "TEXT")
+
+    # Hero global CTA buttons
+    add_column("site_settings", "hero_primary_cta_text", "VARCHAR(100)")
+    add_column("site_settings", "hero_primary_cta_link", "VARCHAR(500)")
+    add_column("site_settings", "hero_secondary_cta_text", "VARCHAR(100)")
+    add_column("site_settings", "hero_secondary_cta_link", "VARCHAR(500)")
 
     # Sitemaps table
     if not table_exists("sitemaps"):

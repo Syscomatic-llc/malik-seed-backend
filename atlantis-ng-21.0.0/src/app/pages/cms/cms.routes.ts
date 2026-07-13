@@ -1,7 +1,14 @@
 import { Routes } from '@angular/router';
 
 export default [
-    { path: '', pathMatch: 'full', redirectTo: 'homepage/hero' },
+    { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+
+    // ===== DASHBOARD =====
+    {
+        path: 'dashboard',
+        loadComponent: () => import('./dashboard/dashboard').then((c) => c.CmsDashboardPage),
+        data: { breadcrumb: 'Dashboard' }
+    },
 
     // ===== HOMEPAGE =====
     {
@@ -123,16 +130,6 @@ export default [
         path: 'contact/info',
         loadComponent: () => import('./contact/info-page').then((c) => c.ContactInfoPage),
         data: { breadcrumb: 'Contact Info' }
-    },
-    {
-        path: 'contact/locations',
-        loadComponent: () => import('./contact/locations-page').then((c) => c.LocationsPage),
-        data: { breadcrumb: 'Locations' }
-    },
-    {
-        path: 'contact/faqs',
-        loadComponent: () => import('./contact/faqs-page').then((c) => c.FAQsPage),
-        data: { breadcrumb: 'FAQs' }
     },
 
     // ===== NEWS =====

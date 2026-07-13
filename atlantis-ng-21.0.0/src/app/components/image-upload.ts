@@ -48,6 +48,10 @@ export interface UploadResult {
             <div *ngIf="currentImage" class="relative group w-fit">
                 <img [src]="imageSrc" [alt]="label || 'Preview'"
                     class="max-h-32 rounded-lg border border-surface-200 object-contain" />
+                <button pButton type="button" icon="pi pi-pencil"
+                    class="absolute -top-2 right-5 w-6 h-6 p-0"
+                    severity="info" [rounded]="true" [text]="true"
+                    (click)="editImage()"></button>
                 <button pButton type="button" icon="pi pi-times"
                     class="absolute -top-2 -right-2 w-6 h-6 p-0"
                     severity="danger" [rounded]="true" [text]="true"
@@ -66,6 +70,7 @@ export interface UploadResult {
 
             <app-image-cropper-dialog
                 [imageFile]="fileToCrop"
+                [imageUrlInput]="cropImageUrl"
                 [(visible)]="cropVisible"
                 (cropped)="onCropped($event)"
                 (cancel)="onCropCancel()" />
@@ -83,6 +88,7 @@ export class ImageUpload {
 
     MAX_FILE_SIZE = 50 * 1024 * 1024;
     uniqueId = Math.random().toString(36).substring(2, 9);
+    mediaBaseUrl = environment.mediaBaseUrl;
 
     uploading = false;
     resizeEnabled = false;
@@ -92,6 +98,7 @@ export class ImageUpload {
 
     cropVisible = false;
     fileToCrop?: File;
+    cropImageUrl?: string;
 
     constructor(
         private api: MalikApiService,
@@ -125,6 +132,7 @@ export class ImageUpload {
 
     onCropped(file: File) {
         this.fileToCrop = undefined;
+        this.cropImageUrl = undefined;
         this.uploading = true;
         const resizeOptions = this.resizeEnabled ? { resize: true, maxWidth: this.maxWidth, maxHeight: this.maxHeight, quality: this.quality } : undefined;
 
@@ -155,6 +163,15 @@ export class ImageUpload {
 
     onCropCancel() {
         this.fileToCrop = undefined;
+        this.cropImageUrl = undefined;
+    }
+
+    editImage() {
+        if (!this.currentImage) return;
+        this.cropImageUrl = this.currentImage.startsWith('http')
+            ? this.currentImage
+            : `${this.mediaBaseUrl}${this.currentImage}`;
+        this.cropVisible = true;
     }
 
     removeImage() {

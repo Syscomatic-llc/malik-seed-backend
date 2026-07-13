@@ -11,6 +11,7 @@ router = APIRouter()
 @router.get("/articles")
 def get_articles(
     category: Optional[str] = None,
+    slug: Optional[str] = None,
     featured: Optional[bool] = None,
     page: int = 1,
     limit: int = 10,
@@ -23,6 +24,8 @@ def get_articles(
     )
     if category:
         query = query.filter(NewsArticle.category == category)
+    if slug:
+        query = query.filter(NewsArticle.slug == slug)
     if featured:
         query = query.filter(NewsArticle.is_featured == True)
 

@@ -46,12 +46,18 @@ import { ImageCropperDialog } from './image-cropper-dialog';
                 <div *ngFor="let img of images; let i = index" cdkDrag class="relative group w-fit cursor-move">
                     <img [src]="getSrc(img)" [alt]="label || 'Gallery image ' + (i + 1)"
                         class="h-24 w-24 rounded-lg border border-surface-200 object-cover" />
-                    <div class="absolute top-0 left-0 w-full h-full flex items-start justify-between p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <i class="pi pi-arrows-alt text-white drop-shadow-md"></i>
+                    <div class="absolute top-1 right-1 flex gap-1 z-10">
+                        <button pButton type="button" icon="pi pi-pencil"
+                            class="w-5 h-5 p-0"
+                            severity="secondary" [rounded]="true" [text]="true"
+                            (click)="editImage(i)"></button>
                         <button pButton type="button" icon="pi pi-times"
-                            class="w-6 h-6 p-0"
+                            class="w-5 h-5 p-0"
                             severity="danger" [rounded]="true" [text]="true"
                             (click)="removeImage(i)"></button>
+                    </div>
+                    <div class="absolute bottom-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i class="pi pi-arrows-alt text-white drop-shadow-md"></i>
                     </div>
                 </div>
             </div>
@@ -78,6 +84,7 @@ import { ImageCropperDialog } from './image-cropper-dialog';
 
             <app-image-cropper-dialog
                 [imageFile]="fileToCrop"
+                [imageUrlInput]="cropImageUrl"
                 [(visible)]="cropVisible"
                 (cropped)="onCropped($event)"
                 (cancel)="onCropCancel()" />
@@ -106,6 +113,8 @@ export class ImageGalleryUpload {
 
     cropVisible = false;
     fileToCrop?: File;
+    cropImageUrl?: string;
+    editingIndex?: number;
     pendingFiles: File[] = [];
     private totalFilesToProcess = 0;
     private processedFiles = 0;
@@ -166,19 +175,73 @@ export class ImageGalleryUpload {
 
     onCropped(file: File) {
         this.fileToCrop = undefined;
+        this.cropImageUrl = undefined;
         this.cropVisible = false;
+
+        if (this.editingIndex !== undefined) {
+            const index = this.editingIndex;
+            this.editingIndex = undefined;
+            this.uploadAndReplace(index, file);
+            return;
+        }
+
         this.uploadCroppedFile(file);
     }
 
     onCropCancel() {
         this.fileToCrop = undefined;
+        this.cropImageUrl = undefined;
         this.cropVisible = false;
+
+        if (this.editingIndex !== undefined) {
+            this.editingIndex = undefined;
+            return;
+        }
+
         this.processedFiles++;
         if (this.processedFiles === this.totalFilesToProcess) {
             this.finishUpload(this.newImagesAfterCrop, this.totalFilesToProcess);
         } else {
             this.processNextFile();
         }
+    }
+
+    editImage(index: number) {
+        this.editingIndex = index;
+        this.cropImageUrl = this.getSrc(this.images[index]);
+        this.cropVisible = true;
+    }
+
+    private uploadAndReplace(index: number, file: File) {
+        this.uploading = true;
+        const resizeOptions = this.resizeEnabled ? { resize: true, maxWidth: this.maxWidth, maxHeight: this.maxHeight, quality: this.quality } : undefined;
+
+        this.api.uploadImage(file, this.folder, resizeOptions).subscribe({
+            next: (res) => {
+                const updated = [...(this.images || [])];
+                updated[index] = res.url;
+                this.images = updated;
+                this.imagesChange.emit(this.images);
+            },
+            error: (err) => {
+                this.uploading = false;
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Upload Failed',
+                    detail: err.error?.detail || 'Failed to upload cropped image',
+                    life: 5000
+                });
+            },
+            complete: () => {
+                this.uploading = false;
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Updated',
+                    detail: 'Image updated successfully',
+                    life: 3000
+                });
+            }
+        });
     }
 
     private uploadCroppedFile(file: File) {
