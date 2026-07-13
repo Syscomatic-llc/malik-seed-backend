@@ -9,17 +9,18 @@ export const API_BASE_URL = environment.apiBaseUrl;
 export interface HeroSlide {
   id?: number;
   title: string;
-  subtitle?: string;
   description?: string;
   background_image?: string;
   background_video?: string;
   mobile_image?: string;
-  primary_cta_text?: string;
-  primary_cta_link?: string;
-  secondary_cta_text?: string;
-  secondary_cta_link?: string;
   is_active?: boolean;
   sort_order?: number;
+}
+
+export interface HeroCTAButton {
+  type: 'primary' | 'secondary';
+  text: string;
+  link: string;
 }
 
 export interface HomepageAbout {
@@ -214,6 +215,7 @@ export interface HiringTestimonial {
   designation?: string;
   department?: string;
   content: string;
+  avatar_url?: string;
 }
 
 export interface ResumeUpload {
@@ -403,8 +405,8 @@ export class MalikApiService {
   }
 
   // ============ HOMEPAGE ============
-  getHeroSlides(): Observable<HeroSlide[]> {
-    return this.http.get<HeroSlide[]>(`${this.apiUrl}/homepage/hero`);
+  getHeroSlides(): Observable<{ slides: HeroSlide[]; cta_buttons: HeroCTAButton[] }> {
+    return this.http.get<{ slides: HeroSlide[]; cta_buttons: HeroCTAButton[] }>(`${this.apiUrl}/homepage/hero`);
   }
 
   getAbout(): Observable<HomepageAbout> {

@@ -141,7 +141,7 @@ export class HeroSlidesPage implements OnInit {
 
     loadSlides() {
         this.api.getHeroSlides().subscribe({
-            next: (data) => this.heroSlides.set(data),
+            next: (data) => this.heroSlides.set(data.slides),
             error: (err) => {
                 this.messageService.add({
                     severity: 'error',

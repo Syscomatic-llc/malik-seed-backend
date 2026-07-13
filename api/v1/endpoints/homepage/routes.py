@@ -8,15 +8,55 @@ from models.homepage.model import (
     HomepageBrand, HomepageTestimonial, HomepageTimeline,
     HomepagePartner, HomepageNewsItem, HomepageCTABanner
 )
+from models.site_settings.model import SiteSettings
 
 router = APIRouter()
+
+
+def _serialize_hero_slide(slide: HomepageHeroSlide) -> dict:
+    """Return only the public-facing slide fields."""
+    return {
+        "id": slide.id,
+        "title": slide.title,
+        "description": slide.description,
+        "background_image": slide.background_image,
+        "background_video": slide.background_video,
+        "mobile_image": slide.mobile_image,
+        "sort_order": slide.sort_order,
+        "is_active": slide.is_active,
+        "created_at": slide.created_at,
+        "updated_at": slide.updated_at,
+    }
+
+
+def _hero_cta_buttons(db: Session):
+    """Build the global hero CTA buttons array from site settings."""
+    site = db.query(SiteSettings).first()
+    buttons = []
+    if site:
+        if site.hero_primary_cta_text:
+            buttons.append({
+                "type": "primary",
+                "text": site.hero_primary_cta_text,
+                "link": site.hero_primary_cta_link or "#",
+            })
+        if site.hero_secondary_cta_text:
+            buttons.append({
+                "type": "secondary",
+                "text": site.hero_secondary_cta_text,
+                "link": site.hero_secondary_cta_link or "#",
+            })
+    return buttons
 
 
 # Homepage Hero
 @router.get("/hero")
 def get_hero(db: Session = Depends(get_db)):
     heroes = db.query(HomepageHeroSlide).filter(HomepageHeroSlide.is_active == True).order_by(HomepageHeroSlide.sort_order).all()
-    return heroes
+    return {
+        "slides": [_serialize_hero_slide(slide) for slide in heroes],
+        "cta_buttons": _hero_cta_buttons(db),
+    }
 
 
 # Homepage About
@@ -79,7 +119,10 @@ def get_cta_banners(db: Session = Depends(get_db)):
 @router.get("/")
 def get_all_homepage_content(db: Session = Depends(get_db)):
     return {
-        "hero": db.query(HomepageHeroSlide).filter(HomepageHeroSlide.is_active == True).order_by(HomepageHeroSlide.sort_order).all(),
+        "hero": {
+            "slides": [_serialize_hero_slide(slide) for slide in db.query(HomepageHeroSlide).filter(HomepageHeroSlide.is_active == True).order_by(HomepageHeroSlide.sort_order).all()],
+            "cta_buttons": _hero_cta_buttons(db),
+        },
         "about": db.query(HomepageAbout).filter(HomepageAbout.is_active == True).first(),
         "services": db.query(HomepageService).filter(HomepageService.is_active == True).order_by(HomepageService.sort_order).all(),
         "brands": db.query(HomepageBrand).filter(HomepageBrand.is_active == True).order_by(HomepageBrand.sort_order).all(),

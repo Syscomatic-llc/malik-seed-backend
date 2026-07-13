@@ -2,6 +2,8 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MalikApiService, HiringTestimonial } from '@/app/services/malik-api.service';
+import { ImageUpload } from '@/app/components/image-upload';
+import { environment } from '@/environments/environment';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
@@ -20,7 +22,7 @@ import { ConfirmationService } from 'primeng/api';
     imports: [
         CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
         DialogModule, InputTextModule, TextareaModule, ToastModule, ToolbarModule,
-        ConfirmDialogModule
+        ConfirmDialogModule, ImageUpload
     ],
     providers: [MessageService, ConfirmationService],
     template: `
@@ -38,6 +40,7 @@ import { ConfirmationService } from 'primeng/api';
                 <ng-template #header>
                     <tr>
                         <th>ID</th>
+                        <th>Profile</th>
                         <th>Name</th>
                         <th>Designation</th>
                         <th>Department</th>
@@ -48,6 +51,11 @@ import { ConfirmationService } from 'primeng/api';
                 <ng-template #body let-item>
                     <tr>
                         <td>{{item.id}}</td>
+                        <td>
+                            <img *ngIf="item.avatar_url" [src]="mediaBaseUrl + item.avatar_url"
+                                alt="" class="w-10 h-10 rounded-full object-cover" />
+                            <span *ngIf="!item.avatar_url" class="text-muted-color">No image</span>
+                        </td>
                         <td>{{item.name}}</td>
                         <td>{{item.designation}}</td>
                         <td>{{item.department}}</td>
@@ -82,6 +90,10 @@ import { ConfirmationService } from 'primeng/api';
                         <label class="block font-bold mb-2">Content</label>
                         <textarea pTextarea [(ngModel)]="testimonial.content" rows="4" fluid></textarea>
                     </div>
+                    <div>
+                        <app-image-upload label="Profile Picture" folder="hiring"
+                            [(currentImage)]="testimonial.avatar_url" />
+                    </div>
                 </div>
             </ng-template>
             <ng-template #footer>
@@ -96,6 +108,7 @@ export class HiringTestimonialsPage implements OnInit {
     dialog = false;
     testimonial: HiringTestimonial = { name: '', content: '' };
     saving = false;
+    mediaBaseUrl = environment.mediaBaseUrl;
 
     constructor(
         private api: MalikApiService,

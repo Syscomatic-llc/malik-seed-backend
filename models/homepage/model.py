@@ -15,7 +15,6 @@ class HomepageHeroSlide(Base):
     background_image = Column(String(500), nullable=True)
 
     # Legacy fields kept for existing data; no longer exposed in CMS
-    subtitle = Column(String(500), nullable=True)
     description = Column(Text, nullable=True)
     background_video = Column(String(500), nullable=True)
     mobile_image = Column(String(500), nullable=True)
