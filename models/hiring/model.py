@@ -80,6 +80,11 @@ class JobPosition(Base):
     assessment_duration = Column(Integer, default=30)
     passing_score = Column(Integer, default=70)
 
+    # Per-section time limits (minutes). Fall back to assessment_duration when not set.
+    mcq_duration = Column(Integer, nullable=True)
+    short_answer_duration = Column(Integer, nullable=True)
+    long_answer_duration = Column(Integer, nullable=True)
+
     # Status
     is_active = Column(Boolean, default=True)
     is_featured = Column(Boolean, default=False)

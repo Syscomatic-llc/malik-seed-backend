@@ -88,9 +88,15 @@ export class AppTopbar {
     avatarUrl = computed(() => {
         const user = this.authService.user();
         if (!user?.avatar_url) return '/demo/images/avatar-m-1.jpg';
-        return user.avatar_url.startsWith('http')
-            ? user.avatar_url
-            : `${environment.mediaBaseUrl}${user.avatar_url}`;
+        let url = user.avatar_url;
+        // Avoid double slashes when joining with the media base URL
+        if (!url.startsWith('http')) {
+            const base = environment.mediaBaseUrl.replace(/\/$/, '');
+            url = url.startsWith('/') ? `${base}${url}` : `${base}/${url}`;
+        }
+        // Cache-bust so the image updates immediately after profile changes
+        const sep = url.includes('?') ? '&' : '?';
+        return `${url}${sep}t=${Date.now()}`;
     });
 
     @ViewChild('searchinput') searchInput!: ElementRef<HTMLElement>;

@@ -14,7 +14,6 @@ import { MessageService } from 'primeng/api';
 import { ToolbarModule } from 'primeng/toolbar';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TagModule } from 'primeng/tag';
-import { SelectModule } from 'primeng/select';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { environment } from '@/environments/environment';
@@ -27,7 +26,7 @@ import { slugify } from '@/app/utils/slugify';
     imports: [
         CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
         DialogModule, InputTextModule, TextareaModule, ToastModule, ToolbarModule,
-        ToggleSwitchModule, TagModule, SelectModule, ConfirmDialogModule, ImageUpload
+        ToggleSwitchModule, TagModule, ConfirmDialogModule, ImageUpload
     ],
     providers: [MessageService, ConfirmationService],
     template: `
@@ -48,7 +47,6 @@ import { slugify } from '@/app/utils/slugify';
                         <th>Logo</th>
                         <th>Name</th>
                         <th>Slug</th>
-                        <th>Category</th>
                         <th>Tagline</th>
                         <th>Featured</th>
                         <th>Actions</th>
@@ -64,7 +62,6 @@ import { slugify } from '@/app/utils/slugify';
                         </td>
                         <td>{{item.name}}</td>
                         <td>{{item.slug}}</td>
-                        <td><p-tag [value]="item.category" severity="info" /></td>
                         <td>{{item.tagline}}</td>
                         <td>
                             <p-tag [value]="item.is_featured ? 'Yes' : 'No'" 
@@ -93,11 +90,6 @@ import { slugify } from '@/app/utils/slugify';
                         <input type="text" pInputText [(ngModel)]="brand.slug" placeholder="brand-name" fluid />
                     </div>
                     <div>
-                        <label class="block font-bold mb-2">Category</label>
-                        <p-select [options]="categories()" [(ngModel)]="brand.category"
-                            optionLabel="label" optionValue="value" placeholder="Select Category" fluid appendTo="body" />
-                    </div>
-                    <div>
                         <label class="block font-bold mb-2">Tagline</label>
                         <input type="text" pInputText [(ngModel)]="brand.tagline" fluid />
                     </div>
@@ -108,10 +100,6 @@ import { slugify } from '@/app/utils/slugify';
                     <div>
                         <app-image-upload label="Logo" folder="brands"
                             [(currentImage)]="brand.logo_url" />
-                    </div>
-                    <div>
-                        <app-image-upload label="Hero Image" folder="brands"
-                            [(currentImage)]="brand.image_url" />
                     </div>
                     <div>
                         <label class="block font-bold mb-2">Featured</label>
@@ -129,10 +117,9 @@ import { slugify } from '@/app/utils/slugify';
 export class BrandsListPage implements OnInit {
     brands = signal<OurBrand[]>([]);
     dialog = false;
-    brand: OurBrand = { name: '', slug: '', category: '' };
+    brand: OurBrand = { name: '', slug: '' };
     saving = false;
     mediaBaseUrl = environment.mediaBaseUrl;
-    categories = signal<{ label: string; value: string }[]>([]);
 
     constructor(
         private api: MalikApiService,
@@ -142,14 +129,6 @@ export class BrandsListPage implements OnInit {
 
     ngOnInit() {
         this.loadBrands();
-        this.loadCategories();
-    }
-
-    loadCategories() {
-        this.api.getBrandCategories().subscribe({
-            next: (data) => this.categories.set(data),
-            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load categories' })
-        });
     }
 
     loadBrands() {
@@ -160,7 +139,7 @@ export class BrandsListPage implements OnInit {
     }
 
     openNew() {
-        this.brand = { name: '', slug: '', category: '', is_featured: false, sort_order: 0 };
+        this.brand = { name: '', slug: '', is_featured: false, sort_order: 0 };
         this.dialog = true;
     }
 
@@ -180,7 +159,7 @@ export class BrandsListPage implements OnInit {
     }
 
     saveBrand() {
-        if (!this.brand.name?.trim() || !this.brand.slug?.trim() || !this.brand.category) return;
+        if (!this.brand.name?.trim() || !this.brand.slug?.trim()) return;
         this.saving = true;
         const data = { ...this.brand };
         const request = data.id

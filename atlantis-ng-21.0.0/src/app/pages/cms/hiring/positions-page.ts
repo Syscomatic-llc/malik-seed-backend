@@ -15,6 +15,7 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
+import { EditorModule } from 'primeng/editor';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { slugify } from '@/app/utils/slugify';
@@ -57,7 +58,7 @@ const LOCATIONS = [
     imports: [
         CommonModule, FormsModule, RouterModule, CardModule, ButtonModule, TableModule,
         DialogModule, InputTextModule, TextareaModule, ToastModule, ToolbarModule,
-        ToggleSwitchModule, TagModule, SelectModule, ConfirmDialogModule
+        ToggleSwitchModule, TagModule, SelectModule, EditorModule, ConfirmDialogModule
     ],
     providers: [MessageService, ConfirmationService],
     template: `
@@ -145,7 +146,21 @@ const LOCATIONS = [
                     </div>
                     <div>
                         <label class="block font-bold mb-2">Full Description *</label>
-                        <textarea pTextarea [(ngModel)]="position.description" rows="4" fluid></textarea>
+                        <p-editor [(ngModel)]="position.description" [style]="{height: '200px'}"></p-editor>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block font-bold mb-2">MCQ Duration (min)</label>
+                            <input type="number" pInputText [(ngModel)]="position.mcq_duration" placeholder="Global" fluid />
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-2">Short Answer Duration (min)</label>
+                            <input type="number" pInputText [(ngModel)]="position.short_answer_duration" placeholder="Global" fluid />
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-2">Long Answer Duration (min)</label>
+                            <input type="number" pInputText [(ngModel)]="position.long_answer_duration" placeholder="Global" fluid />
+                        </div>
                     </div>
                     <div>
                         <label class="block font-bold mb-2">Experience Required</label>

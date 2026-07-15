@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, computed, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
@@ -41,10 +41,30 @@ const QUESTION_TYPES = [
                     <p-button label="Back to Positions" icon="pi pi-arrow-left" class="mr-2" routerLink="/cms/hiring/positions" />
                     <p-button label="New Question" icon="pi pi-plus" severity="success" class="mr-2" (onClick)="openNew()" />
                 </ng-template>
+                <ng-template #end>
+                    <p-select [options]="categoryOptions()" [ngModel]="selectedCategory()"
+                        (ngModelChange)="selectedCategory.set($event)"
+                        optionLabel="label" optionValue="value" placeholder="Filter by Category"
+                        styleClass="w-64" appendTo="body" />
+                </ng-template>
             </p-toolbar>
 
             <p-card [header]="'Assessment Questions: ' + positionTitle()">
-                <p-table [value]="questions()" [rows]="10" [paginator]="true"
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div class="p-3 bg-primary/5 rounded">
+                        <span class="text-sm text-muted-color">MCQ Duration</span>
+                        <div class="font-bold">{{mcqDuration() ?? assessmentDuration() ?? '-'}} min</div>
+                    </div>
+                    <div class="p-3 bg-primary/5 rounded">
+                        <span class="text-sm text-muted-color">Short Answer Duration</span>
+                        <div class="font-bold">{{shortAnswerDuration() ?? assessmentDuration() ?? '-'}} min</div>
+                    </div>
+                    <div class="p-3 bg-primary/5 rounded">
+                        <span class="text-sm text-muted-color">Long Answer Duration</span>
+                        <div class="font-bold">{{longAnswerDuration() ?? assessmentDuration() ?? '-'}} min</div>
+                    </div>
+                </div>
+                <p-table [value]="filteredQuestions()" [rows]="10" [paginator]="true"
                     [tableStyle]="{ 'min-width': '75rem' }">
                     <ng-template #header>
                         <tr>
@@ -106,18 +126,10 @@ const QUESTION_TYPES = [
                         <label class="block font-bold mb-2">Correct Answer</label>
                         <input type="text" pInputText [(ngModel)]="question.correct_answer" placeholder="A or option text" fluid />
                     </div>
-                    <div class="grid grid-cols-4 gap-4">
+                    <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block font-bold mb-2">Marks</label>
                             <input type="number" pInputText [(ngModel)]="question.marks" fluid />
-                        </div>
-                        <div>
-                            <label class="block font-bold mb-2">Time Limit (sec)</label>
-                            <input type="number" pInputText [(ngModel)]="question.time_limit" fluid />
-                        </div>
-                        <div>
-                            <label class="block font-bold mb-2">Char Limit</label>
-                            <input type="number" pInputText [(ngModel)]="question.char_limit" fluid />
                         </div>
                         <div>
                             <label class="block font-bold mb-2">Sort Order</label>
@@ -137,11 +149,27 @@ export class AssessmentPage implements OnInit {
     positionId = signal<number>(0);
     positionTitle = signal<string>('');
     questions = signal<any[]>([]);
+    selectedCategory = signal<string>('');
+    mcqDuration = signal<number | null>(null);
+    shortAnswerDuration = signal<number | null>(null);
+    longAnswerDuration = signal<number | null>(null);
+    assessmentDuration = signal<number | null>(null);
     dialog = false;
     question: any = {};
     optionsText = '';
     saving = false;
     questionTypes = QUESTION_TYPES;
+
+    categoryOptions = computed(() => {
+        const cats = ['', ...new Set(this.questions().map(q => q.category).filter(Boolean))];
+        return cats.map(c => ({ label: c || 'All Categories', value: c }));
+    });
+
+    filteredQuestions = computed(() => {
+        const cat = this.selectedCategory();
+        if (!cat) return this.questions();
+        return this.questions().filter(q => q.category === cat);
+    });
 
     constructor(
         private route: ActivatedRoute,
@@ -163,6 +191,10 @@ export class AssessmentPage implements OnInit {
             next: (res: any) => {
                 this.positionTitle.set(res.position_title);
                 this.questions.set(res.questions || []);
+                this.mcqDuration.set(res.mcq_duration ?? null);
+                this.shortAnswerDuration.set(res.short_answer_duration ?? null);
+                this.longAnswerDuration.set(res.long_answer_duration ?? null);
+                this.assessmentDuration.set(res.assessment_duration ?? null);
             },
             error: () => {
                 this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load assessment questions' });

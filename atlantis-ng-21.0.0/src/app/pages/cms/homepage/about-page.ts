@@ -75,8 +75,8 @@ import { environment } from '@/environments/environment';
                 </p-card>
             </div>
             <div class="col-span-12">
-                <p-card header="Stats (4 fixed)">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <p-card header="Stats (5 fixed)">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                         <div *ngFor="let stat of stats; let i = index" class="p-4 bg-primary/5 rounded-lg flex flex-col gap-2">
                             <div>
                                 <label class="block text-sm font-bold mb-1">Value</label>
@@ -130,8 +130,8 @@ export class AboutPage implements OnInit {
                         this.stats = [];
                     }
                 }
-                while (this.stats.length < 4) this.stats.push({ value: '', label: '' });
-                this.stats = this.stats.slice(0, 4);
+                while (this.stats.length < 5) this.stats.push({ value: '', label: '' });
+                this.stats = this.stats.slice(0, 5);
                 this.takeSnapshot();
             },
             error: () => {

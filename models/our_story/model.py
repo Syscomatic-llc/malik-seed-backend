@@ -69,6 +69,7 @@ class OurStoryTimeline(Base):
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
     image_url = Column(String(500), nullable=True)
+    gallery_images = Column(JSON, default=list)
     is_milestone = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
     sort_order = Column(Integer, default=0)

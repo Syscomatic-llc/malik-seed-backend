@@ -443,6 +443,10 @@ def list_assessment_questions(position_id: int, db: Session = Depends(get_db)):
     return {
         "position_id": position_id,
         "position_title": position.title,
+        "mcq_duration": position.mcq_duration,
+        "short_answer_duration": position.short_answer_duration,
+        "long_answer_duration": position.long_answer_duration,
+        "assessment_duration": position.assessment_duration,
         "questions": [{"id": q.id, **_model_to_dict(q)} for q in questions]
     }
 

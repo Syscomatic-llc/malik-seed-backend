@@ -187,6 +187,11 @@ export class AppMenu {
                     label: 'Articles',
                     icon: 'pi pi-fw pi-list',
                     routerLink: ['/cms/news/articles']
+                },
+                {
+                    label: 'Categories',
+                    icon: 'pi pi-fw pi-tags',
+                    routerLink: ['/cms/news/categories']
                 }
             ]
         },

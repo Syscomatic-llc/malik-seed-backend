@@ -160,7 +160,7 @@ export interface OurBrand {
   id?: number;
   name: string;
   slug: string;
-  category: string;
+  category?: string;
   tagline?: string;
   description?: string;
   logo_url?: string;
@@ -203,6 +203,12 @@ export interface JobPosition {
   experience_required?: string;
   details_pdf_url?: string;
   is_active?: boolean;
+  has_assessment?: boolean;
+  assessment_duration?: number;
+  mcq_duration?: number;
+  short_answer_duration?: number;
+  long_answer_duration?: number;
+  passing_score?: number;
 }
 
 export interface CareerBenefit {

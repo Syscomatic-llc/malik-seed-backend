@@ -58,7 +58,13 @@ def submit_contact(
     inquiry_type: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """Submit contact form"""
+    """Submit contact form. If no subject is provided, use the first CMS subject option."""
+    if not subject:
+        info = db.query(ContactInfo).filter(ContactInfo.is_active == True).first()
+        options = info.subject_options if info and info.subject_options else []
+        if isinstance(options, list) and len(options) > 0:
+            subject = options[0]
+
     contact_msg = ContactMessage(
         name=name,
         email=email,

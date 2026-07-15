@@ -158,6 +158,7 @@ def main():
     add_json_column("homepage_abouts", "gallery_images")
     add_json_column("homepage_timelines", "gallery_images")
     add_json_column("our_story_heroes", "background_images")
+    add_json_column("our_story_timelines", "gallery_images")
     backfill_story_hero_images()
 
     make_column_nullable("gallery_items", "title")
@@ -186,6 +187,11 @@ def main():
 
     # Job position details PDF
     add_column("job_positions", "details_pdf_url", "VARCHAR(500)")
+
+    # Job position per-section assessment durations (minutes)
+    add_column("job_positions", "mcq_duration", "INTEGER")
+    add_column("job_positions", "short_answer_duration", "INTEGER")
+    add_column("job_positions", "long_answer_duration", "INTEGER")
 
     # Hero global CTA buttons
     add_column("site_settings", "hero_primary_cta_text", "VARCHAR(100)")

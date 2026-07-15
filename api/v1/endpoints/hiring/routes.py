@@ -54,14 +54,21 @@ def get_job_positions(
     return positions
 
 
-# Get single position by ID
-@router.get("/positions/{position_id}")
-def get_position_by_id(position_id: int, db: Session = Depends(get_db)):
-    """Get job position details with assessment questions"""
+# Get single position by slug or ID
+@router.get("/positions/{identifier}")
+def get_position_by_identifier(identifier: str, db: Session = Depends(get_db)):
+    """Get job position details by slug or numeric ID"""
     position = db.query(JobPosition).filter(
-        JobPosition.id == position_id,
+        JobPosition.slug == identifier,
         JobPosition.is_active == True
     ).first()
+
+    if not position and identifier.isdigit():
+        position = db.query(JobPosition).filter(
+            JobPosition.id == int(identifier),
+            JobPosition.is_active == True
+        ).first()
+
     if not position:
         raise HTTPException(status_code=404, detail="Position not found")
 
@@ -73,7 +80,7 @@ def get_position_by_id(position_id: int, db: Session = Depends(get_db)):
     return {"position": position, "assessment_questions": questions}
 
 
-# Get single position by slug (industry-standard format)
+# Keep explicit slug endpoint for backward compatibility
 @router.get("/positions/slug/{slug}")
 def get_position_by_slug(slug: str, db: Session = Depends(get_db)):
     """Get job position details by slug"""
@@ -115,11 +122,41 @@ def get_hiring_testimonials(db: Session = Depends(get_db)):
 # Hiring Page Content
 @router.get("/page-content")
 def get_hiring_page_content(db: Session = Depends(get_db)):
-    """Get hiring page hero and content"""
+    """Get hiring page hero and content.
+
+    Response mapping:
+    - hero_badge  <- stored hero_title
+    - hero_title  <- stored hero_subtitle
+    """
     content = db.query(HiringPageContent).filter(
         HiringPageContent.is_active == True
     ).first()
-    return content
+
+    if not content:
+        return None
+
+    def col_value(col_name: str):
+        return getattr(content, col_name)
+
+    return {
+        "id": col_value("id"),
+        "hero_badge": col_value("hero_title"),
+        "hero_title": col_value("hero_subtitle"),
+        "hero_description": col_value("hero_description"),
+        "hero_background_image": col_value("hero_background_image"),
+        "hero_video_url": col_value("hero_video_url"),
+        "stats": col_value("stats"),
+        "initiative_title": col_value("initiative_title"),
+        "initiative_description": col_value("initiative_description"),
+        "initiative_image": col_value("initiative_image"),
+        "cta_title": col_value("cta_title"),
+        "cta_description": col_value("cta_description"),
+        "cta_button_text": col_value("cta_button_text"),
+        "cta_button_link": col_value("cta_button_link"),
+        "is_active": col_value("is_active"),
+        "created_at": col_value("created_at"),
+        "updated_at": col_value("updated_at"),
+    }
 
 
 # Get all hiring content (public)
@@ -182,17 +219,18 @@ def get_position_assessment(position_id: int, db: Session = Depends(get_db)):
             "question": q.question,
             "options": q.options,
             "marks": q.marks,
-            "category": q.category,
-            "time_limit": q.time_limit,
-            "char_limit": q.char_limit,
-            "sort_order": q.sort_order
+            "sort_order": q.sort_order,
         }
         if q.question_type == "mcq":
+            q_safe["correct_answer"] = q.correct_answer
             mcq_questions.append(q_safe)
         elif q.question_type == "short_answer":
             short_answer_questions.append(q_safe)
         elif q.question_type == "long_answer":
             long_answer_questions.append(q_safe)
+
+    def section_duration(minutes):
+        return minutes if minutes is not None else (position.assessment_duration or 0)
 
     return {
         "position_id": position_id,
@@ -204,6 +242,9 @@ def get_position_assessment(position_id: int, db: Session = Depends(get_db)):
         "short_answer_count": len(short_answer_questions),
         "long_answer_count": len(long_answer_questions),
         "total_questions": len(all_questions),
+        "mcq_duration": section_duration(position.mcq_duration),
+        "short_answer_duration": section_duration(position.short_answer_duration),
+        "long_answer_duration": section_duration(position.long_answer_duration),
         "duration": position.assessment_duration,
         "passing_score": position.passing_score
     }
