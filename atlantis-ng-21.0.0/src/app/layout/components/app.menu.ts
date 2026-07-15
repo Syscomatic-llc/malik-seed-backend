@@ -58,7 +58,7 @@ export class AppMenu {
                 },
                 {
                     label: 'News Items',
-                    icon: 'pi pi-fw pi-newspaper',
+                    icon: 'pi pi-fw pi-file-o',
                     routerLink: ['/cms/homepage/news']
                 },
                 {
@@ -181,7 +181,7 @@ export class AppMenu {
         },
         {
             label: 'News',
-            icon: 'pi pi-newspaper',
+            icon: 'pi pi-book',
             items: [
                 {
                     label: 'Articles',
