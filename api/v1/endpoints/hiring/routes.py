@@ -72,12 +72,7 @@ def get_position_by_identifier(identifier: str, db: Session = Depends(get_db)):
     if not position:
         raise HTTPException(status_code=404, detail="Position not found")
 
-    questions = db.query(AssessmentQuestion).filter(
-        AssessmentQuestion.position_id == position.id,
-        AssessmentQuestion.is_active == True
-    ).order_by(AssessmentQuestion.sort_order).all()
-
-    return {"position": position, "assessment_questions": questions}
+    return {"position": position}
 
 
 # Keep explicit slug endpoint for backward compatibility
@@ -91,12 +86,7 @@ def get_position_by_slug(slug: str, db: Session = Depends(get_db)):
     if not position:
         raise HTTPException(status_code=404, detail="Position not found")
 
-    questions = db.query(AssessmentQuestion).filter(
-        AssessmentQuestion.position_id == position.id,
-        AssessmentQuestion.is_active == True
-    ).order_by(AssessmentQuestion.sort_order).all()
-
-    return {"position": position, "assessment_questions": questions}
+    return {"position": position}
 
 
 # Career Benefits
@@ -257,7 +247,7 @@ def get_position_assessment(position_id: int, db: Session = Depends(get_db)):
 def apply_step_1(
     position_id: int = Form(...),
     first_name: str = Form(...),
-    last_name: str = Form(...),
+    last_name: Optional[str] = Form(None),
     email: str = Form(...),
     phone: Optional[str] = Form(None),
     token: Optional[str] = Form(None),
@@ -267,6 +257,8 @@ def apply_step_1(
     position = db.query(JobPosition).filter(JobPosition.id == position_id).first()
     if not position:
         raise HTTPException(status_code=404, detail="Position not found")
+
+    last_name = last_name or ""
 
     user_id = None
     if token:

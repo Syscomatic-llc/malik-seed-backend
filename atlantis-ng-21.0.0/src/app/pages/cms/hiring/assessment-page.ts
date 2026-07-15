@@ -50,18 +50,26 @@ const QUESTION_TYPES = [
             </p-toolbar>
 
             <p-card [header]="'Assessment Questions: ' + positionTitle()">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-lg font-bold m-0">Exam Durations (minutes)</h3>
+                    <p-button label="Save Durations" icon="pi pi-check" severity="success"
+                        (onClick)="saveDurations()" [loading]="savingDurations" />
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div class="p-3 bg-primary/5 rounded">
-                        <span class="text-sm text-muted-color">MCQ Duration</span>
-                        <div class="font-bold">{{mcqDuration() ?? assessmentDuration() ?? '-'}} min</div>
+                    <div class="p-3 bg-primary/5 rounded flex flex-col gap-2">
+                        <label class="text-sm font-bold">MCQ Duration</label>
+                        <input type="number" pInputText [(ngModel)]="mcqDuration" [placeholder]="assessmentDuration() ?? 30" fluid />
+                        <span class="text-xs text-muted-color">Global fallback: {{assessmentDuration() ?? 30}} min</span>
                     </div>
-                    <div class="p-3 bg-primary/5 rounded">
-                        <span class="text-sm text-muted-color">Short Answer Duration</span>
-                        <div class="font-bold">{{shortAnswerDuration() ?? assessmentDuration() ?? '-'}} min</div>
+                    <div class="p-3 bg-primary/5 rounded flex flex-col gap-2">
+                        <label class="text-sm font-bold">Short Answer Duration</label>
+                        <input type="number" pInputText [(ngModel)]="shortAnswerDuration" [placeholder]="assessmentDuration() ?? 30" fluid />
+                        <span class="text-xs text-muted-color">Global fallback: {{assessmentDuration() ?? 30}} min</span>
                     </div>
-                    <div class="p-3 bg-primary/5 rounded">
-                        <span class="text-sm text-muted-color">Long Answer Duration</span>
-                        <div class="font-bold">{{longAnswerDuration() ?? assessmentDuration() ?? '-'}} min</div>
+                    <div class="p-3 bg-primary/5 rounded flex flex-col gap-2">
+                        <label class="text-sm font-bold">Long Answer Duration</label>
+                        <input type="number" pInputText [(ngModel)]="longAnswerDuration" [placeholder]="assessmentDuration() ?? 30" fluid />
+                        <span class="text-xs text-muted-color">Global fallback: {{assessmentDuration() ?? 30}} min</span>
                     </div>
                 </div>
                 <p-table [value]="filteredQuestions()" [rows]="10" [paginator]="true"
@@ -150,14 +158,15 @@ export class AssessmentPage implements OnInit {
     positionTitle = signal<string>('');
     questions = signal<any[]>([]);
     selectedCategory = signal<string>('');
-    mcqDuration = signal<number | null>(null);
-    shortAnswerDuration = signal<number | null>(null);
-    longAnswerDuration = signal<number | null>(null);
+    mcqDuration: number | null = null;
+    shortAnswerDuration: number | null = null;
+    longAnswerDuration: number | null = null;
     assessmentDuration = signal<number | null>(null);
     dialog = false;
     question: any = {};
     optionsText = '';
     saving = false;
+    savingDurations = false;
     questionTypes = QUESTION_TYPES;
 
     categoryOptions = computed(() => {
@@ -191,13 +200,32 @@ export class AssessmentPage implements OnInit {
             next: (res: any) => {
                 this.positionTitle.set(res.position_title);
                 this.questions.set(res.questions || []);
-                this.mcqDuration.set(res.mcq_duration ?? null);
-                this.shortAnswerDuration.set(res.short_answer_duration ?? null);
-                this.longAnswerDuration.set(res.long_answer_duration ?? null);
+                this.mcqDuration = res.mcq_duration ?? null;
+                this.shortAnswerDuration = res.short_answer_duration ?? null;
+                this.longAnswerDuration = res.long_answer_duration ?? null;
                 this.assessmentDuration.set(res.assessment_duration ?? null);
             },
             error: () => {
                 this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load assessment questions' });
+            }
+        });
+    }
+
+    saveDurations() {
+        this.savingDurations = true;
+        const payload = {
+            mcq_duration: this.mcqDuration,
+            short_answer_duration: this.shortAnswerDuration,
+            long_answer_duration: this.longAnswerDuration
+        };
+        this.api.adminUpdate('job-position', this.positionId(), payload).subscribe({
+            next: () => {
+                this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Exam durations saved successfully', life: 3000 });
+                this.savingDurations = false;
+            },
+            error: (err) => {
+                this.savingDurations = false;
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to save durations' });
             }
         });
     }
