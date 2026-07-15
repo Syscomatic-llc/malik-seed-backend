@@ -50,9 +50,10 @@ const QUESTION_TYPES = [
                         <tr>
                             <th>Order</th>
                             <th>Type</th>
-                            <th>Question</th>
-                            <th>Marks</th>
                             <th>Category</th>
+                            <th>Question</th>
+                            <th>Correct Answer</th>
+                            <th>Marks</th>
                             <th>Actions</th>
                         </tr>
                     </ng-template>
@@ -60,9 +61,10 @@ const QUESTION_TYPES = [
                         <tr>
                             <td>{{q.sort_order}}</td>
                             <td><p-tag [value]="q.question_type" [severity]="getTypeSeverity(q.question_type)" /></td>
-                            <td>{{q.question | slice:0:80}}...</td>
-                            <td>{{q.marks}}</td>
                             <td>{{q.category}}</td>
+                            <td>{{q.question | slice:0:60}}...</td>
+                            <td>{{q.correct_answer || '-'}}</td>
+                            <td>{{q.marks}}</td>
                             <td>
                                 <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" 
                                     (onClick)="editQuestion(q)" />
@@ -81,10 +83,16 @@ const QUESTION_TYPES = [
         <p-dialog [(visible)]="dialog" [style]="{ width: '650px' }" header="Assessment Question" [modal]="true">
             <ng-template #content>
                 <div class="flex flex-col gap-4">
-                    <div>
-                        <label class="block font-bold mb-2">Question Type</label>
-                        <p-select [options]="questionTypes" [(ngModel)]="question.question_type"
-                            optionLabel="label" optionValue="value" placeholder="Select Type" fluid appendTo="body" />
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block font-bold mb-2">Question Type</label>
+                            <p-select [options]="questionTypes" [(ngModel)]="question.question_type"
+                                optionLabel="label" optionValue="value" placeholder="Select Type" fluid appendTo="body" />
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-2">Category</label>
+                            <input type="text" pInputText [(ngModel)]="question.category" placeholder="e.g. Technical" fluid />
+                        </div>
                     </div>
                     <div>
                         <label class="block font-bold mb-2">Question</label>
@@ -98,7 +106,7 @@ const QUESTION_TYPES = [
                         <label class="block font-bold mb-2">Correct Answer</label>
                         <input type="text" pInputText [(ngModel)]="question.correct_answer" placeholder="A or option text" fluid />
                     </div>
-                    <div class="grid grid-cols-3 gap-4">
+                    <div class="grid grid-cols-4 gap-4">
                         <div>
                             <label class="block font-bold mb-2">Marks</label>
                             <input type="number" pInputText [(ngModel)]="question.marks" fluid />
@@ -110,12 +118,6 @@ const QUESTION_TYPES = [
                         <div>
                             <label class="block font-bold mb-2">Char Limit</label>
                             <input type="number" pInputText [(ngModel)]="question.char_limit" fluid />
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block font-bold mb-2">Category</label>
-                            <input type="text" pInputText [(ngModel)]="question.category" placeholder="e.g. Technical" fluid />
                         </div>
                         <div>
                             <label class="block font-bold mb-2">Sort Order</label>

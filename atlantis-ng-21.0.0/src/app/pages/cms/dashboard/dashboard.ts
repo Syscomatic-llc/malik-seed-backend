@@ -128,7 +128,8 @@ export class CmsDashboardPage implements OnInit {
     ) {}
 
     ngOnInit() {
-        this.loadActivityLogs();
+        // Defer log loading to avoid ExpressionChangedAfterItHasBeenCheckedError
+        setTimeout(() => this.loadActivityLogs(), 0);
         this.loadStats();
     }
 

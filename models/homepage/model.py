@@ -200,6 +200,7 @@ class HomepageNewsItem(Base):
     title = Column(String(300), nullable=False)
     excerpt = Column(String(500), nullable=True)
     image_url = Column(String(500), nullable=True)
+    icon = Column(String(100), nullable=True)
     category = Column(String(100), nullable=True)
 
     # Link to full article

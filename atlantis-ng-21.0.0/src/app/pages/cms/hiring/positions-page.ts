@@ -18,6 +18,7 @@ import { SelectModule } from 'primeng/select';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { slugify } from '@/app/utils/slugify';
+import { environment } from '@/environments/environment';
 
 const DEPARTMENTS = [
     { label: 'Sales', value: 'sales' },
@@ -151,6 +152,16 @@ const LOCATIONS = [
                         <input type="text" pInputText [(ngModel)]="position.experience_required" placeholder="e.g. 2-3 years" fluid />
                     </div>
                     <div>
+                        <label class="block font-bold mb-2">Job Details PDF</label>
+                        <div *ngIf="position.details_pdf_url" class="flex items-center gap-2 mb-2">
+                            <a [href]="mediaBaseUrl + position.details_pdf_url" target="_blank" class="text-primary hover:underline">
+                                <i class="pi pi-file-pdf mr-1"></i>View PDF
+                            </a>
+                            <p-button icon="pi pi-times" severity="danger" [text]="true" (onClick)="position.details_pdf_url = ''" />
+                        </div>
+                        <input type="file" accept=".pdf,.doc,.docx" (change)="onPdfSelected($event)" class="block w-full text-sm text-surface-600" />
+                    </div>
+                    <div>
                         <label class="block font-bold mb-2">Active</label>
                         <p-toggleSwitch [(ngModel)]="position.is_active" />
                     </div>
@@ -168,6 +179,8 @@ export class PositionsPage implements OnInit {
     dialog = false;
     position: JobPosition = { title: '', slug: '', department: '', job_type: '', location: '', description: '' };
     saving = false;
+    uploadingPdf = false;
+    mediaBaseUrl = environment.mediaBaseUrl;
     departments = DEPARTMENTS;
     jobTypes = JOB_TYPES;
     locations = LOCATIONS;
@@ -207,6 +220,24 @@ export class PositionsPage implements OnInit {
 
     hideDialog() {
         this.dialog = false;
+    }
+
+    onPdfSelected(event: Event) {
+        const input = event.target as HTMLInputElement;
+        if (!input.files?.length) return;
+        const file = input.files[0];
+        this.uploadingPdf = true;
+        this.api.uploadFile(file, 'positions').subscribe({
+            next: (res) => {
+                this.position.details_pdf_url = res.url;
+                this.uploadingPdf = false;
+                this.messageService.add({ severity: 'success', summary: 'Uploaded', detail: 'PDF uploaded successfully' });
+            },
+            error: () => {
+                this.uploadingPdf = false;
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to upload PDF' });
+            }
+        });
     }
 
     savePosition() {

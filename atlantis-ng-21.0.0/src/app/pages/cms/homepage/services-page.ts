@@ -39,7 +39,6 @@ import { ConfirmationService } from 'primeng/api';
                 <ng-template #header>
                     <tr>
                         <th>ID</th>
-                        <th>Icon</th>
                         <th>Title</th>
                         <th>Description</th>
                         <th>Link</th>
@@ -50,7 +49,6 @@ import { ConfirmationService } from 'primeng/api';
                 <ng-template #body let-service>
                     <tr>
                         <td>{{service.id}}</td>
-                        <td><i class="pi pi-{{service.icon}} text-primary text-xl"></i></td>
                         <td>{{service.title}}</td>
                         <td>{{service.description}}</td>
                         <td>{{service.link}}</td>
@@ -76,10 +74,6 @@ import { ConfirmationService } from 'primeng/api';
                     <div>
                         <label class="block font-bold mb-2">Description</label>
                         <textarea pTextarea [(ngModel)]="service.description" rows="3" fluid></textarea>
-                    </div>
-                    <div>
-                        <label class="block font-bold mb-2">Icon (pi-*)</label>
-                        <input type="text" pInputText [(ngModel)]="service.icon" placeholder="e.g. leaf, briefcase" fluid />
                     </div>
                     <div>
                         <label class="block font-bold mb-2">Link</label>

@@ -68,6 +68,9 @@ class JobPosition(Base):
     salary_range = Column(String(200), nullable=True)
     salary_currency = Column(String(10), default="BDT")
 
+    # Job description / details PDF
+    details_pdf_url = Column(String(500), nullable=True)
+
     # Position details
     positions_available = Column(Integer, default=1)
     application_deadline = Column(DateTime(timezone=True), nullable=True)
@@ -253,6 +256,7 @@ class HiringPageContent(Base):
     # Hero section
     hero_title = Column(String(500), nullable=False, default="Join Our Team")
     hero_subtitle = Column(String(500), nullable=True)
+    hero_badge = Column(String(200), nullable=True)
     hero_description = Column(Text, nullable=True)
     hero_background_image = Column(String(500), nullable=True)
     hero_video_url = Column(String(500), nullable=True)

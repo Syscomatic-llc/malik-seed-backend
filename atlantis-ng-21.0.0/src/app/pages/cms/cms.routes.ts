@@ -98,21 +98,28 @@ export default [
         pathMatch: 'full'
     },
 
+    // ===== CAREER =====
+    {
+        path: 'career/benefits',
+        loadComponent: () => import('./career/benefits-page').then((c) => c.BenefitsPage),
+        data: { breadcrumb: 'Benefits' }
+    },
+    {
+        path: 'career/team-stories',
+        loadComponent: () => import('./career/team-stories-page').then((c) => c.TeamStoriesPage),
+        data: { breadcrumb: "Team's Stories" }
+    },
+    {
+        path: 'career/page-content',
+        loadComponent: () => import('./career/page-content-page').then((c) => c.CareerPageContentPage),
+        data: { breadcrumb: 'Career Page Content' }
+    },
+
     // ===== HIRING =====
     {
         path: 'hiring/positions',
         loadComponent: () => import('./hiring/positions-page').then((c) => c.PositionsPage),
         data: { breadcrumb: 'Job Positions' }
-    },
-    {
-        path: 'hiring/benefits',
-        loadComponent: () => import('./hiring/benefits-page').then((c) => c.BenefitsPage),
-        data: { breadcrumb: 'Benefits' }
-    },
-    {
-        path: 'hiring/testimonials',
-        loadComponent: () => import('./hiring/testimonials-page').then((c) => c.HiringTestimonialsPage),
-        data: { breadcrumb: 'Testimonials' }
     },
     {
         path: 'hiring/assessments',
@@ -127,7 +134,7 @@ export default [
     {
         path: 'hiring/resumes',
         loadComponent: () => import('./hiring/resumes-page').then((c) => c.ResumesPage),
-        data: { breadcrumb: 'Resumes' }
+        data: { breadcrumb: 'Resume' }
     },
 
     // ===== CONTACT =====
@@ -135,6 +142,11 @@ export default [
         path: 'contact/info',
         loadComponent: () => import('./contact/info-page').then((c) => c.ContactInfoPage),
         data: { breadcrumb: 'Contact Info' }
+    },
+    {
+        path: 'contact/messages',
+        loadComponent: () => import('./contact/messages-page').then((c) => c.ContactMessagesPage),
+        data: { breadcrumb: 'Messages' }
     },
 
     // ===== NEWS =====

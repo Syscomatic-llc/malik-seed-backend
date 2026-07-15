@@ -91,6 +91,7 @@ MODEL_REGISTRY: Dict[str, tuple] = {
 
     # Contact
     "contact-info": (ContactInfo, True),
+    "contact-message": (ContactMessage, False),
     "office-location": (OfficeLocation, False),
     "faq": (FAQ, False),
 
@@ -371,6 +372,49 @@ def upload_image(
         "resized": resized,
         "width": final_width,
         "height": final_height,
+    }
+
+
+@router.post("/upload/file")
+def upload_file(
+    file: UploadFile = File(...),
+    folder: Optional[str] = Form("files"),
+):
+    """Upload a non-image file (PDF, DOC, DOCX, etc.) for CMS content."""
+    allowed_extensions = {".pdf", ".doc", ".docx", ".txt", ".xls", ".xlsx", ".ppt", ".pptx"}
+    file_ext = os.path.splitext(file.filename)[1].lower()
+
+    if file_ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: {', '.join(allowed_extensions)}"
+        )
+
+    file.file.seek(0, 2)
+    file_size = file.file.tell()
+    file.file.seek(0)
+    if file_size > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Maximum allowed size is {MAX_FILE_SIZE / 1024 / 1024:.0f}MB."
+        )
+
+    folder = "".join(c for c in folder if c.isalnum() or c in "-_")
+    target_dir = os.path.join(UPLOAD_DIR, folder)
+    os.makedirs(target_dir, exist_ok=True)
+
+    base_name = f"{folder}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{os.urandom(4).hex()}"
+    filename = f"{base_name}{file_ext}"
+    file_path = os.path.join(target_dir, filename)
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    return {
+        "status": "success",
+        "filename": filename,
+        "url": f"uploads/{folder}/{filename}",
+        "path": file_path,
     }
 
 

@@ -40,6 +40,9 @@ class ContactInfo(Base):
     linkedin_url = Column(String(500), nullable=True)
     youtube_url = Column(String(500), nullable=True)
 
+    # Contact form subject dropdown options
+    subject_options = Column(JSON, default=list)
+
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

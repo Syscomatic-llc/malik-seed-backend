@@ -32,10 +32,6 @@ import { AppBreadcrumb } from '@/app/layout/components/app.breadcrumb';
         </div>
         <div class="topbar-end">
             <ul class="topbar-menu">
-                <li class="profile-item topbar-item mr-2">
-                    <button pButton pRipple type="button" icon="pi pi-bell" class="text-surface-500 dark:text-surface-400 shrink-0" severity="secondary" text rounded></button>
-                </li>
-
                 <li class="ml-4 mr-2">
                     <button pButton pRipple type="button" icon="pi pi-palette" class="shrink-0 config-button" text rounded (click)="onConfigButtonClick()"></button>
                 </li>

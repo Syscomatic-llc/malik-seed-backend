@@ -75,15 +75,9 @@ import { environment } from '@/environments/environment';
                 </p-card>
             </div>
             <div class="col-span-12">
-                <p-card header="Stats">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <p-card header="Stats (4 fixed)">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div *ngFor="let stat of stats; let i = index" class="p-4 bg-primary/5 rounded-lg flex flex-col gap-2">
-                            <div class="flex justify-end">
-                                <button pButton type="button" icon="pi pi-times"
-                                    class="w-6 h-6 p-0"
-                                    severity="danger" [rounded]="true" [text]="true"
-                                    (click)="removeStat(i)"></button>
-                            </div>
                             <div>
                                 <label class="block text-sm font-bold mb-1">Value</label>
                                 <input type="text" pInputText [(ngModel)]="stat.value" fluid />
@@ -94,13 +88,10 @@ import { environment } from '@/environments/environment';
                             </div>
                         </div>
                     </div>
-                    <div class="mt-4">
-                        <p-button label="Add Stat" icon="pi pi-plus" (onClick)="addStat()" />
-                    </div>
                 </p-card>
             </div>
             <div class="col-span-12">
-                <p-button label="Save Changes" icon="pi pi-check" severity="success" (onClick)="saveAbout()" [loading]="saving" />
+                <p-button label="Save Changes" icon="pi pi-check" severity="success" (onClick)="saveAbout()" [loading]="saving" [disabled]="!hasChanges()" />
             </div>
         </div>
     `
@@ -116,6 +107,7 @@ export class AboutPage implements OnInit {
     stats: any[] = [];
     saving = false;
     mediaBaseUrl = environment.mediaBaseUrl;
+    private originalSnapshot = '';
 
     constructor(
         private api: MalikApiService,
@@ -138,6 +130,9 @@ export class AboutPage implements OnInit {
                         this.stats = [];
                     }
                 }
+                while (this.stats.length < 4) this.stats.push({ value: '', label: '' });
+                this.stats = this.stats.slice(0, 4);
+                this.takeSnapshot();
             },
             error: () => {
                 this.messageService.add({
@@ -149,7 +144,17 @@ export class AboutPage implements OnInit {
         });
     }
 
+    hasChanges(): boolean {
+        const current = JSON.stringify({ about: this.about, galleryImages: this.galleryImages, stats: this.stats });
+        return current !== this.originalSnapshot;
+    }
+
+    private takeSnapshot() {
+        this.originalSnapshot = JSON.stringify({ about: this.about, galleryImages: this.galleryImages, stats: this.stats });
+    }
+
     saveAbout() {
+        if (!this.hasChanges()) return;
         this.saving = true;
         const data = { ...this.about, gallery_images: this.galleryImages, stats: this.stats };
         const id = this.about.id;
@@ -167,6 +172,7 @@ export class AboutPage implements OnInit {
                 });
                 this.loadAbout();
                 this.saving = false;
+                this.takeSnapshot();
             },
             error: (err) => {
                 this.saving = false;
@@ -177,14 +183,6 @@ export class AboutPage implements OnInit {
                 });
             }
         });
-    }
-
-    addStat() {
-        this.stats.push({ value: '', label: '' });
-    }
-
-    removeStat(index: number) {
-        this.stats.splice(index, 1);
     }
 
     private parseJsonArray(value: any): string[] {

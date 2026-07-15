@@ -73,6 +73,7 @@ export interface HomepageNewsItem {
   title: string;
   excerpt?: string;
   image_url?: string;
+  icon?: string;
   category?: string;
   display_date?: string;
   sort_order?: number;
@@ -129,6 +130,7 @@ export interface OurStoryMission {
   id?: number;
   title: string;
   description: string;
+  vision_title?: string;
   vision_description?: string;
   image_url?: string;
 }
@@ -199,6 +201,7 @@ export interface JobPosition {
   responsibilities?: string[];
   skills_required?: string[];
   experience_required?: string;
+  details_pdf_url?: string;
   is_active?: boolean;
 }
 
@@ -216,6 +219,25 @@ export interface HiringTestimonial {
   department?: string;
   content: string;
   avatar_url?: string;
+}
+
+export interface HiringPageContent {
+  id?: number;
+  hero_title?: string;
+  hero_subtitle?: string;
+  hero_badge?: string;
+  hero_description?: string;
+  hero_background_image?: string;
+  hero_video_url?: string;
+  stats?: any[];
+  initiative_title?: string;
+  initiative_description?: string;
+  initiative_image?: string;
+  cta_title?: string;
+  cta_description?: string;
+  cta_button_text?: string;
+  cta_button_link?: string;
+  is_active?: boolean;
 }
 
 export interface ResumeUpload {
@@ -245,6 +267,7 @@ export interface ContactInfo {
   facebook_url?: string;
   instagram_url?: string;
   youtube_url?: string;
+  subject_options?: string[];
 }
 
 export interface OfficeLocation {
@@ -262,6 +285,19 @@ export interface FAQ {
   question: string;
   answer: string;
   category?: string;
+}
+
+export interface ContactMessage {
+  id?: number;
+  name: string;
+  email: string;
+  phone?: string;
+  subject?: string;
+  message: string;
+  inquiry_type?: string;
+  is_read?: boolean;
+  is_replied?: boolean;
+  created_at?: string;
 }
 
 // ============ NEWS TYPES ============
@@ -532,6 +568,13 @@ export class MalikApiService {
 
   getNewsCategories(): Observable<NewsCategory[]> {
     return this.http.get<NewsCategory[]>(`${this.apiUrl}/news/categories`);
+  }
+
+  uploadFile(file: File, folder: string = 'files'): Observable<{ status: string; url: string; filename: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('folder', folder);
+    return this.http.post<{ status: string; url: string; filename: string }>(`${this.apiUrl}/admin/upload/file`, formData);
   }
 
   // ============ FILE UPLOAD ============

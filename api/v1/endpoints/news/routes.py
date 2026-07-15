@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, object_session
 from typing import Optional
 
 from core.database import get_db
@@ -17,15 +17,20 @@ def get_articles(
     limit: int = 10,
     db: Session = Depends(get_db)
 ):
-    """Get news articles with pagination (default 10 per page)"""
-    query = db.query(NewsArticle).filter(
-        NewsArticle.is_published == True,
-        NewsArticle.is_active == True
-    )
+    """Get news articles with pagination (default 10 per page).
+    If a slug is provided, the published filter is skipped so the article can be previewed."""
+    if slug:
+        query = db.query(NewsArticle).filter(
+            NewsArticle.slug == slug,
+            NewsArticle.is_active == True
+        )
+    else:
+        query = db.query(NewsArticle).filter(
+            NewsArticle.is_published == True,
+            NewsArticle.is_active == True
+        )
     if category:
         query = query.filter(NewsArticle.category == category)
-    if slug:
-        query = query.filter(NewsArticle.slug == slug)
     if featured:
         query = query.filter(NewsArticle.is_featured == True)
 
@@ -58,6 +63,14 @@ def get_featured_articles(db: Session = Depends(get_db)):
     ).order_by(NewsArticle.published_at.desc()).all()
 
 
+def _article_to_dict(article: NewsArticle) -> dict:
+    """Serialize a NewsArticle instance to a dict, refreshing if expired."""
+    db = object_session(article)
+    if db:
+        db.refresh(article)
+    return {c.name: getattr(article, c.name) for c in article.__table__.columns}
+
+
 @router.get("/articles/{slug}")
 def get_article_by_slug(slug: str, db: Session = Depends(get_db)):
     """Get single article by slug"""
@@ -71,8 +84,9 @@ def get_article_by_slug(slug: str, db: Session = Depends(get_db)):
     # Increment view count
     article.view_count += 1
     db.commit()
+    db.refresh(article)
 
-    return article
+    return _article_to_dict(article)
 
 
 @router.get("/categories")

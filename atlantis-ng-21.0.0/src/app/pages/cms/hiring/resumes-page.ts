@@ -59,7 +59,7 @@ import { environment } from '@/environments/environment';
                         <td>{{item.phone || 'N/A'}}</td>
                         <td>{{item.position || 'N/A'}}</td>
                         <td>
-                            <a *ngIf="item.file_url" [href]="mediaBaseUrl + item.file_url" target="_blank" class="text-primary hover:underline">
+                            <a *ngIf="item.file_url" [href]="resolveUrl(item.file_url)" target="_blank" class="text-primary hover:underline">
                                 <i class="pi pi-file-pdf mr-1"></i>{{item.filename}}
                             </a>
                             <span *ngIf="!item.file_url" class="text-muted-color">No file</span>
@@ -125,6 +125,13 @@ export class ResumesPage implements OnInit {
                 });
             }
         });
+    }
+
+    resolveUrl(path?: string): string {
+        if (!path) return '';
+        const base = (this.mediaBaseUrl || '').replace(/\/$/, '');
+        const cleanPath = path.replace(/^\//, '');
+        return `${base}/${cleanPath}`;
     }
 
     formatSize(bytes?: number): string {

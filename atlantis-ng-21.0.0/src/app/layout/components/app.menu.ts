@@ -122,6 +122,27 @@ export class AppMenu {
             ]
         },
         {
+            label: 'Career',
+            icon: 'pi pi-briefcase',
+            items: [
+                {
+                    label: 'Benefits',
+                    icon: 'pi pi-fw pi-star',
+                    routerLink: ['/cms/career/benefits']
+                },
+                {
+                    label: "Team's Stories",
+                    icon: 'pi pi-fw pi-comment',
+                    routerLink: ['/cms/career/team-stories']
+                },
+                {
+                    label: 'Career Page Content',
+                    icon: 'pi pi-fw pi-file-edit',
+                    routerLink: ['/cms/career/page-content']
+                }
+            ]
+        },
+        {
             label: 'Hiring',
             icon: 'pi pi-users',
             items: [
@@ -129,16 +150,6 @@ export class AppMenu {
                     label: 'Job Positions',
                     icon: 'pi pi-fw pi-briefcase',
                     routerLink: ['/cms/hiring/positions']
-                },
-                {
-                    label: 'Benefits',
-                    icon: 'pi pi-fw pi-star',
-                    routerLink: ['/cms/hiring/benefits']
-                },
-                {
-                    label: 'Testimonials',
-                    icon: 'pi pi-fw pi-comment',
-                    routerLink: ['/cms/hiring/testimonials']
                 },
                 {
                     label: 'Assessments',
@@ -160,6 +171,11 @@ export class AppMenu {
                     label: 'Contact Info',
                     icon: 'pi pi-fw pi-info-circle',
                     routerLink: ['/cms/contact/info']
+                },
+                {
+                    label: 'Messages',
+                    icon: 'pi pi-fw pi-envelope',
+                    routerLink: ['/cms/contact/messages']
                 }
             ]
         },
@@ -171,11 +187,6 @@ export class AppMenu {
                     label: 'Articles',
                     icon: 'pi pi-fw pi-list',
                     routerLink: ['/cms/news/articles']
-                },
-                {
-                    label: 'Categories',
-                    icon: 'pi pi-fw pi-folder',
-                    routerLink: ['/cms/news/categories']
                 }
             ]
         },

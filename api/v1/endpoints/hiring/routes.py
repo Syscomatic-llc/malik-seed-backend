@@ -54,12 +54,31 @@ def get_job_positions(
     return positions
 
 
-# Get single position
+# Get single position by ID
 @router.get("/positions/{position_id}")
 def get_position_by_id(position_id: int, db: Session = Depends(get_db)):
     """Get job position details with assessment questions"""
     position = db.query(JobPosition).filter(
         JobPosition.id == position_id,
+        JobPosition.is_active == True
+    ).first()
+    if not position:
+        raise HTTPException(status_code=404, detail="Position not found")
+
+    questions = db.query(AssessmentQuestion).filter(
+        AssessmentQuestion.position_id == position.id,
+        AssessmentQuestion.is_active == True
+    ).order_by(AssessmentQuestion.sort_order).all()
+
+    return {"position": position, "assessment_questions": questions}
+
+
+# Get single position by slug (industry-standard format)
+@router.get("/positions/slug/{slug}")
+def get_position_by_slug(slug: str, db: Session = Depends(get_db)):
+    """Get job position details by slug"""
+    position = db.query(JobPosition).filter(
+        JobPosition.slug == slug,
         JobPosition.is_active == True
     ).first()
     if not position:
@@ -531,7 +550,7 @@ def upload_cv(
         position=position,
         message=message,
         filename=filename,
-        file_url=f"/uploads/resumes/{filename}",
+        file_url=f"uploads/resumes/{filename}",
         file_size=file_size,
     )
     db.add(upload)

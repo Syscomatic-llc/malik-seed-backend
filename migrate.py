@@ -166,15 +166,26 @@ def main():
     ensure_varchar_length("homepage_timelines", "year", 50)
     ensure_varchar_length("our_story_timelines", "year", 50)
 
-    # Contact info footer description
+    # Contact info footer description and subject options
     add_column("contact_infos", "footer_description", "TEXT")
+    add_json_column("contact_infos", "subject_options")
 
     # Our Story mission vision description
     add_column("our_story_missions", "vision_description", "TEXT")
+    add_column("our_story_missions", "vision_title", "VARCHAR(200)")
 
     # Site settings new fields
     add_column("site_settings", "site_description", "TEXT")
     add_column("site_settings", "google_search_console_verification", "TEXT")
+
+    # Hiring page content hero badge
+    add_column("hiring_page_contents", "hero_badge", "VARCHAR(200)")
+
+    # Homepage news items icon
+    add_column("homepage_news_items", "icon", "VARCHAR(100)")
+
+    # Job position details PDF
+    add_column("job_positions", "details_pdf_url", "VARCHAR(500)")
 
     # Hero global CTA buttons
     add_column("site_settings", "hero_primary_cta_text", "VARCHAR(100)")

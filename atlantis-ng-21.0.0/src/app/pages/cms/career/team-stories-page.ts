@@ -17,7 +17,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 
 @Component({
-    selector: 'app-hiring-testimonials-page',
+    selector: 'app-team-stories-page',
     standalone: true,
     imports: [
         CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
@@ -103,7 +103,7 @@ import { ConfirmationService } from 'primeng/api';
         </p-dialog>
     `
 })
-export class HiringTestimonialsPage implements OnInit {
+export class TeamStoriesPage implements OnInit {
     testimonials = signal<HiringTestimonial[]>([]);
     dialog = false;
     testimonial: HiringTestimonial = { name: '', content: '' };

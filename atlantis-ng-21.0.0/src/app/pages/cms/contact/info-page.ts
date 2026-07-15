@@ -7,12 +7,13 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
+import { DividerModule } from 'primeng/divider';
 import { MessageService } from 'primeng/api';
 
 @Component({
     selector: 'app-contact-info-page',
     standalone: true,
-    imports: [CommonModule, FormsModule, CardModule, ButtonModule, InputTextModule, TextareaModule, ToastModule],
+    imports: [CommonModule, FormsModule, CardModule, ButtonModule, InputTextModule, TextareaModule, ToastModule, DividerModule],
     providers: [MessageService],
     template: `
         <p-toast />
@@ -60,6 +61,17 @@ import { MessageService } from 'primeng/api';
                             <label class="block font-bold mb-2">YouTube URL</label>
                             <input type="text" pInputText [(ngModel)]="info.youtube_url" fluid />
                         </div>
+                        <p-divider />
+                        <div>
+                            <label class="block font-bold mb-2">Contact Form Subject Options</label>
+                            <div class="flex flex-col gap-2">
+                                <div *ngFor="let option of info.subject_options; let i = index" class="flex gap-2">
+                                    <input type="text" pInputText [(ngModel)]="info.subject_options![i]" fluid />
+                                    <p-button icon="pi pi-trash" severity="danger" (onClick)="removeSubject(i)" />
+                                </div>
+                                <p-button label="Add Subject" icon="pi pi-plus" severity="success" (onClick)="addSubject()" />
+                            </div>
+                        </div>
                     </div>
                 </p-card>
             </div>
@@ -90,7 +102,7 @@ import { MessageService } from 'primeng/api';
     `
 })
 export class ContactInfoPage implements OnInit {
-    info: ContactInfo = { title: '' };
+    info: ContactInfo = { title: '', subject_options: [] };
     saving = false;
 
     constructor(
@@ -104,14 +116,26 @@ export class ContactInfoPage implements OnInit {
 
     loadInfo() {
         this.api.getContactInfo().subscribe({
-            next: (data) => this.info = data,
+            next: (data) => {
+                this.info = data;
+                if (!this.info.subject_options) this.info.subject_options = [];
+            },
             error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load contact info' })
         });
+    }
+
+    addSubject() {
+        this.info.subject_options = [...(this.info.subject_options || []), ''];
+    }
+
+    removeSubject(index: number) {
+        this.info.subject_options = (this.info.subject_options || []).filter((_, i) => i !== index);
     }
 
     saveInfo() {
         this.saving = true;
         const data = { ...this.info };
+        data.subject_options = (data.subject_options || []).filter(o => o.trim() !== '');
         const id = this.info.id;
         const request = id
             ? this.api.adminUpdate('contact-info', id, data)

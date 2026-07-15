@@ -1,6 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { MalikApiService, HomepageNewsItem, NewsCategory } from '@/app/services/malik-api.service';
 import { ImageUpload } from '@/app/components/image-upload';
 import { CardModule } from 'primeng/card';
@@ -22,7 +23,7 @@ import { environment } from '@/environments/environment';
     selector: 'app-news-items-page',
     standalone: true,
     imports: [
-        CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
+        CommonModule, FormsModule, RouterModule, CardModule, ButtonModule, TableModule,
         DialogModule, InputTextModule, TextareaModule, ToastModule, ToolbarModule,
         TagModule, SelectModule, ConfirmDialogModule, ImageUpload
     ],
@@ -34,6 +35,7 @@ import { environment } from '@/environments/environment';
             <p-toolbar styleClass="mb-4">
                 <ng-template #start>
                     <p-button label="New News Item" icon="pi pi-plus" severity="success" class="mr-2" (onClick)="openNew()" />
+                    <p-button label="Manage Categories" icon="pi pi-folder" severity="secondary" [routerLink]="['/cms/news/categories']" />
                 </ng-template>
             </p-toolbar>
 
@@ -44,6 +46,7 @@ import { environment } from '@/environments/environment';
                         <th>ID</th>
                         <th>Image</th>
                         <th>Title</th>
+                        <th>Icon</th>
                         <th>Category</th>
                         <th>Excerpt</th>
                         <th>Date</th>
@@ -59,6 +62,7 @@ import { environment } from '@/environments/environment';
                             <span *ngIf="!item.image_url" class="text-muted-color">No image</span>
                         </td>
                         <td>{{item.title}}</td>
+                        <td><i *ngIf="item.icon" [class]="'pi ' + item.icon"></i></td>
                         <td><p-tag [value]="item.category" severity="info" /></td>
                         <td>{{item.excerpt | slice:0:60}}...</td>
                         <td>{{item.display_date}}</td>
@@ -92,6 +96,10 @@ import { environment } from '@/environments/environment';
                     <div>
                         <label class="block font-bold mb-2">Display Date</label>
                         <input type="text" pInputText [(ngModel)]="item.display_date" placeholder="e.g. January 2024" fluid />
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-2">Icon (pi-*)</label>
+                        <input type="text" pInputText [(ngModel)]="item.icon" placeholder="e.g. pi-calendar" fluid />
                     </div>
                     <div>
                         <app-image-upload label="News Image" folder="homepage"
