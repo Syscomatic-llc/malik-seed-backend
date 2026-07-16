@@ -148,20 +148,6 @@ const LOCATIONS = [
                         <label class="block font-bold mb-2">Full Description *</label>
                         <p-editor [(ngModel)]="position.description" [style]="{height: '200px'}"></p-editor>
                     </div>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div>
-                            <label class="block font-bold mb-2">MCQ Duration (min)</label>
-                            <input type="number" pInputText [(ngModel)]="position.mcq_duration" placeholder="Global" fluid />
-                        </div>
-                        <div>
-                            <label class="block font-bold mb-2">Short Answer Duration (min)</label>
-                            <input type="number" pInputText [(ngModel)]="position.short_answer_duration" placeholder="Global" fluid />
-                        </div>
-                        <div>
-                            <label class="block font-bold mb-2">Long Answer Duration (min)</label>
-                            <input type="number" pInputText [(ngModel)]="position.long_answer_duration" placeholder="Global" fluid />
-                        </div>
-                    </div>
                     <div>
                         <label class="block font-bold mb-2">Experience Required</label>
                         <input type="text" pInputText [(ngModel)]="position.experience_required" placeholder="e.g. 2-3 years" fluid />
