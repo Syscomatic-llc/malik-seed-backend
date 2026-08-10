@@ -9,6 +9,7 @@ import json
 import csv
 import io
 import zipfile
+import re
 
 from PIL import Image
 
@@ -353,6 +354,27 @@ def get_assessment_submission_detail(
         AssessmentQuestion.position_id == application.position_id
     ).order_by(AssessmentQuestion.sort_order).all()
 
+    def _option_prefix(text):
+        m = re.match(r'^([A-Za-z0-9]+)[\.\)]', str(text or ''))
+        return m.group(1).lower() if m else None
+
+    def _option_body(text):
+        return re.sub(r'^[A-Za-z0-9]+[\.\)]\s*', '', str(text or '')).strip().lower()
+
+    def _resolve_correct_option(correct, options):
+        if not options or correct is None:
+            return correct
+        correct = str(correct).strip()
+        correct_lower = correct.lower()
+        for opt in options:
+            if opt.strip().lower() == correct_lower:
+                return opt
+        for opt in options:
+            prefix = _option_prefix(opt)
+            if prefix and prefix == correct_lower:
+                return opt
+        return correct
+
     answers = application.assessment_answers or {}
 
     total_marks = 0
@@ -365,7 +387,17 @@ def get_assessment_submission_detail(
 
         if q.question_type == "mcq" and q.correct_answer is not None:
             total_marks += q.marks or 0
-            if applicant_answer is not None and str(applicant_answer).lower().strip() == str(q.correct_answer).lower().strip():
+            target = _resolve_correct_option(q.correct_answer, q.options or [])
+            target_prefix = _option_prefix(target)
+            target_body = _option_body(target)
+            answer_prefix = _option_prefix(applicant_answer)
+            answer_body = _option_body(applicant_answer)
+
+            if applicant_answer is not None and (
+                (target_prefix and answer_prefix and target_prefix == answer_prefix) or
+                (target_body and answer_body and target_body == answer_body) or
+                str(target).strip().lower() == str(applicant_answer).strip().lower()
+            ):
                 is_correct = True
                 q_earned = q.marks or 0
                 earned_marks += q_earned

@@ -681,7 +681,12 @@ def submit_assessment(
     if not questions:
         raise HTTPException(status_code=400, detail="No assessment questions found for this position")
 
-    answers = payload.answers or {}
+    def _option_prefix(text):
+        m = re.match(r'^([A-Za-z0-9]+)[\.\)]', str(text or ''))
+        return m.group(1).lower() if m else None
+
+    def _option_body(text):
+        return re.sub(r'^[A-Za-z0-9]+[\.\)]\s*', '', str(text or '')).strip().lower()
 
     def _normalize_answer(answer, options):
         if answer is None:
@@ -691,6 +696,25 @@ def submit_assessment(
             if 0 <= idx < len(options):
                 return str(options[idx]).strip()
         return str(answer).strip()
+
+    def _resolve_correct_option(correct, options):
+        """Return the full option text that `correct` refers to, or `correct` itself."""
+        if not options or correct is None:
+            return correct
+        correct = str(correct).strip()
+        correct_lower = correct.lower()
+        # Exact full match
+        for opt in options:
+            if opt.strip().lower() == correct_lower:
+                return opt
+        # Prefix match (e.g. correct='C' matches 'C. Become a Tester')
+        for opt in options:
+            prefix = _option_prefix(opt)
+            if prefix and prefix == correct_lower:
+                return opt
+        return correct
+
+    answers = payload.answers or {}
 
     total_marks = 0
     earned_marks = 0
@@ -704,8 +728,17 @@ def submit_assessment(
 
         if q.question_type == "mcq" and q.correct_answer is not None:
             total_marks += q.marks or 0
-            correct = str(q.correct_answer).strip().lower()
-            if normalized_answer and normalized_answer.lower() == correct:
+            target = _resolve_correct_option(q.correct_answer, q.options or [])
+            target_prefix = _option_prefix(target)
+            target_body = _option_body(target)
+            answer_prefix = _option_prefix(normalized_answer)
+            answer_body = _option_body(normalized_answer)
+
+            if normalized_answer and (
+                (target_prefix and answer_prefix and target_prefix == answer_prefix) or
+                (target_body and answer_body and target_body == answer_body) or
+                str(target).strip().lower() == normalized_answer.lower()
+            ):
                 is_correct = True
                 q_earned = q.marks or 0
                 earned_marks += q_earned

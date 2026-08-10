@@ -146,6 +146,66 @@ def backfill_story_hero_images():
     print("  ✓ Backfilled our_story_heroes.background_images from background_image")
 
 
+def backfill_resume_upload_fields():
+    if not table_exists("resume_uploads") or not table_exists("job_applications"):
+        return
+
+    dialect = engine.dialect.name
+    with engine.connect() as conn:
+        if dialect == "postgresql":
+            conn.execute(text(
+                """
+                UPDATE resume_uploads ru
+                SET current_location = ja.current_location,
+                    linkedin_url = ja.linkedin_url,
+                    portfolio_url = ja.portfolio_url,
+                    source = ja.source,
+                    phone = COALESCE(NULLIF(ja.phone, ''), ru.phone),
+                    name = COALESCE(NULLIF(TRIM(ja.first_name || ' ' || ja.last_name), ''), ru.name)
+                FROM job_applications ja
+                WHERE ru.file_url = ja.resume_url
+                  AND ru.resume_type = 'open_position'
+                """
+            ))
+        elif dialect == "sqlite":
+            conn.execute(text(
+                """
+                UPDATE resume_uploads
+                SET current_location = (
+                    SELECT ja.current_location FROM job_applications ja
+                    WHERE ja.resume_url = resume_uploads.file_url LIMIT 1
+                ),
+                linkedin_url = (
+                    SELECT ja.linkedin_url FROM job_applications ja
+                    WHERE ja.resume_url = resume_uploads.file_url LIMIT 1
+                ),
+                portfolio_url = (
+                    SELECT ja.portfolio_url FROM job_applications ja
+                    WHERE ja.resume_url = resume_uploads.file_url LIMIT 1
+                ),
+                source = (
+                    SELECT ja.source FROM job_applications ja
+                    WHERE ja.resume_url = resume_uploads.file_url LIMIT 1
+                ),
+                phone = COALESCE((
+                    SELECT ja.phone FROM job_applications ja
+                    WHERE ja.resume_url = resume_uploads.file_url LIMIT 1
+                ), phone),
+                name = COALESCE((
+                    SELECT TRIM(ja.first_name || ' ' || ja.last_name) FROM job_applications ja
+                    WHERE ja.resume_url = resume_uploads.file_url LIMIT 1
+                ), name)
+                WHERE resume_type = 'open_position'
+                """
+            ))
+        else:
+            print(f"  ~ Skipped resume_upload backfill for dialect: {dialect}")
+            return
+        conn.commit()
+
+    print("  ✓ Backfilled resume_upload fields from job_applications")
+
+
 def main():
     print("Running migrations...")
 
@@ -202,6 +262,7 @@ def main():
     add_column("resume_uploads", "linkedin_url", "VARCHAR(500)")
     add_column("resume_uploads", "portfolio_url", "VARCHAR(500)")
     add_json_column("resume_uploads", "source")
+    backfill_resume_upload_fields()
 
     # Job applications OTP verification
     add_column("job_applications", "otp_code", "VARCHAR(10)")
