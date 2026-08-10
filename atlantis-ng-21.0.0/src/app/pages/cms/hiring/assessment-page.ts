@@ -62,10 +62,13 @@ const QUESTION_TYPES = [
                         <input type="number" pInputText [(ngModel)]="mcqDuration" placeholder="0" fluid />
                         <span class="text-xs text-muted-color">Default: 0 min</span>
                     </div>
-                    <div *ngIf="hasShortAnswerQuestions()" class="p-3 bg-primary/5 rounded flex flex-col gap-2">
+                    <div class="p-3 bg-primary/5 rounded flex flex-col gap-2">
                         <label class="text-sm font-bold">Short Answer Duration</label>
-                        <input type="number" pInputText [(ngModel)]="shortAnswerDuration" placeholder="0" fluid />
-                        <span class="text-xs text-muted-color">Default: 0 min</span>
+                        <input type="number" pInputText [(ngModel)]="shortAnswerDuration" placeholder="0"
+                            [disabled]="!hasShortAnswerQuestions()" fluid />
+                        <span class="text-xs text-muted-color">
+                            {{ hasShortAnswerQuestions() ? 'Default: 0 min' : 'Disabled until a short answer question is added' }}
+                        </span>
                     </div>
                     <div *ngIf="hasLongAnswerQuestions()" class="p-3 bg-primary/5 rounded flex flex-col gap-2">
                         <label class="text-sm font-bold">Long Answer Duration</label>

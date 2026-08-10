@@ -390,7 +390,6 @@ def _sanitize_filename_part(value: str) -> str:
 def upload_cv(
     file: UploadFile = File(...),
     resume_type: str = Form(...),
-    position_id: Optional[int] = Form(None),
     applicant_name: Optional[str] = Form(None),
     name: Optional[str] = Form(None),
     email: Optional[str] = Form(None),
@@ -401,7 +400,7 @@ def upload_cv(
 ):
     """Public endpoint for uploading a CV/resume.
 
-    - open_position: requires position_id (job position). Only resume PDF is needed.
+    - open_position: send the position name in the `position` field. Only resume PDF is needed.
     - future_leader: no extra fields needed. Only resume PDF is needed.
     - general: full applicant details (name, email, phone) are expected.
     """
@@ -424,23 +423,6 @@ def upload_cv(
             detail="Invalid resume_type. Allowed: open_position, future_leader, general"
         )
 
-    # Resolve open position details
-    resolved_position_id = None
-    resolved_position_name = None
-    resolved_position = position
-    if normalized_resume_type == "open_position":
-        if not position_id:
-            raise HTTPException(
-                status_code=400,
-                detail="position_id is required for open_position resume uploads"
-            )
-        job_position = db.query(JobPosition).filter(JobPosition.id == position_id).first()
-        if not job_position:
-            raise HTTPException(status_code=404, detail="Job position not found")
-        resolved_position_id = job_position.id
-        resolved_position_name = job_position.title
-        resolved_position = job_position.title
-
     # Applicant name fallback with timestamp to keep filenames unique
     effective_name = (applicant_name or name or "").strip()
     if not effective_name:
@@ -449,7 +431,7 @@ def upload_cv(
     # Human-readable segments
     if normalized_resume_type == "open_position":
         hiring_type = "Open Position"
-        position_segment = resolved_position_name or ""
+        position_segment = (position or "").strip()
     elif normalized_resume_type == "future_leader":
         hiring_type = "Future Leader Program"
         position_segment = ""
@@ -476,11 +458,10 @@ def upload_cv(
         name=name,
         email=email,
         phone=phone,
-        position=resolved_position,
+        position=position,
         message=message,
         resume_type=normalized_resume_type,
-        position_id=resolved_position_id,
-        position_name=resolved_position_name or resolved_position or None,
+        position_name=position or None,
         applicant_name=applicant_name or name or None,
         filename=filename,
         file_url=f"uploads/resumes/{filename}",

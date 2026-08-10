@@ -90,12 +90,8 @@ import { ConfirmationService } from 'primeng/api';
                         <textarea pTextarea [(ngModel)]="item.description" rows="3" fluid></textarea>
                     </div>
                     <div>
-                        <app-image-upload label="Primary Image" folder="homepage"
+                        <app-image-upload label="Image" folder="homepage"
                             [(currentImage)]="item.image_url" />
-                    </div>
-                    <div>
-                        <app-image-upload label="Gallery Image" folder="homepage"
-                            [(currentImage)]="galleryImageUrl" />
                     </div>
                 </div>
             </ng-template>
@@ -111,7 +107,6 @@ export class TimelinePage implements OnInit {
     dialog = false;
     item: HomepageTimeline = { year: '', title: '' };
     saving = false;
-    galleryImageUrl = '';
 
     constructor(
         private api: MalikApiService,
@@ -132,13 +127,11 @@ export class TimelinePage implements OnInit {
 
     openNew() {
         this.item = { year: '', title: '', is_milestone: false, sort_order: 0 };
-        this.galleryImageUrl = '';
         this.dialog = true;
     }
 
     editItem(t: HomepageTimeline) {
         this.item = { ...t };
-        this.galleryImageUrl = (t.gallery_images && t.gallery_images[0]) || '';
         this.dialog = true;
     }
 
@@ -149,7 +142,7 @@ export class TimelinePage implements OnInit {
     saveItem() {
         if (!this.item.year?.trim() || !this.item.title?.trim()) return;
         this.saving = true;
-        const data = { ...this.item, gallery_images: this.galleryImageUrl ? [this.galleryImageUrl] : [] };
+        const data = { ...this.item };
         const request = data.id
             ? this.api.adminUpdate('homepage-timeline', data.id, data)
             : this.api.adminCreate('homepage-timeline', data);

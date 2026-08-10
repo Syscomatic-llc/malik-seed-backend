@@ -67,6 +67,8 @@ Best regards,
 Malik Seeds HR Team
 """
         self.send_email([to_email], subject, body)
+
+    def send_admin_application_notification(self, application_data: dict):
         """Send job application notification to admin"""
         subject = f"New Job Application: {application_data.get('first_name', '')} {application_data.get('last_name', '')}"
         body = f"""

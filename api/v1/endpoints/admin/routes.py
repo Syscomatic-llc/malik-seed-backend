@@ -375,7 +375,10 @@ def list_items(resource: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail=f"Resource '{resource}' not found")
 
     model_class, is_single = MODEL_REGISTRY[resource]
-    items = db.query(model_class).all()
+    query = db.query(model_class)
+    if hasattr(model_class, 'sort_order'):
+        query = query.order_by(model_class.sort_order.asc())
+    items = query.all()
     return [{"id": item.id, **_model_to_dict(item)} for item in items]
 
 
