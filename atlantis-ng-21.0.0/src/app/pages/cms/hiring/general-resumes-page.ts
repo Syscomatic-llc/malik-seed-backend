@@ -54,7 +54,6 @@ import { environment } from '@/environments/environment';
                         <th>Name</th>
                         <th>Email</th>
                         <th>Phone</th>
-                        <th>Position</th>
                         <th>File</th>
                         <th>Size</th>
                         <th>Reviewed</th>
@@ -68,7 +67,6 @@ import { environment } from '@/environments/environment';
                         <td>{{item.name || item.applicant_name || 'N/A'}}</td>
                         <td>{{item.email || 'N/A'}}</td>
                         <td>{{item.phone || 'N/A'}}</td>
-                        <td>General Resume</td>
                         <td>
                             <a *ngIf="item.file_url" [href]="resolveUrl(item.file_url)" [attr.download]="item.filename" class="text-primary hover:underline">
                                 <i class="pi pi-file-pdf mr-1"></i>{{item.filename}}

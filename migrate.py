@@ -202,6 +202,10 @@ def main():
     # Job applications OTP verification
     add_column("job_applications", "otp_code", "VARCHAR(10)")
 
+    # Job applications additional info (public application flow)
+    add_column("job_applications", "current_location", "VARCHAR(200)")
+    add_json_column("job_applications", "source")
+
     # Hero global CTA buttons
     add_column("site_settings", "hero_primary_cta_text", "VARCHAR(100)")
     add_column("site_settings", "hero_primary_cta_link", "VARCHAR(500)")

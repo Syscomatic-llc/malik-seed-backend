@@ -103,46 +103,69 @@ import { ToolbarModule } from 'primeng/toolbar';
                         </p-card>
                     </div>
 
-                    <p-card header="Questions & Answers">
-                        <div *ngFor="let q of selectedSubmission()?.questions; let i = index" class="mb-4 p-3 border border-surface-200 rounded-lg">
-                            <div class="flex items-start justify-between gap-2 mb-2">
+                    <div *ngIf="mcqQuestions().length" class="flex flex-col gap-3">
+                        <div class="font-bold text-lg">Multiple Choice Questions</div>
+                        <p-card *ngFor="let q of mcqQuestions(); let i = index">
+                            <div class="flex items-start justify-between gap-2 mb-3">
                                 <div>
-                                    <span class="text-xs font-bold uppercase text-muted-color">{{q.question_type}}</span>
+                                    <span class="text-xs font-bold uppercase text-primary">MCQ</span>
                                     <div class="font-semibold mt-1">{{i + 1}}. {{q.question}}</div>
                                 </div>
-                                <p-tag *ngIf="q.question_type === 'mcq'"
-                                    [value]="q.is_correct ? 'Correct' : 'Incorrect'"
+                                <p-tag [value]="q.is_correct ? 'Correct' : 'Incorrect'"
                                     [severity]="q.is_correct ? 'success' : 'danger'" />
                             </div>
 
-                            <div *ngIf="q.options?.length" class="mb-2">
-                                <div *ngFor="let opt of q.options" class="text-sm pl-2 py-1"
+                            <div class="flex flex-col gap-2 mb-3">
+                                <div *ngFor="let opt of q.options; let idx = index" class="p-2 rounded border text-sm"
                                     [ngClass]="{
-                                        'text-green-600 font-semibold': opt === q.correct_answer,
-                                        'text-orange-600 font-semibold': opt === q.applicant_answer && opt !== q.correct_answer
+                                        'border-green-500 bg-green-50 text-green-700': opt === q.correct_answer,
+                                        'border-orange-500 bg-orange-50 text-orange-700': opt === q.applicant_answer && opt !== q.correct_answer,
+                                        'border-surface-200': opt !== q.correct_answer && opt !== q.applicant_answer
                                     }">
-                                    {{opt}}
-                                    <span *ngIf="opt === q.correct_answer" class="ml-2 text-xs">(correct)</span>
-                                    <span *ngIf="opt === q.applicant_answer && opt !== q.correct_answer" class="ml-2 text-xs">(applicant)</span>
+                                    <div class="flex items-center justify-between">
+                                        <span>{{opt}}</span>
+                                        <span *ngIf="opt === q.correct_answer" class="text-xs font-bold text-green-700">Correct</span>
+                                        <span *ngIf="opt === q.applicant_answer && opt !== q.correct_answer" class="text-xs font-bold text-orange-700">Applicant's answer</span>
+                                        <span *ngIf="opt === q.applicant_answer && opt === q.correct_answer" class="text-xs font-bold text-green-700">Applicant's answer</span>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                                <div *ngIf="q.correct_answer !== undefined && q.correct_answer !== null">
-                                    <span class="text-muted-color">Correct answer:</span>
-                                    <span class="font-medium ml-1">{{q.correct_answer}}</span>
-                                </div>
-                                <div>
-                                    <span class="text-muted-color">Applicant answer:</span>
-                                    <span class="font-medium ml-1">{{q.applicant_answer || '-'}}</span>
-                                </div>
+                            <div class="text-xs text-muted-color">
+                                Marks: {{q.earned_marks ?? 0}} / {{q.marks}}
                             </div>
+                        </p-card>
+                    </div>
 
-                            <div class="text-xs text-muted-color mt-2">
-                                Marks: {{q.earned_marks ?? '-'}} / {{q.marks}}
+                    <div *ngIf="shortQuestions().length" class="flex flex-col gap-3">
+                        <div class="font-bold text-lg">Short Answers</div>
+                        <p-card *ngFor="let q of shortQuestions(); let i = index">
+                            <div class="mb-2">
+                                <span class="text-xs font-bold uppercase text-primary">Short Answer</span>
+                                <div class="font-semibold mt-1">{{i + 1}}. {{q.question}}</div>
                             </div>
-                        </div>
-                    </p-card>
+                            <div class="p-3 rounded bg-surface-50 border border-surface-200">
+                                <div class="text-xs text-muted-color mb-1">Applicant answer</div>
+                                <div class="text-sm whitespace-pre-wrap">{{q.applicant_answer || 'No answer'}}</div>
+                            </div>
+                            <div class="text-xs text-muted-color mt-2">Marks: {{q.marks}}</div>
+                        </p-card>
+                    </div>
+
+                    <div *ngIf="longQuestions().length" class="flex flex-col gap-3">
+                        <div class="font-bold text-lg">Long Answers</div>
+                        <p-card *ngFor="let q of longQuestions(); let i = index">
+                            <div class="mb-2">
+                                <span class="text-xs font-bold uppercase text-primary">Long Answer</span>
+                                <div class="font-semibold mt-1">{{i + 1}}. {{q.question}}</div>
+                            </div>
+                            <div class="p-3 rounded bg-surface-50 border border-surface-200">
+                                <div class="text-xs text-muted-color mb-1">Applicant answer</div>
+                                <div class="text-sm whitespace-pre-wrap">{{q.applicant_answer || 'No answer'}}</div>
+                            </div>
+                            <div class="text-xs text-muted-color mt-2">Marks: {{q.marks}}</div>
+                        </p-card>
+                    </div>
                 </div>
             </ng-template>
             <ng-template #footer>
@@ -162,6 +185,11 @@ export class AssessmentSubmissionsPage implements OnInit {
         { label: 'All Positions', value: null },
         ...this.positions().map(p => ({ label: p.title, value: p.id }))
     ]);
+
+    questions = computed(() => this.selectedSubmission()?.questions || []);
+    mcqQuestions = computed(() => this.questions().filter(q => q.question_type === 'mcq'));
+    shortQuestions = computed(() => this.questions().filter(q => q.question_type === 'short_answer'));
+    longQuestions = computed(() => this.questions().filter(q => q.question_type === 'long_answer'));
 
     constructor(
         private api: MalikApiService,

@@ -300,6 +300,36 @@ export interface AssessmentSubmissionDetail extends AssessmentSubmission {
   questions?: AssessmentSubmissionQuestion[];
 }
 
+export interface JobApplication {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  current_location?: string;
+  position_id?: number;
+  position_title?: string;
+  resume_url?: string;
+  linkedin_url?: string;
+  portfolio_url?: string;
+  source?: string[];
+  status?: string;
+  assessment_score?: number | null;
+  assessment_submitted_at?: string;
+  submitted_at?: string;
+  created_at?: string;
+  education?: any[];
+  skills?: any[];
+  experience_years?: number;
+  current_company?: string;
+  current_designation?: string;
+  expected_salary?: string;
+  why_join?: string;
+  additional_info?: string;
+  admin_notes?: string;
+  interview_date?: string;
+}
+
 // ============ CONTACT TYPES ============
 export interface ContactInfo {
   id?: number;
@@ -752,6 +782,26 @@ export class MalikApiService {
 
   getAssessmentSubmission(id: number): Observable<AssessmentSubmissionDetail> {
     return this.http.get<AssessmentSubmissionDetail>(`${this.apiUrl}/admin/hiring/assessment-submissions/${id}`);
+  }
+
+  // ============ JOB APPLICATIONS ============
+  getJobApplications(positionId?: number, search?: string): Observable<JobApplication[]> {
+    let params = new HttpParams();
+    if (positionId) params = params.set('position_id', positionId.toString());
+    if (search) params = params.set('search', search);
+    return this.http.get<JobApplication[]>(`${this.apiUrl}/admin/hiring/applications`, { params });
+  }
+
+  getJobApplication(id: number): Observable<JobApplication> {
+    return this.http.get<JobApplication>(`${this.apiUrl}/admin/hiring/applications/${id}`);
+  }
+
+  updateJobApplicationStatus(id: number, status: string): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/admin/hiring/applications/${id}/status`, { status });
+  }
+
+  deleteJobApplication(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/admin/hiring/applications/${id}`);
   }
 
   // ============ SITE SETTINGS / SEO / SITEMAP ============

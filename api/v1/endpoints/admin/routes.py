@@ -408,6 +408,124 @@ def get_assessment_submission_detail(
     }
 
 
+# ============== JOB APPLICATIONS ==============
+
+@router.get("/hiring/applications")
+def list_job_applications(
+    position_id: Optional[int] = None,
+    search: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """List all job applications for the CMS (admin)."""
+    query = db.query(JobApplication).order_by(JobApplication.created_at.desc())
+    if position_id:
+        query = query.filter(JobApplication.position_id == position_id)
+    if search:
+        query = query.filter(
+            (JobApplication.first_name.ilike(f"%{search}%")) |
+            (JobApplication.last_name.ilike(f"%{search}%")) |
+            (JobApplication.email.ilike(f"%{search}%"))
+        )
+
+    applications = query.all()
+    result = []
+    for app in applications:
+        position = db.query(JobPosition).filter(JobPosition.id == app.position_id).first()
+        result.append({
+            "id": app.id,
+            "first_name": app.first_name,
+            "last_name": app.last_name,
+            "email": app.email,
+            "phone": app.phone,
+            "current_location": app.current_location,
+            "position_id": app.position_id,
+            "position_title": position.title if position else None,
+            "resume_url": app.resume_url,
+            "linkedin_url": app.linkedin_url,
+            "portfolio_url": app.portfolio_url,
+            "source": app.source or [],
+            "status": app.status,
+            "assessment_score": app.assessment_score,
+            "assessment_submitted_at": app.assessment_submitted_at,
+            "submitted_at": app.submitted_at,
+            "created_at": app.created_at,
+        })
+    return result
+
+
+@router.get("/hiring/applications/{application_id}")
+def get_job_application(application_id: int, db: Session = Depends(get_db)):
+    """Get a single job application with full details."""
+    application = db.query(JobApplication).filter(JobApplication.id == application_id).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    position = db.query(JobPosition).filter(JobPosition.id == application.position_id).first()
+
+    return {
+        "id": application.id,
+        "first_name": application.first_name,
+        "last_name": application.last_name,
+        "email": application.email,
+        "phone": application.phone,
+        "current_location": application.current_location,
+        "position_id": application.position_id,
+        "position_title": position.title if position else None,
+        "resume_url": application.resume_url,
+        "linkedin_url": application.linkedin_url,
+        "portfolio_url": application.portfolio_url,
+        "source": application.source or [],
+        "status": application.status,
+        "assessment_score": application.assessment_score,
+        "assessment_submitted_at": application.assessment_submitted_at,
+        "submitted_at": application.submitted_at,
+        "created_at": application.created_at,
+        "education": application.education or [],
+        "skills": application.skills or [],
+        "experience_years": application.experience_years,
+        "current_company": application.current_company,
+        "current_designation": application.current_designation,
+        "expected_salary": application.expected_salary,
+        "why_join": application.why_join,
+        "additional_info": application.additional_info,
+        "admin_notes": application.admin_notes,
+        "interview_date": application.interview_date,
+    }
+
+
+@router.put("/hiring/applications/{application_id}/status")
+def update_job_application_status(
+    application_id: int,
+    payload: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    """Update the status of a job application."""
+    application = db.query(JobApplication).filter(JobApplication.id == application_id).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    status = payload.get("status")
+    if not status:
+        raise HTTPException(status_code=400, detail="status is required")
+
+    application.status = status
+    db.commit()
+    db.refresh(application)
+    return {"status": "success", "application_id": application.id, "new_status": application.status}
+
+
+@router.delete("/hiring/applications/{application_id}")
+def delete_job_application(application_id: int, db: Session = Depends(get_db)):
+    """Delete a job application."""
+    application = db.query(JobApplication).filter(JobApplication.id == application_id).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    db.delete(application)
+    db.commit()
+    return {"status": "success", "message": "Application deleted"}
+
+
 @router.get("/{resource}")
 def list_items(resource: str, db: Session = Depends(get_db)):
     """List all items for a resource (including inactive)"""

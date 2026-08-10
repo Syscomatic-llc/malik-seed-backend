@@ -423,10 +423,14 @@ def upload_cv(
             detail="Invalid resume_type. Allowed: open_position, future_leader, general"
         )
 
-    # Applicant name fallback with timestamp to keep filenames unique
-    effective_name = (applicant_name or name or "").strip()
-    if not effective_name:
-        effective_name = f"Applicant_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    # Use the original uploaded file's base name as the suffix so the saved file name
+    # reads: Malik Seeds_{Hiring Type}_{Position}_{Original File Name}.pdf
+    original_base_name = _sanitize_filename_part(os.path.splitext(os.path.basename(file.filename or ""))[0])
+    if not original_base_name:
+        effective_name = (applicant_name or name or "").strip()
+        if not effective_name:
+            effective_name = f"Applicant_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        original_base_name = f"{effective_name} Resume"
 
     # Human-readable segments
     if normalized_resume_type == "open_position":
@@ -439,13 +443,12 @@ def upload_cv(
         hiring_type = "General Resume"
         position_segment = ""
 
-    # Build filename: Malik Seeds_{Hiring Type}_{Position/Program}_{Applicant Name} Resume.pdf
     parts = ["Malik Seeds", hiring_type]
     if position_segment:
         parts.append(position_segment)
-    parts.append(f"{effective_name} Resume")
+    parts.append(original_base_name)
 
-    filename = "_".join(_sanitize_filename_part(part) for part in parts)
+    filename = "_".join(part for part in parts if part)
     filename = f"{filename}{file_ext}"
     file_path = os.path.join(resumes_dir, filename)
 
@@ -481,6 +484,93 @@ def upload_cv(
 
 
 # ============== FILE UPLOAD ==============
+
+def _save_application_resume(file: UploadFile, position_title: Optional[str]) -> str:
+    """Save a resume file for a job application using the original file name."""
+    allowed_extensions = {".pdf", ".doc", ".docx"}
+    file_ext = os.path.splitext(file.filename or "")[1].lower()
+
+    if file_ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: {', '.join(allowed_extensions)}"
+        )
+
+    resumes_dir = os.path.join(UPLOAD_DIR, "resumes")
+    os.makedirs(resumes_dir, exist_ok=True)
+
+    original_base_name = _sanitize_filename_part(os.path.splitext(os.path.basename(file.filename or ""))[0])
+    if not original_base_name:
+        original_base_name = f"Applicant_{datetime.now().strftime('%Y%m%d_%H%M%S')} Resume"
+
+    position_name = _sanitize_filename_part(position_title or "")
+    parts = ["Malik Seeds", "Open Position"]
+    if position_name:
+        parts.append(position_name)
+    parts.append(original_base_name)
+
+    filename = f"{'_'.join(part for part in parts if part)}{file_ext}"
+    file_path = os.path.join(resumes_dir, filename)
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    return f"uploads/resumes/{filename}"
+
+
+@router.post("/apply/{application_id}/additional-info")
+def submit_additional_info(
+    application_id: int,
+    email: str = Form(...),
+    phone: Optional[str] = Form(None),
+    current_location: Optional[str] = Form(None),
+    linkedin_url: Optional[str] = Form(None),
+    portfolio_url: Optional[str] = Form(None),
+    source: Optional[str] = Form(None),
+    resume: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db)
+):
+    """Submit additional applicant information using the application_id from step-1."""
+    application = db.query(JobApplication).filter(
+        JobApplication.id == application_id,
+        JobApplication.email == email
+    ).first()
+
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    application.phone = phone or application.phone
+    application.current_location = current_location or application.current_location
+    application.linkedin_url = linkedin_url or application.linkedin_url
+    application.portfolio_url = portfolio_url or application.portfolio_url
+
+    if source:
+        source = source.strip()
+        if source.startswith("["):
+            try:
+                application.source = json.loads(source)
+            except json.JSONDecodeError:
+                application.source = [s.strip() for s in source.split(",") if s.strip()]
+        else:
+            application.source = [s.strip() for s in source.split(",") if s.strip()]
+
+    if resume and resume.filename:
+        position = db.query(JobPosition).filter(JobPosition.id == application.position_id).first()
+        application.resume_url = _save_application_resume(resume, position.title if position else None)
+
+    if application.status in ("step_1", "additional_info_submitted"):
+        application.status = "additional_info_submitted"
+
+    db.commit()
+    db.refresh(application)
+
+    return {
+        "status": "success",
+        "message": "Additional information submitted successfully",
+        "application_id": application.id,
+        "application": application
+    }
+
 
 @router.post("/upload/resume")
 def upload_resume(

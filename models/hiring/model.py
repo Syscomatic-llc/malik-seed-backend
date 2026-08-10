@@ -152,6 +152,8 @@ class JobApplication(Base):
     availability = Column(String(100), nullable=True)
     relocate = Column(Boolean, default=False)
     additional_info = Column(Text, nullable=True)
+    current_location = Column(String(200), nullable=True)
+    source = Column(JSON, default=list)  # how the applicant heard about the opportunity
 
     # Final submission
     submitted_at = Column(DateTime(timezone=True), nullable=True)

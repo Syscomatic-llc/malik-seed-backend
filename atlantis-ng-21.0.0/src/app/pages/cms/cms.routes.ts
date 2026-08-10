@@ -137,6 +137,11 @@ export default [
         data: { breadcrumb: 'Assessment Submissions' }
     },
     {
+        path: 'hiring/applications',
+        loadComponent: () => import('./hiring/applications-page').then((c) => c.ApplicationsPage),
+        data: { breadcrumb: 'Open Position Applications' }
+    },
+    {
         path: 'hiring/resumes',
         redirectTo: 'hiring/resumes/open-positions',
         pathMatch: 'full'
