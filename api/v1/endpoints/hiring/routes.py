@@ -414,6 +414,12 @@ def upload_cv(
             detail=f"Invalid file type. Allowed: {', '.join(allowed_extensions)}"
         )
 
+    file.file.seek(0, 2)
+    file_size = file.file.tell()
+    file.file.seek(0)
+    if file_size == 0:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+
     resumes_dir = os.path.join(UPLOAD_DIR, "resumes")
     os.makedirs(resumes_dir, exist_ok=True)
 
@@ -519,19 +525,33 @@ def _save_application_resume(file: UploadFile, position_title: Optional[str]) ->
     return f"uploads/resumes/{filename}"
 
 
+def _validate_resume_file(file: UploadFile):
+    """Ensure the uploaded resume file is not empty and has an allowed extension."""
+    allowed_extensions = {".pdf", ".doc", ".docx"}
+    file_ext = os.path.splitext(file.filename or "")[1].lower()
+    if file_ext not in allowed_extensions:
+        raise HTTPException(status_code=400, detail=f"Invalid file type. Allowed: {', '.join(allowed_extensions)}")
+
+    file.file.seek(0, 2)
+    size = file.file.tell()
+    file.file.seek(0)
+    if size == 0:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+
+
 @router.post("/apply/{application_id}/additional-info")
 def submit_additional_info(
     application_id: int,
     email: str = Form(...),
-    phone: Optional[str] = Form(None),
-    current_location: Optional[str] = Form(None),
+    phone: str = Form(...),
+    current_location: str = Form(...),
     linkedin_url: Optional[str] = Form(None),
     portfolio_url: Optional[str] = Form(None),
-    source: Optional[str] = Form(None),
-    resume: Optional[UploadFile] = File(None),
+    source: str = Form(...),
+    resume: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    """Submit additional applicant information using the application_id from step-1."""
+    """Submit additional applicant information and resume using the application_id from step-1."""
     application = db.query(JobApplication).filter(
         JobApplication.id == application_id,
         JobApplication.email == email
@@ -540,24 +560,46 @@ def submit_additional_info(
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
 
-    application.phone = phone or application.phone
-    application.current_location = current_location or application.current_location
+    _validate_resume_file(resume)
+
+    application.phone = phone
+    application.current_location = current_location
     application.linkedin_url = linkedin_url or application.linkedin_url
     application.portfolio_url = portfolio_url or application.portfolio_url
 
-    if source:
-        source = source.strip()
-        if source.startswith("["):
-            try:
-                application.source = json.loads(source)
-            except json.JSONDecodeError:
-                application.source = [s.strip() for s in source.split(",") if s.strip()]
-        else:
+    source = source.strip()
+    if source.startswith("["):
+        try:
+            application.source = json.loads(source)
+        except json.JSONDecodeError:
             application.source = [s.strip() for s in source.split(",") if s.strip()]
+    else:
+        application.source = [s.strip() for s in source.split(",") if s.strip()]
 
-    if resume and resume.filename:
-        position = db.query(JobPosition).filter(JobPosition.id == application.position_id).first()
-        application.resume_url = _save_application_resume(resume, position.title if position else None)
+    if not application.source:
+        raise HTTPException(status_code=400, detail="At least one source option is required")
+
+    position = db.query(JobPosition).filter(JobPosition.id == application.position_id).first()
+    position_title = position.title if position else None
+    file_url = _save_application_resume(resume, position_title)
+    application.resume_url = file_url
+
+    # Also store a ResumeUpload record so the resume appears in CMS Open Position Resumes.
+    file_path = os.path.join(UPLOAD_DIR, file_url.replace("uploads/", "", 1))
+    resume_upload = ResumeUpload(
+        name=f"{application.first_name or ''} {application.last_name or ''}".strip(),
+        email=application.email,
+        phone=application.phone,
+        position=position_title,
+        resume_type="open_position",
+        position_name=position_title,
+        applicant_name=f"{application.first_name or ''} {application.last_name or ''}".strip(),
+        filename=os.path.basename(file_url),
+        file_url=file_url,
+        file_size=os.path.getsize(file_path) if os.path.exists(file_path) else 0,
+        is_reviewed=False,
+    )
+    db.add(resume_upload)
 
     if application.status in ("step_1", "additional_info_submitted"):
         application.status = "additional_info_submitted"
