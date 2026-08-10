@@ -30,12 +30,12 @@ import { environment } from '@/environments/environment';
             <p-toolbar styleClass="mb-4">
                 <ng-template #start>
                     <h5 class="m-0 mr-4">Open Position Resumes</h5>
-                    <input type="text" pInputText [(ngModel)]="filterText" placeholder="Search name, email, position..." class="w-64" />
+                    <input type="text" pInputText [(ngModel)]="filterText" placeholder="Search position or file..." class="w-64" />
                 </ng-template>
                 <ng-template #end>
                     <p-button label="Bulk Delete" icon="pi pi-trash" severity="danger" class="mr-2"
                         [disabled]="selectedResumes().length === 0" (onClick)="bulkDelete()" />
-                    <p-button label="Export CSV" icon="pi pi-download" class="mr-2" (onClick)="exportResumes()" />
+                    <p-button label="Download PDFs" icon="pi pi-file-pdf" class="mr-2" (onClick)="downloadPDFs()" />
                     <p-button label="Refresh" icon="pi pi-refresh" (onClick)="loadResumes()" />
                 </ng-template>
             </p-toolbar>
@@ -46,9 +46,6 @@ import { environment } from '@/environments/environment';
                 <ng-template #header>
                     <tr>
                         <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Phone</th>
                         <th>Position</th>
                         <th>File</th>
                         <th>Size</th>
@@ -60,9 +57,6 @@ import { environment } from '@/environments/environment';
                 <ng-template #body let-item>
                     <tr>
                         <td><p-tableCheckbox [value]="item" /></td>
-                        <td>{{item.name || item.applicant_name || 'N/A'}}</td>
-                        <td>{{item.email || 'N/A'}}</td>
-                        <td>{{item.phone || 'N/A'}}</td>
                         <td>{{item.position_name || item.position || 'N/A'}}</td>
                         <td>
                             <a *ngIf="item.file_url" [href]="resolveUrl(item.file_url)" target="_blank" class="text-primary hover:underline">
@@ -96,9 +90,8 @@ export class OpenPositionsResumesPage implements OnInit {
         const text = this.filterText().toLowerCase().trim();
         if (!text) return this.resumes();
         return this.resumes().filter(r =>
-            (r.name || r.applicant_name || '').toLowerCase().includes(text) ||
-            (r.email || '').toLowerCase().includes(text) ||
-            (r.position_name || r.position || '').toLowerCase().includes(text)
+            (r.position_name || r.position || '').toLowerCase().includes(text) ||
+            (r.filename || '').toLowerCase().includes(text)
         );
     });
 
@@ -132,7 +125,7 @@ export class OpenPositionsResumesPage implements OnInit {
 
     deleteResume(item: ResumeUpload) {
         this.confirmationService.confirm({
-            message: `Delete resume from ${item.name || item.applicant_name || item.email || 'anonymous'}?`,
+            message: `Delete resume file "${item.filename || item.id}"?`,
             header: 'Confirm Delete',
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
@@ -169,20 +162,21 @@ export class OpenPositionsResumesPage implements OnInit {
         });
     }
 
-    exportResumes() {
-        this.api.exportResumes(this.resumeType).subscribe({
+    downloadPDFs() {
+        const ids = this.selectedResumes().length ? this.selectedResumes().map(r => r.id!).filter(Boolean) : [];
+        this.api.downloadResumePDFs(ids, this.resumeType).subscribe({
             next: (blob) => {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'open_positions_resumes.csv';
+                a.download = `${this.resumeType}_resumes.zip`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
-                this.messageService.add({ severity: 'success', summary: 'Exported', detail: 'Resumes exported successfully' });
+                this.messageService.add({ severity: 'success', summary: 'Downloaded', detail: 'Resume PDFs downloaded' });
             },
-            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to export resumes' })
+            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to download PDFs' })
         });
     }
 

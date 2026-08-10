@@ -13,6 +13,7 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { InputTextModule } from 'primeng/inputtext';
+import { SelectModule } from 'primeng/select';
 import { environment } from '@/environments/environment';
 
 @Component({
@@ -20,7 +21,7 @@ import { environment } from '@/environments/environment';
     standalone: true,
     imports: [
         CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
-        ToastModule, ToolbarModule, TagModule, ToggleSwitchModule, ConfirmDialogModule, InputTextModule
+        ToastModule, ToolbarModule, TagModule, ToggleSwitchModule, ConfirmDialogModule, InputTextModule, SelectModule
     ],
     providers: [MessageService, ConfirmationService],
     template: `
@@ -30,12 +31,16 @@ import { environment } from '@/environments/environment';
             <p-toolbar styleClass="mb-4">
                 <ng-template #start>
                     <h5 class="m-0 mr-4">General Resumes</h5>
-                    <input type="text" pInputText [(ngModel)]="filterText" placeholder="Search name, email..." class="w-64" />
+                    <input type="text" pInputText [(ngModel)]="filterText" placeholder="Search name, email..." class="w-64 mr-2" />
+                    <p-select [options]="positionOptions()" [(ngModel)]="positionFilter"
+                        (ngModelChange)="positionFilter.set($event)"
+                        optionLabel="label" optionValue="value" placeholder="Filter by position"
+                        styleClass="w-56" appendTo="body" />
                 </ng-template>
                 <ng-template #end>
                     <p-button label="Bulk Delete" icon="pi pi-trash" severity="danger" class="mr-2"
                         [disabled]="selectedResumes().length === 0" (onClick)="bulkDelete()" />
-                    <p-button label="Export CSV" icon="pi pi-download" class="mr-2" (onClick)="exportResumes()" />
+                    <p-button label="Download PDFs" icon="pi pi-file-pdf" class="mr-2" (onClick)="downloadPDFs()" />
                     <p-button label="Refresh" icon="pi pi-refresh" (onClick)="loadResumes()" />
                 </ng-template>
             </p-toolbar>
@@ -89,16 +94,33 @@ export class GeneralResumesPage implements OnInit {
     resumes = signal<ResumeUpload[]>([]);
     selectedResumes = signal<ResumeUpload[]>([]);
     filterText = signal<string>('');
+    positionFilter = signal<string | null>(null);
     mediaBaseUrl = environment.mediaBaseUrl;
     resumeType = 'general';
 
+    positionOptions = computed(() => {
+        const positions = Array.from(new Set(
+            this.resumes()
+                .map(r => r.position)
+                .filter((p): p is string => !!p)
+        )).sort();
+        return [
+            { label: 'All Positions', value: null },
+            ...positions.map(p => ({ label: p, value: p }))
+        ];
+    });
+
     filteredResumes = computed(() => {
         const text = this.filterText().toLowerCase().trim();
-        if (!text) return this.resumes();
-        return this.resumes().filter(r =>
-            (r.name || r.applicant_name || '').toLowerCase().includes(text) ||
-            (r.email || '').toLowerCase().includes(text)
-        );
+        const position = this.positionFilter();
+        return this.resumes().filter(r => {
+            const matchesText = !text ||
+                (r.name || r.applicant_name || '').toLowerCase().includes(text) ||
+                (r.email || '').toLowerCase().includes(text) ||
+                (r.position || '').toLowerCase().includes(text);
+            const matchesPosition = !position || r.position === position;
+            return matchesText && matchesPosition;
+        });
     });
 
     constructor(
@@ -168,20 +190,21 @@ export class GeneralResumesPage implements OnInit {
         });
     }
 
-    exportResumes() {
-        this.api.exportResumes(this.resumeType).subscribe({
+    downloadPDFs() {
+        const ids = this.selectedResumes().length ? this.selectedResumes().map(r => r.id!).filter(Boolean) : [];
+        this.api.downloadResumePDFs(ids, this.resumeType).subscribe({
             next: (blob) => {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'general_resumes.csv';
+                a.download = `${this.resumeType}_resumes.zip`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
-                this.messageService.add({ severity: 'success', summary: 'Exported', detail: 'Resumes exported successfully' });
+                this.messageService.add({ severity: 'success', summary: 'Downloaded', detail: 'Resume PDFs downloaded' });
             },
-            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to export resumes' })
+            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to download PDFs' })
         });
     }
 

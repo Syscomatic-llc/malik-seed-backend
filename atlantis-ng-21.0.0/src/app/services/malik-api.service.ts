@@ -600,6 +600,10 @@ export class MalikApiService {
     return this.http.get(`${this.apiUrl}/admin/resume/export`, { params, responseType: 'blob' });
   }
 
+  downloadResumePDFs(ids: number[], resumeType?: string): Observable<Blob> {
+    return this.http.post(`${this.apiUrl}/admin/resume/download-pdfs`, { ids, resume_type: resumeType }, { responseType: 'blob' });
+  }
+
   bulkDeleteResumes(ids: number[]): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/admin/resume/bulk-delete`, { ids });
   }

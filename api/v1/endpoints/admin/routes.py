@@ -8,6 +8,7 @@ import shutil
 import json
 import csv
 import io
+import zipfile
 
 from PIL import Image
 
@@ -250,6 +251,45 @@ def bulk_delete_resumes(
     count = db.query(ResumeUpload).filter(ResumeUpload.id.in_(ids)).delete(synchronize_session=False)
     db.commit()
     return {"status": "success", "deleted": count}
+
+
+@router.post("/resume/download-pdfs")
+def download_resume_pdfs(
+    payload: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    """Download selected/all resume PDFs as a zip archive."""
+    ids = payload.get("ids")
+    resume_type = payload.get("resume_type")
+
+    query = db.query(ResumeUpload)
+    if resume_type:
+        query = query.filter(ResumeUpload.resume_type == resume_type)
+    if isinstance(ids, list) and ids:
+        query = query.filter(ResumeUpload.id.in_(ids))
+
+    resumes = query.all()
+    if not resumes:
+        raise HTTPException(status_code=404, detail="No resume files found")
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for resume in resumes:
+            file_path = os.path.join(UPLOAD_DIR, resume.file_url.replace("uploads/", "", 1))
+            if os.path.exists(file_path):
+                arcname = f"{resume.id}_{resume.filename}"
+                zip_file.write(file_path, arcname)
+
+    zip_buffer.seek(0)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    type_suffix = f"-{resume_type}" if resume_type else ""
+    filename = f"malik-seeds-resumes{type_suffix}-{timestamp}.zip"
+
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 
 @router.get("/activity-logs")
