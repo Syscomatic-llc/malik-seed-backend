@@ -137,18 +137,13 @@ export default [
         data: { breadcrumb: 'Assessment Submissions' }
     },
     {
-        path: 'hiring/applications',
-        loadComponent: () => import('./hiring/applications-page').then((c) => c.ApplicationsPage),
-        data: { breadcrumb: 'Open Position Applications' }
-    },
-    {
         path: 'hiring/resumes',
-        redirectTo: 'hiring/resumes/open-positions',
+        redirectTo: 'hiring/resumes/general',
         pathMatch: 'full'
     },
     {
-        path: 'hiring/resumes/open-positions',
-        loadComponent: () => import('./hiring/open-positions-resumes-page').then((c) => c.OpenPositionsResumesPage),
+        path: 'hiring/resumes/general',
+        loadComponent: () => import('./hiring/general-resumes-page').then((c) => c.GeneralResumesPage),
         data: { breadcrumb: 'General Resumes' }
     },
     {
@@ -157,8 +152,8 @@ export default [
         data: { breadcrumb: 'Future Leader Resumes' }
     },
     {
-        path: 'hiring/resumes/general',
-        loadComponent: () => import('./hiring/general-resumes-page').then((c) => c.GeneralResumesPage),
+        path: 'hiring/resumes/open-positions',
+        loadComponent: () => import('./hiring/open-positions-resumes-page').then((c) => c.OpenPositionsResumesPage),
         data: { breadcrumb: 'Open Position Resumes' }
     },
 

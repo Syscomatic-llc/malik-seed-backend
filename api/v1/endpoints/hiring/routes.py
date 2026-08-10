@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from datetime import datetime
+from pydantic import BaseModel
 import json
 import os
 import random
@@ -568,6 +569,128 @@ def submit_additional_info(
         "status": "success",
         "message": "Additional information submitted successfully",
         "application_id": application.id,
+        "application": application
+    }
+
+
+class AssessmentSubmissionPayload(BaseModel):
+    email: str
+    answers: Dict[str, Any]
+
+
+@router.post("/apply/{application_id}/assessment")
+def submit_assessment(
+    application_id: int,
+    payload: AssessmentSubmissionPayload,
+    db: Session = Depends(get_db)
+):
+    """Submit assessment answers for an application.
+
+    - `answers` should be a dictionary of `{question_id: answer}`.
+    - For MCQ, `answer` can be the selected option text or its 0-based index.
+    """
+    application = db.query(JobApplication).filter(
+        JobApplication.id == application_id,
+        JobApplication.email == payload.email
+    ).first()
+
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    position = db.query(JobPosition).filter(
+        JobPosition.id == application.position_id
+    ).first()
+
+    if not position:
+        raise HTTPException(status_code=404, detail="Position not found")
+
+    if not position.has_assessment:
+        raise HTTPException(status_code=400, detail="This position does not have an assessment")
+
+    questions = db.query(AssessmentQuestion).filter(
+        AssessmentQuestion.position_id == application.position_id,
+        AssessmentQuestion.is_active == True
+    ).order_by(AssessmentQuestion.sort_order).all()
+
+    if not questions:
+        raise HTTPException(status_code=400, detail="No assessment questions found for this position")
+
+    answers = payload.answers or {}
+
+    def _normalize_answer(answer, options):
+        if answer is None:
+            return None
+        if options and isinstance(answer, (int, str)) and str(answer).isdigit():
+            idx = int(answer)
+            if 0 <= idx < len(options):
+                return str(options[idx]).strip()
+        return str(answer).strip()
+
+    total_marks = 0
+    earned_marks = 0
+    question_results = []
+
+    for q in questions:
+        applicant_answer = answers.get(str(q.id))
+        normalized_answer = _normalize_answer(applicant_answer, q.options or [])
+        is_correct = None
+        q_earned = None
+
+        if q.question_type == "mcq" and q.correct_answer is not None:
+            total_marks += q.marks or 0
+            correct = str(q.correct_answer).strip().lower()
+            if normalized_answer and normalized_answer.lower() == correct:
+                is_correct = True
+                q_earned = q.marks or 0
+                earned_marks += q_earned
+            else:
+                is_correct = False
+                q_earned = 0
+        elif q.correct_answer is not None:
+            # Short/long answer with a model correct answer
+            total_marks += q.marks or 0
+            correct = str(q.correct_answer).strip().lower()
+            if normalized_answer and normalized_answer.lower() == correct:
+                is_correct = True
+                q_earned = q.marks or 0
+                earned_marks += q_earned
+            else:
+                is_correct = False
+                q_earned = 0
+
+        question_results.append({
+            "question_id": q.id,
+            "question_type": q.question_type,
+            "question": q.question,
+            "options": q.options,
+            "correct_answer": q.correct_answer,
+            "applicant_answer": normalized_answer,
+            "marks": q.marks or 0,
+            "earned_marks": q_earned,
+            "is_correct": is_correct,
+        })
+
+    score = 0
+    if total_marks > 0:
+        score = round((earned_marks / total_marks) * 100)
+
+    application.assessment_answers = answers
+    application.assessment_score = score
+    application.assessment_submitted_at = datetime.now()
+    application.status = "assessment_submitted"
+
+    db.commit()
+    db.refresh(application)
+
+    return {
+        "status": "success",
+        "message": "Assessment submitted successfully",
+        "application_id": application.id,
+        "score": score,
+        "passing_score": position.passing_score,
+        "total_marks": total_marks,
+        "earned_marks": earned_marks,
+        "results": question_results,
         "application": application
     }
 

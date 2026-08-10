@@ -29,7 +29,7 @@ import { environment } from '@/environments/environment';
         <div class="card">
             <p-toolbar styleClass="mb-4">
                 <ng-template #start>
-                    <h5 class="m-0 mr-4">General Resumes</h5>
+                    <h5 class="m-0 mr-4">Open Position Resumes</h5>
                     <input type="text" pInputText [(ngModel)]="filterText" placeholder="Search position or file..." class="w-64" />
                 </ng-template>
                 <ng-template #end>
