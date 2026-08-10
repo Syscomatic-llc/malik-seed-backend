@@ -30,7 +30,7 @@ import { AppProfileMenu } from '@/app/layout/components/app.profilemenu';
             </div>
             <app-profile-menu />
             <app-configurator />
-            <p-toast position="bottom-right" />
+            <p-toast position="bottom-left" />
         </div>
     `,
     providers: [MessageService]

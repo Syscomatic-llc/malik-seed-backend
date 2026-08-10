@@ -4,11 +4,14 @@ from typing import List, Optional, Dict
 from datetime import datetime
 import json
 import os
+import random
+import re
 import shutil
 
 from core.database import get_db
 from core.security import verify_token
 from core.config import get_upload_directory
+from services.email_service import email_service
 from models.hiring.model import (
     JobPosition, JobApplication, AssessmentQuestion,
     CareerBenefit, HiringTestimonial, HiringPageContent, ResumeUpload
@@ -218,6 +221,7 @@ def get_position_assessment(position_id: int, db: Session = Depends(get_db)):
             "options": q.options,
             "marks": q.marks,
             "sort_order": q.sort_order,
+            "char_limit": q.char_limit,
         }
         if q.question_type == "mcq":
             q_safe["correct_answer"] = q.correct_answer
@@ -250,9 +254,9 @@ def get_position_assessment(position_id: int, db: Session = Depends(get_db)):
     }
 
 
-# ============== JOB APPLICATION FLOW (5 Steps) ==============
+# ============== JOB APPLICATION FLOW ==============
 
-# Step 1: Start Application (Personal Info)
+# Step 1: Start Application (Personal Info + OTP)
 @router.post("/apply/step-1")
 def apply_step_1(
     position_id: int = Form(...),
@@ -263,19 +267,20 @@ def apply_step_1(
     token: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
-    """Step 1: Submit personal information and start application"""
+    """Step 1: Submit personal information, generate OTP, and send verification email"""
     position = db.query(JobPosition).filter(JobPosition.id == position_id).first()
     if not position:
         raise HTTPException(status_code=404, detail="Position not found")
 
     last_name = last_name or ""
+    otp_code = str(random.randint(1000, 9999))
 
     user_id = None
     if token:
         try:
             user = get_current_user(token, db)
             user_id = user.id
-        except:
+        except Exception:
             pass
 
     existing = db.query(JobApplication).filter(
@@ -288,13 +293,15 @@ def apply_step_1(
         existing.last_name = last_name
         existing.phone = phone
         existing.status = "step_1"
+        existing.otp_code = otp_code
         db.commit()
         db.refresh(existing)
+        email_service.send_otp_email(existing.email, otp_code, f"{existing.first_name} {existing.last_name}".strip())
         return {
-            "status": "success",
-            "message": "Application updated - Step 1 complete",
+            "status": existing.status,
+            "message": "Step 1 complete - OTP sent to your email",
             "application_id": existing.id,
-            "next_step": 2,
+            "otp_code": otp_code,
             "application": existing
         }
 
@@ -305,7 +312,8 @@ def apply_step_1(
         last_name=last_name,
         email=email,
         phone=phone,
-        status="step_1"
+        status="step_1",
+        otp_code=otp_code
     )
     db.add(application)
     db.commit()
@@ -314,195 +322,13 @@ def apply_step_1(
     position.application_count += 1
     db.commit()
 
-    return {
-        "status": "success",
-        "message": "Step 1 complete - Personal information saved",
-        "application_id": application.id,
-        "next_step": 2,
-        "application": application
-    }
-
-
-# Step 2: Experience & Education
-@router.post("/apply/step-2")
-def apply_step_2(
-    application_id: int = Form(...),
-    experience_years: int = Form(0),
-    current_company: Optional[str] = Form(None),
-    current_designation: Optional[str] = Form(None),
-    current_salary: Optional[str] = Form(None),
-    expected_salary: Optional[str] = Form(None),
-    education: Optional[str] = Form(None),
-    resume: Optional[UploadFile] = File(None),
-    cover_letter: Optional[str] = Form(None),
-    db: Session = Depends(get_db)
-):
-    """Step 2: Submit experience, education, and resume"""
-    application = db.query(JobApplication).filter(JobApplication.id == application_id).first()
-    if not application:
-        raise HTTPException(status_code=404, detail="Application not found")
-
-    resume_url = None
-    if resume:
-        file_ext = os.path.splitext(resume.filename)[1]
-        filename = f"resume_{application_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{file_ext}"
-        file_path = os.path.join(UPLOAD_DIR, filename)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(resume.file, buffer)
-        resume_url = f"/uploads/{filename}"
-
-    application.experience_years = experience_years
-    application.current_company = current_company
-    application.current_designation = current_designation
-    application.current_salary = current_salary
-    application.expected_salary = expected_salary
-    application.cover_letter = cover_letter
-    if education:
-        application.education = json.loads(education)
-    if resume_url:
-        application.resume_url = resume_url
-    application.status = "step_2"
-
-    db.commit()
-    db.refresh(application)
+    email_service.send_otp_email(application.email, otp_code, f"{application.first_name} {application.last_name}".strip())
 
     return {
         "status": "success",
-        "message": "Step 2 complete - Experience and education saved",
+        "message": "Step 1 complete - OTP sent to your email",
         "application_id": application.id,
-        "next_step": 3,
-        "application": application
-    }
-
-
-# Step 3: Skills & Portfolio
-@router.post("/apply/step-3")
-def apply_step_3(
-    application_id: int = Form(...),
-    skills: Optional[str] = Form(None),
-    portfolio_url: Optional[str] = Form(None),
-    linkedin_url: Optional[str] = Form(None),
-    references: Optional[str] = Form(None),
-    db: Session = Depends(get_db)
-):
-    """Step 3: Submit skills and portfolio information"""
-    application = db.query(JobApplication).filter(JobApplication.id == application_id).first()
-    if not application:
-        raise HTTPException(status_code=404, detail="Application not found")
-
-    if skills:
-        application.skills = json.loads(skills)
-    application.portfolio_url = portfolio_url
-    application.linkedin_url = linkedin_url
-    if references:
-        application.references = json.loads(references)
-    application.status = "step_3"
-
-    db.commit()
-    db.refresh(application)
-
-    return {
-        "status": "success",
-        "message": "Step 3 complete - Skills and portfolio saved",
-        "application_id": application.id,
-        "next_step": 4,
-        "application": application
-    }
-
-
-# Step 4: Assessment (MCQ + Short Answers + Long Answers)
-@router.post("/apply/step-4")
-def apply_step_4(
-    application_id: int = Form(...),
-    answers: str = Form(...),
-    db: Session = Depends(get_db)
-):
-    """Step 4: Submit assessment answers
-    answers format: {"question_id": "answer", ...}
-    For MCQ: {"1": "B", "2": "C", ...}
-    For Short Answer: {"10": "answer text...", ...}
-    For Long Answer: {"15": "detailed answer...", ...}
-    """
-    application = db.query(JobApplication).filter(JobApplication.id == application_id).first()
-    if not application:
-        raise HTTPException(status_code=404, detail="Application not found")
-
-    position = db.query(JobPosition).filter(JobPosition.id == application.position_id).first()
-
-    try:
-        answers_dict = json.loads(answers)
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="Invalid answers format. Must be JSON.")
-
-    # Calculate score for MCQ questions only
-    total_score = 0
-    max_score = 0
-
-    for question_id, answer in answers_dict.items():
-        question = db.query(AssessmentQuestion).filter(
-            AssessmentQuestion.id == int(question_id),
-            AssessmentQuestion.position_id == application.position_id
-        ).first()
-
-        if question and question.question_type == "mcq":
-            max_score += question.marks
-            if question.correct_answer and str(answer).lower() == str(question.correct_answer).lower():
-                total_score += question.marks
-
-    score_percentage = (total_score / max_score * 100) if max_score > 0 else 0
-
-    application.assessment_answers = answers_dict
-    application.assessment_score = int(score_percentage)
-    application.assessment_submitted_at = datetime.utcnow()
-    application.status = "step_4"
-
-    db.commit()
-    db.refresh(application)
-
-    return {
-        "status": "success",
-        "message": "Step 4 complete - Assessment submitted",
-        "application_id": application.id,
-        "score": int(score_percentage),
-        "passing_score": position.passing_score if position else 70,
-        "next_step": 5,
-        "application": application
-    }
-
-
-# Step 5: Additional Info & Final Submit
-@router.post("/apply/step-5")
-def apply_step_5(
-    application_id: int = Form(...),
-    why_join: Optional[str] = Form(None),
-    availability: Optional[str] = Form(None),
-    relocate: bool = Form(False),
-    additional_info: Optional[str] = Form(None),
-    db: Session = Depends(get_db)
-):
-    """Step 5: Submit additional information and finalize application"""
-    application = db.query(JobApplication).filter(JobApplication.id == application_id).first()
-    if not application:
-        raise HTTPException(status_code=404, detail="Application not found")
-
-    application.why_join = why_join
-    application.availability = availability
-    application.relocate = relocate
-    application.additional_info = additional_info
-    application.status = "submitted"
-    application.submitted_at = datetime.utcnow()
-
-    db.commit()
-    db.refresh(application)
-
-    position = db.query(JobPosition).filter(JobPosition.id == application.position_id).first()
-
-    return {
-        "status": "success",
-        "message": "Application submitted successfully!",
-        "application_id": application.id,
-        "position": position.title if position else "Unknown",
-        "submitted_at": application.submitted_at,
+        "otp_code": otp_code,
         "application": application
     }
 
@@ -554,6 +380,12 @@ def get_applications_by_email(
 
 # ============== PUBLIC CV UPLOAD ==============
 
+def _sanitize_filename_part(value: str) -> str:
+    """Strip unsafe filesystem characters while keeping spaces and underscores."""
+    value = (value or "").strip()
+    return re.sub(r'[\\/*?:"<>|]', "", value)
+
+
 @router.post("/upload-cv")
 def upload_cv(
     file: UploadFile = File(...),
@@ -562,9 +394,12 @@ def upload_cv(
     phone: Optional[str] = Form(None),
     position: Optional[str] = Form(None),
     message: Optional[str] = Form(None),
+    resume_type: Optional[str] = Form(None),
+    position_id: Optional[int] = Form(None),
+    applicant_name: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
-    """Public endpoint for uploading a CV/resume without applying to a specific position"""
+    """Public endpoint for uploading a CV/resume with optional position metadata"""
     allowed_extensions = {".pdf", ".doc", ".docx"}
     file_ext = os.path.splitext(file.filename)[1].lower()
 
@@ -577,8 +412,51 @@ def upload_cv(
     resumes_dir = os.path.join(UPLOAD_DIR, "resumes")
     os.makedirs(resumes_dir, exist_ok=True)
 
-    safe_email = (email or "anonymous").replace("@", "_").replace(".", "_")
-    filename = f"cv_{safe_email}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{file_ext}"
+    # Normalize resume type to lowercase
+    normalized_resume_type = (resume_type or "").lower().strip()
+    if normalized_resume_type and normalized_resume_type not in {"open_position", "future_leader", "general"}:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid resume_type. Allowed: open_position, future_leader, general"
+        )
+
+    # Resolve position name and legacy position field when applicable
+    resolved_position_name = None
+    resolved_position = position
+    if normalized_resume_type == "open_position" and position_id:
+        job_position = db.query(JobPosition).filter(JobPosition.id == position_id).first()
+        if job_position:
+            resolved_position_name = job_position.title
+            resolved_position = job_position.title
+
+    # Build the displayed applicant name (fallback to legacy name field)
+    displayed_applicant_name = (applicant_name or name or "Applicant").strip()
+
+    # Build human-readable hiring type segment for filename
+    if normalized_resume_type == "open_position":
+        hiring_type = "Open Position"
+    elif normalized_resume_type == "future_leader":
+        hiring_type = "Future Leader Program"
+    elif normalized_resume_type == "general":
+        hiring_type = "General Resume"
+    else:
+        hiring_type = "Resume"
+
+    # Build position/program segment for filename
+    position_segment = resolved_position_name or resolved_position or ""
+    if normalized_resume_type == "future_leader":
+        position_segment = "Future Leader Program"
+    elif normalized_resume_type == "general":
+        position_segment = "General Resume"
+
+    # Build stored filename: Malik Seeds_{Hiring Type}_{Position/Program}_{Applicant Name} Resume.pdf
+    parts = ["Malik Seeds", hiring_type]
+    if position_segment:
+        parts.append(position_segment)
+    parts.append(f"{displayed_applicant_name} Resume")
+
+    filename = "_".join(_sanitize_filename_part(part) for part in parts)
+    filename = f"{filename}{file_ext}"
     file_path = os.path.join(resumes_dir, filename)
 
     file_size = 0
@@ -590,8 +468,12 @@ def upload_cv(
         name=name,
         email=email,
         phone=phone,
-        position=position,
+        position=resolved_position,
         message=message,
+        resume_type=normalized_resume_type or None,
+        position_id=position_id if normalized_resume_type == "open_position" else None,
+        position_name=resolved_position_name or resolved_position or None,
+        applicant_name=applicant_name or name or None,
         filename=filename,
         file_url=f"uploads/resumes/{filename}",
         file_size=file_size,

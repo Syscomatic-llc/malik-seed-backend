@@ -1,6 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MalikApiService, GalleryCategory } from '@/app/services/malik-api.service';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
@@ -19,13 +20,13 @@ import { slugify } from '@/app/utils/slugify';
     selector: 'app-gallery-categories-page',
     standalone: true,
     imports: [
-        CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
+        CommonModule, FormsModule, CardModule, ButtonModule, TableModule, DragDropModule,
         DialogModule, InputTextModule, TextareaModule, ToastModule, ToolbarModule,
         ConfirmDialogModule
     ],
     providers: [MessageService, ConfirmationService],
     template: `
-        <p-toast />
+        <p-toast position="bottom-left" />
         <p-confirmdialog />
         <div class="card">
             <p-toolbar styleClass="mb-4">
@@ -34,10 +35,11 @@ import { slugify } from '@/app/utils/slugify';
                 </ng-template>
             </p-toolbar>
 
-            <p-table [value]="categories()" [rows]="10" [paginator]="true"
+            <p-table [value]="categories()" (onRowReorder)="onRowReorder($event)" [rows]="100"
                 [tableStyle]="{ 'min-width': '75rem' }">
                 <ng-template #header>
                     <tr>
+                        <th style="width: 3rem"></th>
                         <th>Order</th>
                         <th>Name</th>
                         <th>Slug</th>
@@ -45,9 +47,10 @@ import { slugify } from '@/app/utils/slugify';
                         <th>Actions</th>
                     </tr>
                 </ng-template>
-                <ng-template #body let-item>
-                    <tr>
-                        <td>{{item.sort_order}}</td>
+                <ng-template #body let-item let-i="rowIndex">
+                    <tr [pReorderableRow]="i">
+                        <td><span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span></td>
+                        <td><span class="font-bold text-primary">{{i + 1}}</span></td>
                         <td>{{item.name}}</td>
                         <td>{{item.slug}}</td>
                         <td>{{item.description}}</td>
@@ -88,6 +91,7 @@ import { slugify } from '@/app/utils/slugify';
 })
 export class GalleryCategoriesPage implements OnInit {
     categories = signal<GalleryCategory[]>([]);
+    resourceName = 'gallery-category';
     dialog = false;
     category: GalleryCategory = { name: '', slug: '' };
     saving = false;
@@ -167,6 +171,18 @@ export class GalleryCategoriesPage implements OnInit {
                         this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to delete category' });
                     }
                 });
+            }
+        });
+    }
+
+    onRowReorder(event: any) {
+        const order = this.categories().map(t => t.id!).filter(id => id !== undefined);
+        if (!order.length) return;
+        this.api.reorder(this.resourceName, order).subscribe({
+            next: () => this.messageService.add({ severity: 'success', summary: 'Reordered', detail: 'Order saved', life: 2000 }),
+            error: (err) => {
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to reorder', life: 3000 });
+                this.loadCategories();
             }
         });
     }

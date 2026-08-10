@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from starlette.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 import os
 import shutil
 import json
+import csv
+import io
 
 from PIL import Image
 
@@ -175,6 +178,80 @@ def _log_activity(
     db.commit()
 
 
+@router.get("/resume")
+def list_resumes(
+    resume_type: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """List resume uploads with optional resume_type filter."""
+    query = db.query(ResumeUpload)
+    if resume_type:
+        query = query.filter(ResumeUpload.resume_type == resume_type)
+    resumes = query.order_by(ResumeUpload.created_at.desc()).all()
+    return [{"id": item.id, **_model_to_dict(item)} for item in resumes]
+
+
+@router.get("/resume/export")
+def export_resumes(
+    resume_type: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Export resumes to CSV."""
+    query = db.query(ResumeUpload)
+    if resume_type:
+        query = query.filter(ResumeUpload.resume_type == resume_type)
+    resumes = query.order_by(ResumeUpload.created_at.desc()).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "ID", "Name", "Email", "Phone", "Resume Type", "Position", "Position Name",
+        "File Name", "File URL", "Size (KB)", "Reviewed", "Submitted At"
+    ])
+    for r in resumes:
+        size_kb = round((r.file_size or 0) / 1024, 2) if r.file_size else 0
+        writer.writerow([
+            r.id,
+            r.name or "",
+            r.email or "",
+            r.phone or "",
+            r.resume_type or "",
+            r.position or "",
+            r.position_name or "",
+            r.filename or "",
+            r.file_url or "",
+            size_kb,
+            "Yes" if r.is_reviewed else "No",
+            r.created_at.isoformat() if r.created_at else "",
+        ])
+
+    output.seek(0)
+    csv_bytes = io.BytesIO(output.getvalue().encode("utf-8"))
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    type_suffix = f"-{resume_type}" if resume_type else ""
+    filename = f"malik-seeds-resumes{type_suffix}-{timestamp}.csv"
+
+    return StreamingResponse(
+        csv_bytes,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@router.post("/resume/bulk-delete")
+def bulk_delete_resumes(
+    payload: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    """Bulk delete resume uploads by ids."""
+    ids = payload.get("ids", []) if payload else []
+    if not ids or not isinstance(ids, list):
+        raise HTTPException(status_code=400, detail="ids must be a non-empty list")
+    count = db.query(ResumeUpload).filter(ResumeUpload.id.in_(ids)).delete(synchronize_session=False)
+    db.commit()
+    return {"status": "success", "deleted": count}
+
+
 @router.get("/activity-logs")
 def get_activity_logs(db: Session = Depends(get_db)):
     """Get recent admin activity logs (latest 50)"""
@@ -283,6 +360,20 @@ def delete_item(resource: str, item_id: int, db: Session = Depends(get_db), user
         details={},
     )
     return {"status": "success", "message": "Item deleted"}
+
+
+@router.post("/{resource}/reorder")
+def reorder_items(resource: str, order: List[int], db: Session = Depends(get_db)):
+    """Generic reorder endpoint: update sort_order for supported resources."""
+    if resource not in MODEL_REGISTRY:
+        raise HTTPException(status_code=404, detail=f"Resource '{resource}' not found")
+    model_class, _ = MODEL_REGISTRY[resource]
+    if not hasattr(model_class, 'sort_order'):
+        raise HTTPException(status_code=400, detail=f"Resource '{resource}' does not support reordering")
+    for idx, item_id in enumerate(order):
+        db.query(model_class).filter(model_class.id == item_id).update({"sort_order": idx})
+    db.commit()
+    return {"status": "success"}
 
 
 # ============== FILE UPLOAD ==============

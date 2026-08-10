@@ -27,7 +27,7 @@ import { ConfirmationService } from 'primeng/api';
     ],
     providers: [MessageService, ConfirmationService],
     template: `
-        <p-toast />
+        <p-toast position="bottom-left" />
         <p-confirmdialog />
         <div class="card">
             <p-toolbar styleClass="mb-4">
@@ -55,7 +55,7 @@ import { ConfirmationService } from 'primeng/api';
                         <td>
                             <span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span>
                         </td>
-                        <td><span class="font-bold text-primary">{{item.sort_order}}</span></td>
+                        <td><span class="font-bold text-primary">{{i + 1}}</span></td>
                         <td>
                             <img *ngIf="item.avatar_url" [src]="mediaBaseUrl + item.avatar_url"
                                 alt="" class="w-10 h-10 rounded-full object-cover" />
@@ -197,7 +197,7 @@ export class TeamStoriesPage implements OnInit {
     onRowReorder(event: any) {
         const order = this.testimonials().map(t => t.id!).filter(id => id !== undefined);
         if (!order.length) return;
-        this.api.reorderHiringTestimonials(order).subscribe({
+        this.api.reorder('hiring-testimonial', order).subscribe({
             next: () => {
                 this.messageService.add({ severity: 'success', summary: 'Reordered', detail: 'Testimonial order saved', life: 2000 });
             },

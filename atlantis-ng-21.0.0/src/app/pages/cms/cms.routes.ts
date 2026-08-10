@@ -133,8 +133,23 @@ export default [
     },
     {
         path: 'hiring/resumes',
-        loadComponent: () => import('./hiring/resumes-page').then((c) => c.ResumesPage),
-        data: { breadcrumb: 'Resume' }
+        redirectTo: 'hiring/resumes/open-positions',
+        pathMatch: 'full'
+    },
+    {
+        path: 'hiring/resumes/open-positions',
+        loadComponent: () => import('./hiring/open-positions-resumes-page').then((c) => c.OpenPositionsResumesPage),
+        data: { breadcrumb: 'Open Position Resumes' }
+    },
+    {
+        path: 'hiring/resumes/future-leaders',
+        loadComponent: () => import('./hiring/future-leaders-resumes-page').then((c) => c.FutureLeadersResumesPage),
+        data: { breadcrumb: 'Future Leader Resumes' }
+    },
+    {
+        path: 'hiring/resumes/general',
+        loadComponent: () => import('./hiring/general-resumes-page').then((c) => c.GeneralResumesPage),
+        data: { breadcrumb: 'General Resumes' }
     },
 
     // ===== CONTACT =====

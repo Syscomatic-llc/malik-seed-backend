@@ -27,7 +27,7 @@ import { ConfirmationService } from 'primeng/api';
     ],
     providers: [MessageService, ConfirmationService],
     template: `
-        <p-toast />
+        <p-toast position="bottom-left" />
         <p-confirmdialog />
         <div class="card">
             <p-toolbar styleClass="mb-4">
@@ -53,7 +53,7 @@ import { ConfirmationService } from 'primeng/api';
                         <td>
                             <span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span>
                         </td>
-                        <td><span class="font-bold text-primary">{{item.sort_order}}</span></td>
+                        <td><span class="font-bold text-primary">{{i + 1}}</span></td>
                         <td>{{item.year}}</td>
                         <td>{{item.title}}</td>
                         <td>{{item.description | slice:0:60}}...</td>
@@ -93,6 +93,10 @@ import { ConfirmationService } from 'primeng/api';
                         <app-image-upload label="Primary Image" folder="homepage"
                             [(currentImage)]="item.image_url" />
                     </div>
+                    <div>
+                        <app-image-upload label="Gallery Image" folder="homepage"
+                            [(currentImage)]="galleryImageUrl" />
+                    </div>
                 </div>
             </ng-template>
             <ng-template #footer>
@@ -107,6 +111,7 @@ export class TimelinePage implements OnInit {
     dialog = false;
     item: HomepageTimeline = { year: '', title: '' };
     saving = false;
+    galleryImageUrl = '';
 
     constructor(
         private api: MalikApiService,
@@ -127,11 +132,13 @@ export class TimelinePage implements OnInit {
 
     openNew() {
         this.item = { year: '', title: '', is_milestone: false, sort_order: 0 };
+        this.galleryImageUrl = '';
         this.dialog = true;
     }
 
     editItem(t: HomepageTimeline) {
         this.item = { ...t };
+        this.galleryImageUrl = (t.gallery_images && t.gallery_images[0]) || '';
         this.dialog = true;
     }
 
@@ -142,7 +149,7 @@ export class TimelinePage implements OnInit {
     saveItem() {
         if (!this.item.year?.trim() || !this.item.title?.trim()) return;
         this.saving = true;
-        const data = { ...this.item, gallery_images: [] };
+        const data = { ...this.item, gallery_images: this.galleryImageUrl ? [this.galleryImageUrl] : [] };
         const request = data.id
             ? this.api.adminUpdate('homepage-timeline', data.id, data)
             : this.api.adminCreate('homepage-timeline', data);
@@ -184,7 +191,7 @@ export class TimelinePage implements OnInit {
     onRowReorder(event: any) {
         const order = this.timeline().map(t => t.id!).filter(id => id !== undefined);
         if (!order.length) return;
-        this.api.reorderHomepageTimeline(order).subscribe({
+        this.api.reorder('homepage-timeline', order).subscribe({
             next: () => {
                 this.messageService.add({ severity: 'success', summary: 'Reordered', detail: 'Timeline order saved', life: 2000 });
             },

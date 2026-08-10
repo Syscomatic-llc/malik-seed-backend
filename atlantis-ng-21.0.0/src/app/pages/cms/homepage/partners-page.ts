@@ -1,6 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MalikApiService, HomepagePartner } from '@/app/services/malik-api.service';
 import { ImageUpload } from '@/app/components/image-upload';
 import { CardModule } from 'primeng/card';
@@ -22,13 +23,13 @@ import { environment } from '@/environments/environment';
     selector: 'app-partners-page',
     standalone: true,
     imports: [
-        CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
+        CommonModule, FormsModule, CardModule, ButtonModule, TableModule, DragDropModule,
         DialogModule, InputTextModule, InputNumberModule, ToastModule, ToolbarModule,
         ToggleSwitchModule, TagModule, ConfirmDialogModule, ImageUpload
     ],
     providers: [MessageService, ConfirmationService],
     template: `
-        <p-toast />
+        <p-toast position="bottom-left" />
         <p-confirmdialog />
         <div class="card">
             <p-toolbar styleClass="mb-4">
@@ -37,22 +38,23 @@ import { environment } from '@/environments/environment';
                 </ng-template>
             </p-toolbar>
 
-            <p-table [value]="partners()" [rows]="10" [paginator]="true"
+            <p-table [value]="partners()" (onRowReorder)="onRowReorder($event)" [rows]="100"
                 [tableStyle]="{ 'min-width': '60rem' }">
                 <ng-template #header>
                     <tr>
+                        <th style="width: 3rem"></th>
                         <th>Order</th>
                         <th>Logo</th>
                         <th>Name</th>
                         <th>Website</th>
-                        <th>Order</th>
                         <th>Active</th>
                         <th>Actions</th>
                     </tr>
                 </ng-template>
-                <ng-template #body let-item>
-                    <tr>
-                        <td>{{item.sort_order}}</td>
+                <ng-template #body let-item let-i="rowIndex">
+                    <tr [pReorderableRow]="i">
+                        <td><span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span></td>
+                        <td><span class="font-bold text-primary">{{i + 1}}</span></td>
                         <td>
                             <img *ngIf="item.logo_url" [src]="mediaBaseUrl + item.logo_url"
                                 alt="{{item.name}}" class="h-12 w-auto object-contain" />
@@ -65,7 +67,6 @@ import { environment } from '@/environments/environment';
                             </a>
                             <span *ngIf="!item.website_url || item.website_url === '#'" class="text-muted-color">-</span>
                         </td>
-                        <td>{{item.sort_order}}</td>
                         <td>
                             <p-tag [value]="item.is_active ? 'Yes' : 'No'"
                                 [severity]="item.is_active ? 'success' : 'danger'" />
@@ -96,15 +97,9 @@ import { environment } from '@/environments/environment';
                         <label class="block font-bold mb-2">Website URL</label>
                         <input type="text" pInputText [(ngModel)]="item.website_url" placeholder="https://example.com" fluid />
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block font-bold mb-2">Sort Order</label>
-                            <p-inputnumber [(ngModel)]="item.sort_order" [min]="0" fluid />
-                        </div>
-                        <div class="flex items-center gap-2 pt-6">
-                            <label class="font-bold">Active</label>
-                            <p-toggleSwitch [(ngModel)]="item.is_active" />
-                        </div>
+                    <div class="flex items-center gap-2 pt-2">
+                        <label class="font-bold">Active</label>
+                        <p-toggleSwitch [(ngModel)]="item.is_active" />
                     </div>
                 </div>
             </ng-template>
@@ -117,6 +112,7 @@ import { environment } from '@/environments/environment';
 })
 export class PartnersPage implements OnInit {
     partners = signal<HomepagePartner[]>([]);
+    resourceName = 'homepage-partner';
     dialog = false;
     item: HomepagePartner = { name: '' };
     saving = false;
@@ -191,6 +187,18 @@ export class PartnersPage implements OnInit {
                         this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to delete partner' });
                     }
                 });
+            }
+        });
+    }
+
+    onRowReorder(event: any) {
+        const order = this.partners().map(t => t.id!).filter(id => id !== undefined);
+        if (!order.length) return;
+        this.api.reorder(this.resourceName, order).subscribe({
+            next: () => this.messageService.add({ severity: 'success', summary: 'Reordered', detail: 'Order saved', life: 2000 }),
+            error: (err) => {
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to reorder', life: 3000 });
+                this.loadPartners();
             }
         });
     }

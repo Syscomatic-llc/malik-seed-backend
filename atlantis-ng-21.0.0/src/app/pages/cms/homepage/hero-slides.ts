@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MalikApiService, HeroSlide, SiteSettings } from '@/app/services/malik-api.service';
 import { ImageUpload } from '@/app/components/image-upload';
 import { CardModule } from 'primeng/card';
@@ -24,12 +25,12 @@ import { environment } from '@/environments/environment';
     standalone: true,
     imports: [
         CommonModule, FormsModule, RouterModule, CardModule, ButtonModule, 
-        TableModule, TagModule, DialogModule, InputTextModule, TextareaModule,
+        TableModule, DragDropModule, TagModule, DialogModule, InputTextModule, TextareaModule,
         ToggleSwitchModule, ToastModule, ToolbarModule, ConfirmDialogModule, ImageUpload
     ],
     providers: [MessageService, ConfirmationService],
     template: `
-        <p-toast />
+        <p-toast position="bottom-left" />
         <p-confirmdialog />
         <div class="card">
             <p-toolbar styleClass="mb-4">
@@ -38,7 +39,7 @@ import { environment } from '@/environments/environment';
                 </ng-template>
             </p-toolbar>
 
-            <p-table [value]="heroSlides()" [rows]="10" [paginator]="true"
+            <p-table [value]="heroSlides()" (onRowReorder)="onRowReorder($event)" [rows]="100"
                 [globalFilterFields]="['title']"
                 [tableStyle]="{ 'min-width': '50rem' }"
                 currentPageReportTemplate="Showing {first} to {last} of {totalRecords} slides"
@@ -54,14 +55,18 @@ import { environment } from '@/environments/environment';
                 </ng-template>
                 <ng-template #header>
                     <tr>
+                        <th style="width: 3rem"></th>
+                        <th>Order</th>
                         <th style="min-width: 4rem">ID</th>
                         <th style="min-width: 16rem">Title</th>
                         <th>Background Image</th>
                         <th style="min-width: 8rem">Actions</th>
                     </tr>
                 </ng-template>
-                <ng-template #body let-slide>
-                    <tr>
+                <ng-template #body let-slide let-i="rowIndex">
+                    <tr [pReorderableRow]="i">
+                        <td><span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span></td>
+                        <td><span class="font-bold text-primary">{{i + 1}}</span></td>
                         <td>{{slide.id}}</td>
                         <td>{{slide.title}}</td>
                         <td>
@@ -120,6 +125,7 @@ import { environment } from '@/environments/environment';
 })
 export class HeroSlidesPage implements OnInit {
     heroSlides = signal<HeroSlide[]>([]);
+    resourceName = 'homepage-hero';
     slideDialog = false;
     slide: HeroSlide = { title: '' };
     submitted = false;
@@ -258,6 +264,18 @@ export class HeroSlidesPage implements OnInit {
                         });
                     }
                 });
+            }
+        });
+    }
+
+    onRowReorder(event: any) {
+        const order = this.heroSlides().map(t => t.id!).filter(id => id !== undefined);
+        if (!order.length) return;
+        this.api.reorder(this.resourceName, order).subscribe({
+            next: () => this.messageService.add({ severity: 'success', summary: 'Reordered', detail: 'Order saved', life: 2000 }),
+            error: (err) => {
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to reorder', life: 3000 });
+                this.loadSlides();
             }
         });
     }

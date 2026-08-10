@@ -157,9 +157,26 @@ export class AppMenu {
                     routerLink: ['/cms/hiring/assessments']
                 },
                 {
-                    label: 'Resume',
+                    label: 'Resumes',
                     icon: 'pi pi-fw pi-file-pdf',
-                    routerLink: ['/cms/hiring/resumes']
+                    path: '/cms/hiring/resumes',
+                    items: [
+                        {
+                            label: 'Open Positions Resumes',
+                            icon: 'pi pi-fw pi-briefcase',
+                            routerLink: ['/cms/hiring/resumes/open-positions']
+                        },
+                        {
+                            label: 'Future Leader Resumes',
+                            icon: 'pi pi-fw pi-graduation-cap',
+                            routerLink: ['/cms/hiring/resumes/future-leaders']
+                        },
+                        {
+                            label: 'General Resumes',
+                            icon: 'pi pi-fw pi-file-o',
+                            routerLink: ['/cms/hiring/resumes/general']
+                        }
+                    ]
                 }
             ]
         },

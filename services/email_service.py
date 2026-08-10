@@ -50,7 +50,23 @@ class EmailService:
             print(f"Email sending failed: {e}")
             return False
 
-    def send_job_application_notification(self, application_data: dict):
+    def send_otp_email(self, to_email: str, otp_code: str, applicant_name: str):
+        """Send OTP verification email to an applicant"""
+        subject = "Your Malik Seeds Application OTP"
+        body = f"""Dear {applicant_name},
+
+Thank you for applying to Malik Seeds.
+
+Your one-time verification code is: {otp_code}
+
+Please enter this 4-digit code to continue with your application.
+
+If you did not request this code, please ignore this email.
+
+Best regards,
+Malik Seeds HR Team
+"""
+        self.send_email([to_email], subject, body)
         """Send job application notification to admin"""
         subject = f"New Job Application: {application_data.get('first_name', '')} {application_data.get('last_name', '')}"
         body = f"""

@@ -193,6 +193,15 @@ def main():
     add_column("job_positions", "short_answer_duration", "INTEGER")
     add_column("job_positions", "long_answer_duration", "INTEGER")
 
+    # Resume uploads new metadata fields
+    add_column("resume_uploads", "resume_type", "VARCHAR(50)")
+    add_column("resume_uploads", "position_id", "INTEGER")
+    add_column("resume_uploads", "position_name", "VARCHAR(300)")
+    add_column("resume_uploads", "applicant_name", "VARCHAR(300)")
+
+    # Job applications OTP verification
+    add_column("job_applications", "otp_code", "VARCHAR(10)")
+
     # Hero global CTA buttons
     add_column("site_settings", "hero_primary_cta_text", "VARCHAR(100)")
     add_column("site_settings", "hero_primary_cta_link", "VARCHAR(500)")

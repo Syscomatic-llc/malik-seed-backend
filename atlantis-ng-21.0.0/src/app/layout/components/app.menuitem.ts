@@ -223,7 +223,7 @@ export class AppMenuitem {
     }
 
     onMouseEnter() {
-        if (this.layoutService.isDesktop() && this.root() && this.hasChildren() && this.menuHoverActive() && !this.isActive()) {
+        if (this.layoutService.isDesktop() && this.hasChildren() && this.menuHoverActive() && !this.isActive()) {
             this.layoutService.layoutState.update((val) => ({
                 ...val,
                 activePath: this.fullPath(),

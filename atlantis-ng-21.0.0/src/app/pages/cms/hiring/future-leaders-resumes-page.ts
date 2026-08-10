@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MalikApiService, ResumeUpload } from '@/app/services/malik-api.service';
@@ -12,14 +12,15 @@ import { TagModule } from 'primeng/tag';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
+import { InputTextModule } from 'primeng/inputtext';
 import { environment } from '@/environments/environment';
 
 @Component({
-    selector: 'app-resumes-page',
+    selector: 'app-future-leaders-resumes-page',
     standalone: true,
     imports: [
         CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
-        ToastModule, ToolbarModule, TagModule, ToggleSwitchModule, ConfirmDialogModule
+        ToastModule, ToolbarModule, TagModule, ToggleSwitchModule, ConfirmDialogModule, InputTextModule
     ],
     providers: [MessageService, ConfirmationService],
     template: `
@@ -28,23 +29,27 @@ import { environment } from '@/environments/environment';
         <div class="card">
             <p-toolbar styleClass="mb-4">
                 <ng-template #start>
-                    <h5 class="m-0">All Uploaded Resumes / CVs</h5>
+                    <h5 class="m-0 mr-4">Future Leader Resumes</h5>
+                    <input type="text" pInputText [(ngModel)]="filterText" placeholder="Search name, email..." class="w-64" />
                 </ng-template>
                 <ng-template #end>
+                    <p-button label="Bulk Delete" icon="pi pi-trash" severity="danger" class="mr-2"
+                        [disabled]="selectedResumes().length === 0" (onClick)="bulkDelete()" />
+                    <p-button label="Export CSV" icon="pi pi-download" class="mr-2" (onClick)="exportResumes()" />
                     <p-button label="Refresh" icon="pi pi-refresh" (onClick)="loadResumes()" />
                 </ng-template>
             </p-toolbar>
 
-            <p-table [value]="resumes()" [rows]="10" [paginator]="true"
-                [tableStyle]="{ 'min-width': '75rem' }">
+            <p-table [value]="filteredResumes()" [rows]="10" [paginator]="true"
+                [selection]="selectedResumes()" (selectionChange)="selectedResumes.set($event)"
+                dataKey="id" [tableStyle]="{ 'min-width': '75rem' }">
                 <ng-template #header>
                     <tr>
-                        <th>ID</th>
+                        <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
                         <th>Name</th>
                         <th>Email</th>
                         <th>Phone</th>
-                        <th>Position</th>
-                        <th>Type</th>
+                        <th>Program</th>
                         <th>File</th>
                         <th>Size</th>
                         <th>Reviewed</th>
@@ -54,12 +59,11 @@ import { environment } from '@/environments/environment';
                 </ng-template>
                 <ng-template #body let-item>
                     <tr>
-                        <td>{{item.id}}</td>
+                        <td><p-tableCheckbox [value]="item" /></td>
                         <td>{{item.name || item.applicant_name || 'N/A'}}</td>
                         <td>{{item.email || 'N/A'}}</td>
                         <td>{{item.phone || 'N/A'}}</td>
-                        <td>{{item.position_name || item.position || 'N/A'}}</td>
-                        <td>{{item.resume_type || 'N/A'}}</td>
+                        <td>Future Leader Program</td>
                         <td>
                             <a *ngIf="item.file_url" [href]="resolveUrl(item.file_url)" target="_blank" class="text-primary hover:underline">
                                 <i class="pi pi-file-pdf mr-1"></i>{{item.filename}}
@@ -81,9 +85,21 @@ import { environment } from '@/environments/environment';
         </div>
     `
 })
-export class ResumesPage implements OnInit {
+export class FutureLeadersResumesPage implements OnInit {
     resumes = signal<ResumeUpload[]>([]);
+    selectedResumes = signal<ResumeUpload[]>([]);
+    filterText = signal<string>('');
     mediaBaseUrl = environment.mediaBaseUrl;
+    resumeType = 'future_leader';
+
+    filteredResumes = computed(() => {
+        const text = this.filterText().toLowerCase().trim();
+        if (!text) return this.resumes();
+        return this.resumes().filter(r =>
+            (r.name || r.applicant_name || '').toLowerCase().includes(text) ||
+            (r.email || '').toLowerCase().includes(text)
+        );
+    });
 
     constructor(
         private api: MalikApiService,
@@ -96,7 +112,8 @@ export class ResumesPage implements OnInit {
     }
 
     loadResumes() {
-        this.api.getResumes().subscribe({
+        this.selectedResumes.set([]);
+        this.api.getResumes(this.resumeType).subscribe({
             next: (data) => this.resumes.set(data),
             error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load resumes' })
         });
@@ -121,11 +138,50 @@ export class ResumesPage implements OnInit {
                 this.api.deleteResume(item.id!).subscribe({
                     next: () => {
                         this.resumes.set(this.resumes().filter(r => r.id !== item.id));
+                        this.selectedResumes.set(this.selectedResumes().filter(r => r.id !== item.id));
                         this.messageService.add({ severity: 'success', summary: 'Deleted', detail: 'Resume deleted' });
                     },
                     error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete resume' })
                 });
             }
+        });
+    }
+
+    bulkDelete() {
+        const items = this.selectedResumes();
+        if (!items.length) return;
+        this.confirmationService.confirm({
+            message: `Delete ${items.length} selected resume(s)?`,
+            header: 'Confirm Bulk Delete',
+            icon: 'pi pi-exclamation-triangle',
+            accept: () => {
+                const ids = items.map(i => i.id!).filter(Boolean);
+                this.api.bulkDeleteResumes(ids).subscribe({
+                    next: () => {
+                        this.resumes.set(this.resumes().filter(r => !ids.includes(r.id!)));
+                        this.selectedResumes.set([]);
+                        this.messageService.add({ severity: 'success', summary: 'Deleted', detail: `${items.length} resume(s) deleted` });
+                    },
+                    error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to bulk delete resumes' })
+                });
+            }
+        });
+    }
+
+    exportResumes() {
+        this.api.exportResumes(this.resumeType).subscribe({
+            next: (blob) => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'future_leader_resumes.csv';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                this.messageService.add({ severity: 'success', summary: 'Exported', detail: 'Resumes exported successfully' });
+            },
+            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to export resumes' })
         });
     }
 

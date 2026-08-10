@@ -34,7 +34,7 @@ const QUESTION_TYPES = [
     ],
     providers: [MessageService, ConfirmationService],
     template: `
-        <p-toast />
+        <p-toast position="bottom-left" />
         <p-confirmdialog />
         <div class="card">
             <p-toolbar styleClass="mb-4">
@@ -62,7 +62,7 @@ const QUESTION_TYPES = [
                         <input type="number" pInputText [(ngModel)]="mcqDuration" placeholder="0" fluid />
                         <span class="text-xs text-muted-color">Default: 0 min</span>
                     </div>
-                    <div class="p-3 bg-primary/5 rounded flex flex-col gap-2">
+                    <div *ngIf="hasShortAnswerQuestions()" class="p-3 bg-primary/5 rounded flex flex-col gap-2">
                         <label class="text-sm font-bold">Short Answer Duration</label>
                         <input type="number" pInputText [(ngModel)]="shortAnswerDuration" placeholder="0" fluid />
                         <span class="text-xs text-muted-color">Default: 0 min</span>
@@ -223,6 +223,7 @@ export class AssessmentPage implements OnInit {
         return this.questions().filter(q => q.question_type === type);
     });
 
+    hasShortAnswerQuestions = computed(() => this.questions().some(q => q.question_type === 'short_answer'));
     hasLongAnswerQuestions = computed(() => this.questions().some(q => q.question_type === 'long_answer'));
 
     constructor(

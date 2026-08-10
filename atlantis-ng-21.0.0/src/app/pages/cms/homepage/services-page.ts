@@ -1,6 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MalikApiService, HomepageService } from '@/app/services/malik-api.service';
 import { ImageUpload } from '@/app/components/image-upload';
 import { CardModule } from 'primeng/card';
@@ -19,13 +20,13 @@ import { ConfirmationService } from 'primeng/api';
     selector: 'app-services-page',
     standalone: true,
     imports: [
-        CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
+        CommonModule, FormsModule, CardModule, ButtonModule, TableModule, DragDropModule,
         DialogModule, InputTextModule, TextareaModule, ToastModule, ToolbarModule,
         ConfirmDialogModule, ImageUpload
     ],
     providers: [MessageService, ConfirmationService],
     template: `
-        <p-toast />
+        <p-toast position="bottom-left" />
         <p-confirmdialog />
         <div class="card">
             <p-toolbar styleClass="mb-4">
@@ -34,10 +35,11 @@ import { ConfirmationService } from 'primeng/api';
                 </ng-template>
             </p-toolbar>
 
-            <p-table [value]="services()" [rows]="10" [paginator]="true"
+            <p-table [value]="services()" (onRowReorder)="onRowReorder($event)" [rows]="100"
                 [tableStyle]="{ 'min-width': '75rem' }">
                 <ng-template #header>
                     <tr>
+                        <th style="width: 3rem"></th>
                         <th>Order</th>
                         <th>Title</th>
                         <th>Description</th>
@@ -45,9 +47,10 @@ import { ConfirmationService } from 'primeng/api';
                         <th>Actions</th>
                     </tr>
                 </ng-template>
-                <ng-template #body let-service>
-                    <tr>
-                        <td>{{service.sort_order}}</td>
+                <ng-template #body let-service let-i="rowIndex">
+                    <tr [pReorderableRow]="i">
+                        <td><span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span></td>
+                        <td><span class="font-bold text-primary">{{i + 1}}</span></td>
                         <td>{{service.title}}</td>
                         <td>{{service.description}}</td>
                         <td>{{service.link}}</td>
@@ -92,6 +95,7 @@ import { ConfirmationService } from 'primeng/api';
 })
 export class ServicesPage implements OnInit {
     services = signal<HomepageService[]>([]);
+    resourceName = 'homepage-service';
     serviceDialog = false;
     service: HomepageService = { title: '' };
     saving = false;
@@ -165,6 +169,18 @@ export class ServicesPage implements OnInit {
                         this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to delete service' });
                     }
                 });
+            }
+        });
+    }
+
+    onRowReorder(event: any) {
+        const order = this.services().map(t => t.id!).filter(id => id !== undefined);
+        if (!order.length) return;
+        this.api.reorder(this.resourceName, order).subscribe({
+            next: () => this.messageService.add({ severity: 'success', summary: 'Reordered', detail: 'Order saved', life: 2000 }),
+            error: (err) => {
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to reorder', life: 3000 });
+                this.loadServices();
             }
         });
     }

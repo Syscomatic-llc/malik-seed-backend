@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpEvent, HttpEventType } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpEventType, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
@@ -258,6 +258,10 @@ export interface ResumeUpload {
   file_url?: string;
   file_size?: number;
   is_reviewed?: boolean;
+  resume_type?: 'open_position' | 'future_leader' | 'general';
+  position_id?: number;
+  position_name?: string;
+  applicant_name?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -540,8 +544,30 @@ export class MalikApiService {
     return this.http.post<{ status: string; message: string; id: number; url: string; filename: string }>(`${this.apiUrl}/hiring/upload-cv`, formData);
   }
 
-  getResumes(): Observable<ResumeUpload[]> {
-    return this.http.get<ResumeUpload[]>(`${this.apiUrl}/admin/resume`);
+  // Generic reorder for any sortable admin resource
+  reorder(resource: string, order: number[]): Observable<{ status: string }> {
+    return this.http.post<{ status: string }>(`${this.apiUrl}/admin/${resource}/reorder`, order);
+  }
+
+  // ============ RESUME MANAGEMENT ============
+  getResumes(resumeType?: string): Observable<ResumeUpload[]> {
+    let params = new HttpParams();
+    if (resumeType) {
+      params = params.set('resume_type', resumeType);
+    }
+    return this.http.get<ResumeUpload[]>(`${this.apiUrl}/admin/resume`, { params });
+  }
+
+  exportResumes(resumeType?: string): Observable<Blob> {
+    let params = new HttpParams();
+    if (resumeType) {
+      params = params.set('resume_type', resumeType);
+    }
+    return this.http.get(`${this.apiUrl}/admin/resume/export`, { params, responseType: 'blob' });
+  }
+
+  bulkDeleteResumes(ids: number[]): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/admin/resume/bulk-delete`, { ids });
   }
 
   deleteResume(id: number): Observable<any> {

@@ -1,6 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MalikApiService, OurBrand } from '@/app/services/malik-api.service';
 import { ImageUpload } from '@/app/components/image-upload';
 import { CardModule } from 'primeng/card';
@@ -24,13 +25,13 @@ import { slugify } from '@/app/utils/slugify';
     selector: 'app-brands-list-page',
     standalone: true,
     imports: [
-        CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
+        CommonModule, FormsModule, CardModule, ButtonModule, TableModule, DragDropModule,
         DialogModule, InputTextModule, TextareaModule, ToastModule, ToolbarModule,
         ToggleSwitchModule, TagModule, ConfirmDialogModule, ImageUpload
     ],
     providers: [MessageService, ConfirmationService],
     template: `
-        <p-toast />
+        <p-toast position="bottom-left" />
         <p-confirmdialog />
         <div class="card">
             <p-toolbar styleClass="mb-4">
@@ -39,10 +40,11 @@ import { slugify } from '@/app/utils/slugify';
                 </ng-template>
             </p-toolbar>
 
-            <p-table [value]="brands()" [rows]="10" [paginator]="true"
+            <p-table [value]="brands()" (onRowReorder)="onRowReorder($event)" [rows]="100"
                 [tableStyle]="{ 'min-width': '75rem' }">
                 <ng-template #header>
                     <tr>
+                        <th style="width: 3rem"></th>
                         <th>Order</th>
                         <th>Logo</th>
                         <th>Name</th>
@@ -52,9 +54,10 @@ import { slugify } from '@/app/utils/slugify';
                         <th>Actions</th>
                     </tr>
                 </ng-template>
-                <ng-template #body let-item>
-                    <tr>
-                        <td>{{item.sort_order}}</td>
+                <ng-template #body let-item let-i="rowIndex">
+                    <tr [pReorderableRow]="i">
+                        <td><span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span></td>
+                        <td><span class="font-bold text-primary">{{i + 1}}</span></td>
                         <td>
                             <img *ngIf="item.logo_url" [src]="mediaBaseUrl + item.logo_url"
                                 alt="{{item.name}}" class="w-12 h-12 object-contain rounded" />
@@ -116,6 +119,7 @@ import { slugify } from '@/app/utils/slugify';
 })
 export class BrandsListPage implements OnInit {
     brands = signal<OurBrand[]>([]);
+    resourceName = 'brand';
     dialog = false;
     brand: OurBrand = { name: '', slug: '' };
     saving = false;
@@ -196,6 +200,18 @@ export class BrandsListPage implements OnInit {
                         this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to delete brand' });
                     }
                 });
+            }
+        });
+    }
+
+    onRowReorder(event: any) {
+        const order = this.brands().map(t => t.id!).filter(id => id !== undefined);
+        if (!order.length) return;
+        this.api.reorder(this.resourceName, order).subscribe({
+            next: () => this.messageService.add({ severity: 'success', summary: 'Reordered', detail: 'Order saved', life: 2000 }),
+            error: (err) => {
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to reorder', life: 3000 });
+                this.loadBrands();
             }
         });
     }

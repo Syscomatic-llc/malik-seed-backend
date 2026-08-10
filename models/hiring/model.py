@@ -120,6 +120,9 @@ class JobApplication(Base):
     email = Column(String(255), nullable=False)
     phone = Column(String(50), nullable=True)
 
+    # OTP verification for application flow
+    otp_code = Column(String(10), nullable=True)
+
     # Step 2: Experience & Education
     resume_url = Column(String(500), nullable=True)
     cover_letter = Column(Text, nullable=True)
@@ -298,6 +301,12 @@ class ResumeUpload(Base):
     phone = Column(String(50), nullable=True)
     position = Column(String(200), nullable=True)
     message = Column(Text, nullable=True)
+
+    # New resume upload metadata
+    resume_type = Column(String(50), nullable=True)
+    position_id = Column(Integer, ForeignKey("job_positions.id"), nullable=True)
+    position_name = Column(String(300), nullable=True)
+    applicant_name = Column(String(300), nullable=True)
 
     filename = Column(String(300), nullable=False)
     file_url = Column(String(500), nullable=False)

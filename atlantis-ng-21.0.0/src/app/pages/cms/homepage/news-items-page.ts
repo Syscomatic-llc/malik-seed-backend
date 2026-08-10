@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MalikApiService, HomepageNewsItem, NewsCategory } from '@/app/services/malik-api.service';
 import { ImageUpload } from '@/app/components/image-upload';
 import { CardModule } from 'primeng/card';
@@ -23,13 +24,13 @@ import { environment } from '@/environments/environment';
     selector: 'app-news-items-page',
     standalone: true,
     imports: [
-        CommonModule, FormsModule, RouterModule, CardModule, ButtonModule, TableModule,
+        CommonModule, FormsModule, RouterModule, CardModule, ButtonModule, TableModule, DragDropModule,
         DialogModule, InputTextModule, TextareaModule, ToastModule, ToolbarModule,
         TagModule, SelectModule, ConfirmDialogModule, ImageUpload
     ],
     providers: [MessageService, ConfirmationService],
     template: `
-        <p-toast />
+        <p-toast position="bottom-left" />
         <p-confirmdialog />
         <div class="card">
             <p-toolbar styleClass="mb-4">
@@ -39,10 +40,11 @@ import { environment } from '@/environments/environment';
                 </ng-template>
             </p-toolbar>
 
-            <p-table [value]="newsItems()" [rows]="10" [paginator]="true"
+            <p-table [value]="newsItems()" (onRowReorder)="onRowReorder($event)" [rows]="100"
                 [tableStyle]="{ 'min-width': '75rem' }">
                 <ng-template #header>
                     <tr>
+                        <th style="width: 3rem"></th>
                         <th>Order</th>
                         <th>Image</th>
                         <th>Title</th>
@@ -53,9 +55,10 @@ import { environment } from '@/environments/environment';
                         <th>Actions</th>
                     </tr>
                 </ng-template>
-                <ng-template #body let-item>
-                    <tr>
-                        <td>{{item.sort_order}}</td>
+                <ng-template #body let-item let-i="rowIndex">
+                    <tr [pReorderableRow]="i">
+                        <td><span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span></td>
+                        <td><span class="font-bold text-primary">{{i + 1}}</span></td>
                         <td>
                             <img *ngIf="item.image_url" [src]="mediaBaseUrl + item.image_url"
                                 alt="{{item.title}}" class="w-16 h-12 object-cover rounded" />
@@ -116,6 +119,7 @@ import { environment } from '@/environments/environment';
 })
 export class NewsItemsPage implements OnInit {
     newsItems = signal<HomepageNewsItem[]>([]);
+    resourceName = 'homepage-news';
     categories = signal<NewsCategory[]>([]);
     dialog = false;
     item: HomepageNewsItem = { title: '' };
@@ -199,6 +203,18 @@ export class NewsItemsPage implements OnInit {
                         this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to delete news item' });
                     }
                 });
+            }
+        });
+    }
+
+    onRowReorder(event: any) {
+        const order = this.newsItems().map(t => t.id!).filter(id => id !== undefined);
+        if (!order.length) return;
+        this.api.reorder(this.resourceName, order).subscribe({
+            next: () => this.messageService.add({ severity: 'success', summary: 'Reordered', detail: 'Order saved', life: 2000 }),
+            error: (err) => {
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to reorder', life: 3000 });
+                this.loadNewsItems();
             }
         });
     }
