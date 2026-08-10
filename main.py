@@ -70,7 +70,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API routes
+
+# Disable browser caching for API responses so login and CMS data stay fresh.
+@app.middleware("http")
+async def add_no_cache_headers(request: Request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path.startswith("/api/v1"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 app.include_router(api_router, prefix="/api/v1")
 
 # Static files for uploads (kept as fallback)

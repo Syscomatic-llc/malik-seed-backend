@@ -6,13 +6,15 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     const auth = inject(AuthService);
     const token = auth.getToken();
 
+    const headers: Record<string, string> = {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache'
+    };
     if (token && !req.headers.has('Authorization')) {
-        req = req.clone({
-            setHeaders: {
-                Authorization: `Bearer ${token}`
-            }
-        });
+        headers['Authorization'] = `Bearer ${token}`;
     }
+
+    req = req.clone({ setHeaders: headers });
 
     return next(req);
 };

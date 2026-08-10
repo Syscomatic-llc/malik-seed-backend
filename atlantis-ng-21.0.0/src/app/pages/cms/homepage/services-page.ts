@@ -38,21 +38,19 @@ import { ConfirmationService } from 'primeng/api';
                 [tableStyle]="{ 'min-width': '75rem' }">
                 <ng-template #header>
                     <tr>
-                        <th>ID</th>
+                        <th>Order</th>
                         <th>Title</th>
                         <th>Description</th>
                         <th>Link</th>
-                        <th>Order</th>
                         <th>Actions</th>
                     </tr>
                 </ng-template>
                 <ng-template #body let-service>
                     <tr>
-                        <td>{{service.id}}</td>
+                        <td>{{service.sort_order}}</td>
                         <td>{{service.title}}</td>
                         <td>{{service.description}}</td>
                         <td>{{service.link}}</td>
-                        <td>{{service.sort_order}}</td>
                         <td>
                             <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" 
                                 (onClick)="editService(service)" />

@@ -427,6 +427,42 @@ def reorder_gallery_items(order: List[int], db: Session = Depends(get_db)):
     return {"status": "success"}
 
 
+@router.post("/our-story-timeline/reorder")
+def reorder_our_story_timeline(order: List[int], db: Session = Depends(get_db)):
+    """Update our-story timeline sort_order based on provided ordered id list."""
+    for idx, item_id in enumerate(order):
+        db.query(OurStoryTimeline).filter(OurStoryTimeline.id == item_id).update({"sort_order": idx})
+    db.commit()
+    return {"status": "success"}
+
+
+@router.post("/homepage-timeline/reorder")
+def reorder_homepage_timeline(order: List[int], db: Session = Depends(get_db)):
+    """Update homepage timeline sort_order based on provided ordered id list."""
+    for idx, item_id in enumerate(order):
+        db.query(HomepageTimeline).filter(HomepageTimeline.id == item_id).update({"sort_order": idx})
+    db.commit()
+    return {"status": "success"}
+
+
+@router.post("/homepage-testimonial/reorder")
+def reorder_homepage_testimonials(order: List[int], db: Session = Depends(get_db)):
+    """Update homepage testimonial sort_order based on provided ordered id list."""
+    for idx, item_id in enumerate(order):
+        db.query(HomepageTestimonial).filter(HomepageTestimonial.id == item_id).update({"sort_order": idx})
+    db.commit()
+    return {"status": "success"}
+
+
+@router.post("/hiring-testimonial/reorder")
+def reorder_hiring_testimonials(order: List[int], db: Session = Depends(get_db)):
+    """Update hiring testimonial sort_order based on provided ordered id list."""
+    for idx, item_id in enumerate(order):
+        db.query(HiringTestimonial).filter(HiringTestimonial.id == item_id).update({"sort_order": idx})
+    db.commit()
+    return {"status": "success"}
+
+
 # ============== ASSESSMENT QUESTIONS ==============
 
 @router.get("/hiring/positions/{position_id}/questions")

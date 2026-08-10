@@ -132,7 +132,8 @@ import { environment } from '@/environments/environment';
                         <p-button label="New Sitemap URL" icon="pi pi-plus" severity="success" (onClick)="openSitemapDialog()" />
                         <a [href]="apiUrl + '/sitemap.xml'" target="_blank" class="text-primary hover:underline">View sitemap.xml</a>
                     </div>
-                    <p-table [value]="sitemapList" [rows]="10" [paginator]="true" [tableStyle]="{'min-width': '60rem'}">
+                    <p-table [value]="sitemapList" [rows]="10" [paginator]="true" [tableStyle]="{'min-width': '60rem'}"
+                        [loading]="loadingSitemap" loadingIcon="pi pi-spin pi-spinner">
                         <ng-template #header>
                             <tr>
                                 <th>URL Path</th>
@@ -152,7 +153,7 @@ import { environment } from '@/environments/environment';
                                 <td>{{item.is_active ? 'Yes' : 'No'}}</td>
                                 <td>
                                     <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (onClick)="editSitemap(item)" />
-                                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (onClick)="deleteSitemap(item)" />
+                                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (onClick)="deleteSitemap(item)" [loading]="savingSitemap && selectedSitemap?.id === item.id" />
                                 </td>
                             </tr>
                         </ng-template>
@@ -264,7 +265,7 @@ import { environment } from '@/environments/environment';
             </div>
             <ng-template #footer>
                 <p-button label="Cancel" icon="pi pi-times" text (onClick)="sitemapDialog = false" />
-                <p-button label="Save" icon="pi pi-check" (onClick)="saveSitemap()" />
+                <p-button label="Save" icon="pi pi-check" (onClick)="saveSitemap()" [loading]="savingSitemap" />
             </ng-template>
         </p-dialog>
 
@@ -349,6 +350,9 @@ export class SettingsPage implements OnInit {
     sitemapList: Sitemap[] = [];
     sitemapDialog = false;
     sitemap: Sitemap = { url_path: '', changefreq: 'monthly', priority: '0.5', is_active: true };
+    loadingSitemap = false;
+    savingSitemap = false;
+    selectedSitemap: Sitemap | null = null;
     freqOptions = ['always', 'hourly', 'daily', 'weekly', 'monthly', 'yearly', 'never'];
     priorityOptions = ['1.0', '0.9', '0.8', '0.7', '0.6', '0.5', '0.4', '0.3', '0.2', '0.1', '0.0'];
 
@@ -465,9 +469,16 @@ export class SettingsPage implements OnInit {
 
     // ---- Sitemap ----
     loadSitemap() {
+        this.loadingSitemap = true;
         this.api.getSitemapList().subscribe({
-            next: (data) => this.sitemapList = data,
-            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load sitemap entries' })
+            next: (data) => {
+                this.sitemapList = data;
+                this.loadingSitemap = false;
+            },
+            error: () => {
+                this.loadingSitemap = false;
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load sitemap entries' })
+            }
         });
     }
 
@@ -490,21 +501,28 @@ export class SettingsPage implements OnInit {
             this.messageService.add({ severity: 'error', summary: 'Error', detail: 'URL path is required' });
             return;
         }
+        this.savingSitemap = true;
         const request = this.sitemap.id
             ? this.api.updateSitemap(this.sitemap.id, this.sitemap)
             : this.api.createSitemap(this.sitemap);
         request.subscribe({
             next: () => {
+                this.savingSitemap = false;
                 this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Sitemap entry saved', life: 3000 });
                 this.sitemapDialog = false;
                 this.loadSitemap();
             },
-            error: (err) => this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to save sitemap entry' })
+            error: (err) => {
+                this.savingSitemap = false;
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to save sitemap entry' })
+            }
         });
     }
 
     deleteSitemap(item: Sitemap) {
         if (!item.id) return;
+        this.selectedSitemap = item;
+        this.savingSitemap = true;
         this.confirmationService.confirm({
             message: 'Are you sure you want to delete this sitemap entry?',
             header: 'Confirm Delete',
@@ -512,11 +530,21 @@ export class SettingsPage implements OnInit {
             accept: () => {
                 this.api.deleteSitemap(item.id!).subscribe({
                     next: () => {
+                        this.savingSitemap = false;
+                        this.selectedSitemap = null;
                         this.messageService.add({ severity: 'success', summary: 'Deleted', detail: 'Sitemap entry deleted', life: 3000 });
                         this.loadSitemap();
                     },
-                    error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete sitemap entry' })
+                    error: () => {
+                        this.savingSitemap = false;
+                        this.selectedSitemap = null;
+                        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete sitemap entry' })
+                    }
                 });
+            },
+            reject: () => {
+                this.savingSitemap = false;
+                this.selectedSitemap = null;
             }
         });
     }

@@ -37,7 +37,7 @@ import { ConfirmationService } from 'primeng/api';
                 [tableStyle]="{ 'min-width': '75rem' }">
                 <ng-template #header>
                     <tr>
-                        <th>ID</th>
+                        <th>Order</th>
                         <th>Icon</th>
                         <th>Title</th>
                         <th>Description</th>
@@ -46,7 +46,7 @@ import { ConfirmationService } from 'primeng/api';
                 </ng-template>
                 <ng-template #body let-item>
                     <tr>
-                        <td>{{item.id}}</td>
+                        <td>{{item.sort_order}}</td>
                         <td><i class="pi pi-{{item.icon}} text-primary text-xl"></i></td>
                         <td>{{item.title}}</td>
                         <td>{{item.description}}</td>

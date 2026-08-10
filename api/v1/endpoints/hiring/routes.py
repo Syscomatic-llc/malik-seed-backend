@@ -190,7 +190,15 @@ def get_position_assessment(position_id: int, db: Session = Depends(get_db)):
             "mcq_questions": [],
             "short_answer_questions": [],
             "long_answer_questions": [],
-            "duration": 0
+            "mcq_count": 0,
+            "short_answer_count": 0,
+            "long_answer_count": 0,
+            "total_questions": 0,
+            "mcq_duration": 0,
+            "short_answer_duration": 0,
+            "long_answer_duration": 0,
+            "duration": 0,
+            "passing_score": position.passing_score
         }
 
     # Get all questions grouped by type
@@ -220,7 +228,9 @@ def get_position_assessment(position_id: int, db: Session = Depends(get_db)):
             long_answer_questions.append(q_safe)
 
     def section_duration(minutes):
-        return minutes if minutes is not None else (position.assessment_duration or 0)
+        return minutes if minutes is not None else 0
+
+    long_answer_count = len(long_answer_questions)
 
     return {
         "position_id": position_id,
@@ -230,11 +240,11 @@ def get_position_assessment(position_id: int, db: Session = Depends(get_db)):
         "long_answer_questions": long_answer_questions,
         "mcq_count": len(mcq_questions),
         "short_answer_count": len(short_answer_questions),
-        "long_answer_count": len(long_answer_questions),
+        "long_answer_count": long_answer_count,
         "total_questions": len(all_questions),
         "mcq_duration": section_duration(position.mcq_duration),
         "short_answer_duration": section_duration(position.short_answer_duration),
-        "long_answer_duration": section_duration(position.long_answer_duration),
+        "long_answer_duration": section_duration(position.long_answer_duration) if long_answer_count > 0 else 0,
         "duration": position.assessment_duration,
         "passing_score": position.passing_score
     }

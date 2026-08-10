@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MalikApiService, HomepageTimeline } from '@/app/services/malik-api.service';
 import { ImageUpload } from '@/app/components/image-upload';
-import { ImageGalleryUpload } from '@/app/components/image-gallery-upload';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
@@ -14,7 +13,6 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { ToolbarModule } from 'primeng/toolbar';
-import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TagModule } from 'primeng/tag';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
@@ -25,8 +23,7 @@ import { ConfirmationService } from 'primeng/api';
     imports: [
         CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
         DialogModule, InputTextModule, TextareaModule, InputNumberModule,
-        ToastModule, ToolbarModule, ToggleSwitchModule, TagModule,
-        ConfirmDialogModule, ImageUpload, ImageGalleryUpload
+        ToastModule, ToolbarModule, TagModule, ConfirmDialogModule, ImageUpload
     ],
     providers: [MessageService, ConfirmationService],
     template: `
@@ -39,30 +36,27 @@ import { ConfirmationService } from 'primeng/api';
                 </ng-template>
             </p-toolbar>
 
-            <p-table [value]="timeline()" [rows]="10" [paginator]="true"
-                [tableStyle]="{ 'min-width': '75rem' }">
+            <p-table [value]="timeline()" (onRowReorder)="onRowReorder($event)"
+                [rows]="100" [tableStyle]="{ 'min-width': '60rem' }">
                 <ng-template #header>
                     <tr>
-                        <th>ID</th>
+                        <th style="width: 3rem"></th>
+                        <th>Order</th>
                         <th>Year</th>
                         <th>Title</th>
                         <th>Description</th>
-                        <th>Milestone</th>
-                        <th>Order</th>
                         <th>Actions</th>
                     </tr>
                 </ng-template>
-                <ng-template #body let-item>
-                    <tr>
-                        <td>{{item.id}}</td>
-                        <td><span class="font-bold text-primary">{{item.year}}</span></td>
+                <ng-template #body let-item let-i="rowIndex">
+                    <tr [pReorderableRow]="i">
+                        <td>
+                            <span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span>
+                        </td>
+                        <td><span class="font-bold text-primary">{{item.sort_order}}</span></td>
+                        <td>{{item.year}}</td>
                         <td>{{item.title}}</td>
                         <td>{{item.description | slice:0:60}}...</td>
-                        <td>
-                            <p-tag [value]="item.is_milestone ? 'Yes' : 'No'"
-                                [severity]="item.is_milestone ? 'success' : 'secondary'" />
-                        </td>
-                        <td>{{item.sort_order}}</td>
                         <td>
                             <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true"
                                 (onClick)="editItem(item)" />
@@ -77,9 +71,15 @@ import { ConfirmationService } from 'primeng/api';
         <p-dialog [(visible)]="dialog" [style]="{ width: '560px' }" header="Timeline Entry" [modal]="true">
             <ng-template #content>
                 <div class="flex flex-col gap-4">
-                    <div>
-                        <label class="block font-bold mb-2">Year</label>
-                        <input type="text" pInputText [(ngModel)]="item.year" placeholder="e.g. 1969" fluid />
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block font-bold mb-2">Year</label>
+                            <input type="text" pInputText [(ngModel)]="item.year" placeholder="e.g. 1969" fluid />
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-2">Sort Order</label>
+                            <p-inputnumber [(ngModel)]="item.sort_order" [min]="0" fluid />
+                        </div>
                     </div>
                     <div>
                         <label class="block font-bold mb-2">Title</label>
@@ -89,25 +89,9 @@ import { ConfirmationService } from 'primeng/api';
                         <label class="block font-bold mb-2">Description</label>
                         <textarea pTextarea [(ngModel)]="item.description" rows="3" fluid></textarea>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block font-bold mb-2">Sort Order</label>
-                            <p-inputnumber [(ngModel)]="item.sort_order" [min]="0" fluid />
-                        </div>
-                        <div class="flex items-end pb-2">
-                            <div class="flex items-center gap-2">
-                                <label class="font-bold">Milestone</label>
-                                <p-toggleSwitch [(ngModel)]="item.is_milestone" />
-                            </div>
-                        </div>
-                    </div>
                     <div>
                         <app-image-upload label="Primary Image" folder="homepage"
                             [(currentImage)]="item.image_url" />
-                    </div>
-                    <div>
-                        <app-image-gallery-upload label="Gallery Images" folder="homepage"
-                            [(images)]="galleryImages" />
                     </div>
                 </div>
             </ng-template>
@@ -122,7 +106,6 @@ export class TimelinePage implements OnInit {
     timeline = signal<HomepageTimeline[]>([]);
     dialog = false;
     item: HomepageTimeline = { year: '', title: '' };
-    galleryImages: string[] = [];
     saving = false;
 
     constructor(
@@ -144,13 +127,11 @@ export class TimelinePage implements OnInit {
 
     openNew() {
         this.item = { year: '', title: '', is_milestone: false, sort_order: 0 };
-        this.galleryImages = [];
         this.dialog = true;
     }
 
     editItem(t: HomepageTimeline) {
         this.item = { ...t };
-        this.galleryImages = this.parseJsonArray(t.gallery_images);
         this.dialog = true;
     }
 
@@ -161,7 +142,7 @@ export class TimelinePage implements OnInit {
     saveItem() {
         if (!this.item.year?.trim() || !this.item.title?.trim()) return;
         this.saving = true;
-        const data = { ...this.item, gallery_images: this.galleryImages };
+        const data = { ...this.item, gallery_images: [] };
         const request = data.id
             ? this.api.adminUpdate('homepage-timeline', data.id, data)
             : this.api.adminCreate('homepage-timeline', data);
@@ -200,14 +181,17 @@ export class TimelinePage implements OnInit {
         });
     }
 
-    private parseJsonArray(value: any): string[] {
-        if (!value) return [];
-        if (Array.isArray(value)) return value;
-        try {
-            const parsed = JSON.parse(value);
-            return Array.isArray(parsed) ? parsed : [];
-        } catch (e) {
-            return [];
-        }
+    onRowReorder(event: any) {
+        const order = this.timeline().map(t => t.id!).filter(id => id !== undefined);
+        if (!order.length) return;
+        this.api.reorderHomepageTimeline(order).subscribe({
+            next: () => {
+                this.messageService.add({ severity: 'success', summary: 'Reordered', detail: 'Timeline order saved', life: 2000 });
+            },
+            error: (err) => {
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to reorder timeline' });
+                this.loadTimeline();
+            }
+        });
     }
 }

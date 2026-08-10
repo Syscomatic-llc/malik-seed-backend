@@ -38,7 +38,7 @@ import { slugify } from '@/app/utils/slugify';
                 [tableStyle]="{ 'min-width': '75rem' }">
                 <ng-template #header>
                     <tr>
-                        <th>ID</th>
+                        <th>Order</th>
                         <th>Name</th>
                         <th>Slug</th>
                         <th>Description</th>
@@ -47,7 +47,7 @@ import { slugify } from '@/app/utils/slugify';
                 </ng-template>
                 <ng-template #body let-item>
                     <tr>
-                        <td>{{item.id}}</td>
+                        <td>{{item.sort_order}}</td>
                         <td>{{item.name}}</td>
                         <td>{{item.slug}}</td>
                         <td>{{item.description}}</td>

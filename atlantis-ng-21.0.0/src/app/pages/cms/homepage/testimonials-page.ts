@@ -9,6 +9,7 @@ import { TableModule } from 'primeng/table';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
+import { InputNumberModule } from 'primeng/inputnumber';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { ToolbarModule } from 'primeng/toolbar';
@@ -22,8 +23,8 @@ import { environment } from '@/environments/environment';
     standalone: true,
     imports: [
         CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
-        DialogModule, InputTextModule, TextareaModule, ToastModule, ToolbarModule,
-        Rating, ConfirmDialogModule, ImageUpload
+        DialogModule, InputTextModule, TextareaModule, InputNumberModule,
+        ToastModule, ToolbarModule, Rating, ConfirmDialogModule, ImageUpload
     ],
     providers: [MessageService, ConfirmationService],
     template: `
@@ -36,11 +37,12 @@ import { environment } from '@/environments/environment';
                 </ng-template>
             </p-toolbar>
 
-            <p-table [value]="testimonials()" [rows]="10" [paginator]="true"
-                [tableStyle]="{ 'min-width': '75rem' }">
+            <p-table [value]="testimonials()" (onRowReorder)="onRowReorder($event)"
+                [rows]="100" [tableStyle]="{ 'min-width': '60rem' }">
                 <ng-template #header>
                     <tr>
-                        <th>ID</th>
+                        <th style="width: 3rem"></th>
+                        <th>Order</th>
                         <th>Avatar</th>
                         <th>Name</th>
                         <th>Designation</th>
@@ -49,9 +51,12 @@ import { environment } from '@/environments/environment';
                         <th>Actions</th>
                     </tr>
                 </ng-template>
-                <ng-template #body let-item>
-                    <tr>
-                        <td>{{item.id}}</td>
+                <ng-template #body let-item let-i="rowIndex">
+                    <tr [pReorderableRow]="i">
+                        <td>
+                            <span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span>
+                        </td>
+                        <td><span class="font-bold text-primary">{{item.sort_order}}</span></td>
                         <td>
                             <img *ngIf="item.avatar_url" [src]="mediaBaseUrl + item.avatar_url"
                                 alt="{{item.name}}" class="w-10 h-10 rounded-full object-cover" />
@@ -77,9 +82,15 @@ import { environment } from '@/environments/environment';
         <p-dialog [(visible)]="dialog" [style]="{ width: '500px' }" header="Testimonial Details" [modal]="true">
             <ng-template #content>
                 <div class="flex flex-col gap-4">
-                    <div>
-                        <label class="block font-bold mb-2">Name</label>
-                        <input type="text" pInputText [(ngModel)]="testimonial.name" fluid />
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block font-bold mb-2">Name</label>
+                            <input type="text" pInputText [(ngModel)]="testimonial.name" fluid />
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-2">Sort Order</label>
+                            <p-inputnumber [(ngModel)]="testimonial.sort_order" [min]="0" fluid />
+                        </div>
                     </div>
                     <div>
                         <label class="block font-bold mb-2">Designation</label>
@@ -186,6 +197,20 @@ export class TestimonialsPage implements OnInit {
                         this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to delete testimonial' });
                     }
                 });
+            }
+        });
+    }
+
+    onRowReorder(event: any) {
+        const order = this.testimonials().map(t => t.id!).filter(id => id !== undefined);
+        if (!order.length) return;
+        this.api.reorderHomepageTestimonials(order).subscribe({
+            next: () => {
+                this.messageService.add({ severity: 'success', summary: 'Reordered', detail: 'Testimonial order saved', life: 2000 });
+            },
+            error: (err) => {
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to reorder testimonials' });
+                this.loadTestimonials();
             }
         });
     }

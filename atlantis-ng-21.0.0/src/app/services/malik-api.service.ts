@@ -225,6 +225,7 @@ export interface HiringTestimonial {
   department?: string;
   content: string;
   avatar_url?: string;
+  sort_order?: number;
 }
 
 export interface HiringPageContent {
@@ -641,6 +642,22 @@ export class MalikApiService {
 
   reorderGalleryItems(order: number[]): Observable<{ status: string }> {
     return this.http.post<{ status: string }>(`${this.apiUrl}/admin/gallery-items/reorder`, order);
+  }
+
+  reorderOurStoryTimeline(order: number[]): Observable<{ status: string }> {
+    return this.http.post<{ status: string }>(`${this.apiUrl}/admin/our-story-timeline/reorder`, order);
+  }
+
+  reorderHomepageTimeline(order: number[]): Observable<{ status: string }> {
+    return this.http.post<{ status: string }>(`${this.apiUrl}/admin/homepage-timeline/reorder`, order);
+  }
+
+  reorderHomepageTestimonials(order: number[]): Observable<{ status: string }> {
+    return this.http.post<{ status: string }>(`${this.apiUrl}/admin/homepage-testimonial/reorder`, order);
+  }
+
+  reorderHiringTestimonials(order: number[]): Observable<{ status: string }> {
+    return this.http.post<{ status: string }>(`${this.apiUrl}/admin/hiring-testimonial/reorder`, order);
   }
 
   // ============ ASSESSMENT QUESTIONS ============

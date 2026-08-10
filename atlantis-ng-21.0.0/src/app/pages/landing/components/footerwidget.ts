@@ -24,7 +24,7 @@ import { Router, RouterModule } from '@angular/router';
                 </a>
 
                 <a class="contact-icons cursor-pointer">
-                    <i class="pi pi-twitter text-gray-700 hover:text-gray-900 mr-4 text-xl!"></i>
+                    <i class="pi pi-linkedin text-gray-700 hover:text-gray-900 mr-4 text-xl!"></i>
                 </a>
             </div>
         </div>

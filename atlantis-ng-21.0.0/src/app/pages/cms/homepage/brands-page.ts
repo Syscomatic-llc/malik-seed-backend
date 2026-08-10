@@ -40,7 +40,7 @@ import { environment } from '@/environments/environment';
                 [tableStyle]="{ 'min-width': '75rem' }">
                 <ng-template #header>
                     <tr>
-                        <th>ID</th>
+                        <th>Order</th>
                         <th>Logo</th>
                         <th>Name</th>
                         <th>Slug</th>
@@ -52,7 +52,7 @@ import { environment } from '@/environments/environment';
                 </ng-template>
                 <ng-template #body let-brand>
                     <tr>
-                        <td>{{brand.id}}</td>
+                        <td>{{brand.sort_order}}</td>
                         <td>
                             <img *ngIf="brand.logo_url" [src]="mediaBaseUrl + brand.logo_url"
                                 alt="{{brand.name}}" class="w-16 h-16 object-contain rounded" />
