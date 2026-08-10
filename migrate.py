@@ -206,6 +206,45 @@ def backfill_resume_upload_fields():
     print("  ✓ Backfilled resume_upload fields from job_applications")
 
 
+def backfill_job_positions_sort_order():
+    if not table_exists("job_positions"):
+        return
+
+    dialect = engine.dialect.name
+    with engine.connect() as conn:
+        if dialect == "postgresql":
+            conn.execute(text(
+                """
+                UPDATE job_positions
+                SET sort_order = sub.rn
+                FROM (
+                    SELECT id, ROW_NUMBER() OVER (ORDER BY created_at, id) AS rn
+                    FROM job_positions
+                ) AS sub
+                WHERE job_positions.id = sub.id
+                  AND job_positions.sort_order IS NULL
+                """
+            ))
+        elif dialect == "sqlite":
+            conn.execute(text(
+                """
+                UPDATE job_positions
+                SET sort_order = (
+                    SELECT COUNT(*) FROM job_positions jp2
+                    WHERE jp2.created_at < job_positions.created_at
+                       OR (jp2.created_at = job_positions.created_at AND jp2.id <= job_positions.id)
+                )
+                WHERE sort_order IS NULL
+                """
+            ))
+        else:
+            print(f"  ~ Skipped job_positions sort_order backfill for dialect: {dialect}")
+            return
+        conn.commit()
+
+    print("  ✓ Backfilled job_positions.sort_order")
+
+
 def main():
     print("Running migrations...")
 
@@ -252,6 +291,8 @@ def main():
     add_column("job_positions", "mcq_duration", "INTEGER")
     add_column("job_positions", "short_answer_duration", "INTEGER")
     add_column("job_positions", "long_answer_duration", "INTEGER")
+    add_column("job_positions", "sort_order", "INTEGER")
+    backfill_job_positions_sort_order()
 
     # Resume uploads new metadata fields
     add_column("resume_uploads", "resume_type", "VARCHAR(50)")

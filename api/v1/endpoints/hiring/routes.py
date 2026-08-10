@@ -36,6 +36,79 @@ def get_current_user(token: str, db: Session):
     return user
 
 
+# ============== ASSESSMENT SCORING HELPERS ==============
+
+def _option_prefix(text):
+    m = re.match(r'^([A-Za-z0-9]+)[\.\)]', str(text or ''))
+    return m.group(1).lower() if m else None
+
+
+def _option_body(text):
+    return re.sub(r'^[A-Za-z0-9]+[\.\)]\s*', '', str(text or '')).strip().lower()
+
+
+def _resolve_correct_option(correct, options):
+    """Return the full option text that `correct` refers to, or `correct` itself."""
+    if correct is None:
+        return correct
+    correct = str(correct).strip()
+    correct_lower = correct.lower()
+    if not options:
+        return correct
+    # Exact full match
+    for opt in options:
+        if opt.strip().lower() == correct_lower:
+            return opt
+    # Prefix match (e.g. correct='C' matches 'C. Become a Tester')
+    for opt in options:
+        prefix = _option_prefix(opt)
+        if prefix and prefix == correct_lower:
+            return opt
+    return correct
+
+
+def _normalize_answer(answer, options):
+    """Convert numeric indexes to option text; otherwise return the answer as a string."""
+    if answer is None:
+        return None
+    if options and isinstance(answer, (int, str)) and str(answer).isdigit():
+        idx = int(answer)
+        if 0 <= idx < len(options):
+            return str(options[idx]).strip()
+    return str(answer).strip()
+
+
+def _answers_match(target, answer):
+    """Compare a correct answer (full option text or bare prefix) with an applicant answer."""
+    if answer is None:
+        return False
+    target = str(target or '').strip()
+    answer = str(answer).strip()
+    if not target or not answer:
+        return False
+    target_lower = target.lower()
+    answer_lower = answer.lower()
+    if target_lower == answer_lower:
+        return True
+
+    target_prefix = _option_prefix(target)
+    answer_prefix = _option_prefix(answer)
+    target_body = _option_body(target)
+    answer_body = _option_body(answer)
+
+    if target_prefix and answer_prefix and target_prefix == answer_prefix:
+        return True
+    if target_body and answer_body and target_body == answer_body:
+        return True
+    # Allow bare prefix as a correct answer (e.g. target='C. ...' and answer='C')
+    if target_prefix and answer_lower == target_prefix:
+        return True
+    # Allow bare prefix in correct_answer matching full answer text
+    if answer_prefix and target_lower == answer_prefix:
+        return True
+    return False
+
+
 # ============== PUBLIC ENDPOINTS ==============
 
 # Job Positions
@@ -54,7 +127,7 @@ def get_job_positions(
         query = query.filter(JobPosition.location == location)
     if job_type:
         query = query.filter(JobPosition.job_type == job_type)
-    positions = query.order_by(JobPosition.created_at.desc()).all()
+    positions = query.order_by(JobPosition.sort_order.asc(), JobPosition.created_at.desc()).all()
     return positions
 
 
@@ -160,7 +233,7 @@ def get_all_hiring_content(db: Session = Depends(get_db)):
     return {
         "positions": db.query(JobPosition).filter(
             JobPosition.is_active == True
-        ).order_by(JobPosition.created_at.desc()).all(),
+        ).order_by(JobPosition.sort_order.asc(), JobPosition.created_at.desc()).all(),
         "benefits": db.query(CareerBenefit).filter(
             CareerBenefit.is_active == True
         ).order_by(CareerBenefit.sort_order).all(),
@@ -703,39 +776,6 @@ def submit_assessment(
     if not questions:
         raise HTTPException(status_code=400, detail="No assessment questions found for this position")
 
-    def _option_prefix(text):
-        m = re.match(r'^([A-Za-z0-9]+)[\.\)]', str(text or ''))
-        return m.group(1).lower() if m else None
-
-    def _option_body(text):
-        return re.sub(r'^[A-Za-z0-9]+[\.\)]\s*', '', str(text or '')).strip().lower()
-
-    def _normalize_answer(answer, options):
-        if answer is None:
-            return None
-        if options and isinstance(answer, (int, str)) and str(answer).isdigit():
-            idx = int(answer)
-            if 0 <= idx < len(options):
-                return str(options[idx]).strip()
-        return str(answer).strip()
-
-    def _resolve_correct_option(correct, options):
-        """Return the full option text that `correct` refers to, or `correct` itself."""
-        if not options or correct is None:
-            return correct
-        correct = str(correct).strip()
-        correct_lower = correct.lower()
-        # Exact full match
-        for opt in options:
-            if opt.strip().lower() == correct_lower:
-                return opt
-        # Prefix match (e.g. correct='C' matches 'C. Become a Tester')
-        for opt in options:
-            prefix = _option_prefix(opt)
-            if prefix and prefix == correct_lower:
-                return opt
-        return correct
-
     answers = payload.answers or {}
 
     total_marks = 0
@@ -751,16 +791,7 @@ def submit_assessment(
         if q.question_type == "mcq" and q.correct_answer is not None:
             total_marks += q.marks or 0
             target = _resolve_correct_option(q.correct_answer, q.options or [])
-            target_prefix = _option_prefix(target)
-            target_body = _option_body(target)
-            answer_prefix = _option_prefix(normalized_answer)
-            answer_body = _option_body(normalized_answer)
-
-            if normalized_answer and (
-                (target_prefix and answer_prefix and target_prefix == answer_prefix) or
-                (target_body and answer_body and target_body == answer_body) or
-                str(target).strip().lower() == normalized_answer.lower()
-            ):
+            if _answers_match(target, normalized_answer):
                 is_correct = True
                 q_earned = q.marks or 0
                 earned_marks += q_earned
@@ -770,8 +801,7 @@ def submit_assessment(
         elif q.correct_answer is not None:
             # Short/long answer with a model correct answer
             total_marks += q.marks or 0
-            correct = str(q.correct_answer).strip().lower()
-            if normalized_answer and normalized_answer.lower() == correct:
+            if _answers_match(q.correct_answer, normalized_answer):
                 is_correct = True
                 q_earned = q.marks or 0
                 earned_marks += q_earned
@@ -840,27 +870,6 @@ def get_assessment_result(
         AssessmentQuestion.is_active == True
     ).order_by(AssessmentQuestion.sort_order).all()
 
-    def _option_prefix(text):
-        m = re.match(r'^([A-Za-z0-9]+)[\.\)]', str(text or ''))
-        return m.group(1).lower() if m else None
-
-    def _option_body(text):
-        return re.sub(r'^[A-Za-z0-9]+[\.\)]\s*', '', str(text or '')).strip().lower()
-
-    def _resolve_correct_option(correct, options):
-        if not options or correct is None:
-            return correct
-        correct = str(correct).strip()
-        correct_lower = correct.lower()
-        for opt in options:
-            if opt.strip().lower() == correct_lower:
-                return opt
-        for opt in options:
-            prefix = _option_prefix(opt)
-            if prefix and prefix == correct_lower:
-                return opt
-        return correct
-
     answers = application.assessment_answers or {}
     total_marks = 0
     earned_marks = 0
@@ -868,22 +877,23 @@ def get_assessment_result(
 
     for q in questions:
         applicant_answer = answers.get(str(q.id))
+        normalized_answer = _normalize_answer(applicant_answer, q.options or [])
         is_correct = None
         q_earned = None
 
         if q.question_type == "mcq" and q.correct_answer is not None:
             total_marks += q.marks or 0
             target = _resolve_correct_option(q.correct_answer, q.options or [])
-            target_prefix = _option_prefix(target)
-            target_body = _option_body(target)
-            answer_prefix = _option_prefix(applicant_answer)
-            answer_body = _option_body(applicant_answer)
-
-            if applicant_answer is not None and (
-                (target_prefix and answer_prefix and target_prefix == answer_prefix) or
-                (target_body and answer_body and target_body == answer_body) or
-                str(target).strip().lower() == str(applicant_answer).strip().lower()
-            ):
+            if _answers_match(target, normalized_answer):
+                is_correct = True
+                q_earned = q.marks or 0
+                earned_marks += q_earned
+            else:
+                is_correct = False
+                q_earned = 0
+        elif q.correct_answer is not None:
+            total_marks += q.marks or 0
+            if _answers_match(q.correct_answer, normalized_answer):
                 is_correct = True
                 q_earned = q.marks or 0
                 earned_marks += q_earned
@@ -897,7 +907,7 @@ def get_assessment_result(
             "question": q.question,
             "options": q.options,
             "correct_answer": q.correct_answer,
-            "applicant_answer": applicant_answer,
+            "applicant_answer": normalized_answer,
             "marks": q.marks or 0,
             "earned_marks": q_earned,
             "is_correct": is_correct,

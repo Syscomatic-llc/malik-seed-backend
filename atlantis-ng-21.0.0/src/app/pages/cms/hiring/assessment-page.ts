@@ -42,12 +42,7 @@ const QUESTION_TYPES = [
                     <p-button label="Back to Positions" icon="pi pi-arrow-left" class="mr-2" routerLink="/cms/hiring/positions" />
                     <p-button label="New Question" icon="pi pi-plus" severity="success" class="mr-2" (onClick)="openNew()" />
                 </ng-template>
-                <ng-template #end>
-                    <p-select [options]="typeFilterOptions()" [ngModel]="selectedTypeFilter()"
-                        (ngModelChange)="selectedTypeFilter.set($event)"
-                        optionLabel="label" optionValue="value" placeholder="Filter by Type"
-                        styleClass="w-64" appendTo="body" />
-                </ng-template>
+
             </p-toolbar>
 
             <p-card [header]="'Assessment Questions: ' + positionTitle()">
@@ -87,10 +82,12 @@ const QUESTION_TYPES = [
                     <span class="text-xs text-muted-color">Minimum score (percentage) required to pass the exam</span>
                 </div>
 
-                <p-table [value]="filteredQuestions()" [rows]="10" [paginator]="true"
+                <p-table [value]="questions()" [rows]="10" [paginator]="true"
+                    (onRowReorder)="onRowReorder($event)"
                     [tableStyle]="{ 'min-width': '75rem' }">
                     <ng-template #header>
                         <tr>
+                            <th style="width: 3rem"></th>
                             <th>Order</th>
                             <th>Type</th>
                             <th>Category</th>
@@ -101,9 +98,10 @@ const QUESTION_TYPES = [
                             <th>Actions</th>
                         </tr>
                     </ng-template>
-                    <ng-template #body let-q>
-                        <tr>
-                            <td>{{q.sort_order}}</td>
+                    <ng-template #body let-q let-index="rowIndex">
+                        <tr [pReorderableRow]="index">
+                            <td><span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span></td>
+                            <td><span class="font-bold text-primary">{{index + 1}}</span></td>
                             <td><p-tag [value]="q.question_type" [severity]="getTypeSeverity(q.question_type)" /></td>
                             <td>{{q.category || '-'}}</td>
                             <td>{{q.question | slice:0:60}}...</td>
@@ -195,7 +193,6 @@ export class AssessmentPage implements OnInit {
     positionId = signal<number>(0);
     positionTitle = signal<string>('');
     questions = signal<any[]>([]);
-    selectedTypeFilter = signal<string>('');
     mcqDuration: number | null = 0;
     shortAnswerDuration: number | null = 0;
     longAnswerDuration: number | null = 0;
@@ -214,17 +211,6 @@ export class AssessmentPage implements OnInit {
             [{ list: 'ordered' }, { list: 'bullet' }]
         ]
     };
-
-    typeFilterOptions = computed(() => [
-        { label: 'All Types', value: '' },
-        ...QUESTION_TYPES
-    ]);
-
-    filteredQuestions = computed(() => {
-        const type = this.selectedTypeFilter();
-        if (!type) return this.questions();
-        return this.questions().filter(q => q.question_type === type);
-    });
 
     hasShortAnswerQuestions = computed(() => this.questions().some(q => q.question_type === 'short_answer'));
     hasLongAnswerQuestions = computed(() => this.questions().some(q => q.question_type === 'long_answer'));
@@ -379,6 +365,20 @@ export class AssessmentPage implements OnInit {
                         this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to delete question' });
                     }
                 });
+            }
+        });
+    }
+
+    onRowReorder(event: any) {
+        const order = this.questions().map(q => q.id).filter(id => id !== undefined);
+        if (!order.length) return;
+        this.api.reorderAssessmentQuestions(this.positionId(), order).subscribe({
+            next: () => {
+                this.messageService.add({ severity: 'success', summary: 'Reordered', detail: 'Question order saved', life: 3000 });
+            },
+            error: (err) => {
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to save question order' });
+                this.loadQuestions();
             }
         });
     }

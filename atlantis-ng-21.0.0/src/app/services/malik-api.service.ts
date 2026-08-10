@@ -209,6 +209,7 @@ export interface JobPosition {
   short_answer_duration?: number;
   long_answer_duration?: number;
   passing_score?: number;
+  sort_order?: number;
 }
 
 export interface CareerBenefit {
@@ -758,6 +759,10 @@ export class MalikApiService {
     return this.http.post<{ status: string }>(`${this.apiUrl}/admin/hiring-testimonial/reorder`, order);
   }
 
+  reorderJobPositions(order: number[]): Observable<{ status: string }> {
+    return this.http.post<{ status: string }>(`${this.apiUrl}/admin/job-position/reorder`, order);
+  }
+
   // ============ ASSESSMENT QUESTIONS ============
   getAssessmentQuestions(positionId: number): Observable<{ position_id: number; position_title: string; questions: any[] }> {
     return this.http.get<any>(`${this.apiUrl}/admin/hiring/positions/${positionId}/questions`);
@@ -773,6 +778,10 @@ export class MalikApiService {
 
   deleteAssessmentQuestion(positionId: number, questionId: number): Observable<any> {
     return this.http.delete<any>(`${this.apiUrl}/admin/hiring/positions/${positionId}/questions/${questionId}`);
+  }
+
+  reorderAssessmentQuestions(positionId: number, order: number[]): Observable<{ status: string }> {
+    return this.http.post<{ status: string }>(`${this.apiUrl}/admin/hiring/positions/${positionId}/questions/reorder`, order);
   }
 
   // ============ ASSESSMENT SUBMISSIONS ============

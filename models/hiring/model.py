@@ -85,6 +85,9 @@ class JobPosition(Base):
     short_answer_duration = Column(Integer, nullable=True)
     long_answer_duration = Column(Integer, nullable=True)
 
+    # Ordering
+    sort_order = Column(Integer, default=0)
+
     # Status
     is_active = Column(Boolean, default=True)
     is_featured = Column(Boolean, default=False)

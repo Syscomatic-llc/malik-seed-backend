@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MalikApiService, ResumeUpload } from '@/app/services/malik-api.service';
@@ -30,7 +30,6 @@ import { environment } from '@/environments/environment';
             <p-toolbar styleClass="mb-4">
                 <ng-template #start>
                     <h5 class="m-0 mr-4">General Resumes</h5>
-                    <input type="text" pInputText [(ngModel)]="filterText" placeholder="Search file..." class="w-64" />
                 </ng-template>
                 <ng-template #end>
                     <p-button label="Bulk Delete" icon="pi pi-trash" severity="danger" class="mr-2"
@@ -40,7 +39,7 @@ import { environment } from '@/environments/environment';
                 </ng-template>
             </p-toolbar>
 
-            <p-table [value]="filteredResumes()" [rows]="10" [paginator]="true"
+            <p-table [value]="resumes()" [rows]="10" [paginator]="true"
                 [selection]="selectedResumes()" (selectionChange)="selectedResumes.set($event)"
                 dataKey="id" [tableStyle]="{ 'min-width': '75rem' }">
                 <ng-template #header>
@@ -82,17 +81,8 @@ import { environment } from '@/environments/environment';
 export class GeneralResumesPage implements OnInit {
     resumes = signal<ResumeUpload[]>([]);
     selectedResumes = signal<ResumeUpload[]>([]);
-    filterText = signal<string>('');
     mediaBaseUrl = environment.mediaBaseUrl;
     resumeType = 'general';
-
-    filteredResumes = computed(() => {
-        const text = this.filterText().toLowerCase().trim();
-        if (!text) return this.resumes();
-        return this.resumes().filter(r =>
-            (r.filename || '').toLowerCase().includes(text)
-        );
-    });
 
     constructor(
         private api: MalikApiService,

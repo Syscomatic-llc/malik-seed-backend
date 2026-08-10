@@ -54,6 +54,78 @@ router = APIRouter(dependencies=[Depends(require_admin)])
 UPLOAD_DIR = get_upload_directory()
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+
+# ============== ASSESSMENT SCORING HELPERS ==============
+
+def _option_prefix(text):
+    m = re.match(r'^([A-Za-z0-9]+)[\.\)]', str(text or ''))
+    return m.group(1).lower() if m else None
+
+
+def _option_body(text):
+    return re.sub(r'^[A-Za-z0-9]+[\.\)]\s*', '', str(text or '')).strip().lower()
+
+
+def _resolve_correct_option(correct, options):
+    """Return the full option text that `correct` refers to, or `correct` itself."""
+    if correct is None:
+        return correct
+    correct = str(correct).strip()
+    correct_lower = correct.lower()
+    if not options:
+        return correct
+    # Exact full match
+    for opt in options:
+        if opt.strip().lower() == correct_lower:
+            return opt
+    # Prefix match (e.g. correct='C' matches 'C. Become a Tester')
+    for opt in options:
+        prefix = _option_prefix(opt)
+        if prefix and prefix == correct_lower:
+            return opt
+    return correct
+
+
+def _normalize_answer(answer, options):
+    """Convert numeric indexes to option text; otherwise return the answer as a string."""
+    if answer is None:
+        return None
+    if options and isinstance(answer, (int, str)) and str(answer).isdigit():
+        idx = int(answer)
+        if 0 <= idx < len(options):
+            return str(options[idx]).strip()
+    return str(answer).strip()
+
+
+def _answers_match(target, answer):
+    """Compare a correct answer (full option text or bare prefix) with an applicant answer."""
+    if answer is None:
+        return False
+    target = str(target or '').strip()
+    answer = str(answer).strip()
+    if not target or not answer:
+        return False
+    target_lower = target.lower()
+    answer_lower = answer.lower()
+    if target_lower == answer_lower:
+        return True
+
+    target_prefix = _option_prefix(target)
+    answer_prefix = _option_prefix(answer)
+    target_body = _option_body(target)
+    answer_body = _option_body(answer)
+
+    if target_prefix and answer_prefix and target_prefix == answer_prefix:
+        return True
+    if target_body and answer_body and target_body == answer_body:
+        return True
+    # Allow bare prefix as a correct answer (e.g. target='C. ...' and answer='C')
+    if target_prefix and answer_lower == target_prefix:
+        return True
+    if answer_prefix and target_lower == answer_prefix:
+        return True
+    return False
+
 # Registry mapping resource name -> (ModelClass, single_record)
 # single_record=True means only one record expected (e.g. About, ContactInfo)
 MODEL_REGISTRY: Dict[str, tuple] = {
@@ -354,27 +426,6 @@ def get_assessment_submission_detail(
         AssessmentQuestion.position_id == application.position_id
     ).order_by(AssessmentQuestion.sort_order).all()
 
-    def _option_prefix(text):
-        m = re.match(r'^([A-Za-z0-9]+)[\.\)]', str(text or ''))
-        return m.group(1).lower() if m else None
-
-    def _option_body(text):
-        return re.sub(r'^[A-Za-z0-9]+[\.\)]\s*', '', str(text or '')).strip().lower()
-
-    def _resolve_correct_option(correct, options):
-        if not options or correct is None:
-            return correct
-        correct = str(correct).strip()
-        correct_lower = correct.lower()
-        for opt in options:
-            if opt.strip().lower() == correct_lower:
-                return opt
-        for opt in options:
-            prefix = _option_prefix(opt)
-            if prefix and prefix == correct_lower:
-                return opt
-        return correct
-
     answers = application.assessment_answers or {}
 
     total_marks = 0
@@ -382,22 +433,23 @@ def get_assessment_submission_detail(
     question_details = []
     for q in questions:
         applicant_answer = answers.get(str(q.id))
+        normalized_answer = _normalize_answer(applicant_answer, q.options or [])
         is_correct = None
         q_earned = None
 
         if q.question_type == "mcq" and q.correct_answer is not None:
             total_marks += q.marks or 0
             target = _resolve_correct_option(q.correct_answer, q.options or [])
-            target_prefix = _option_prefix(target)
-            target_body = _option_body(target)
-            answer_prefix = _option_prefix(applicant_answer)
-            answer_body = _option_body(applicant_answer)
-
-            if applicant_answer is not None and (
-                (target_prefix and answer_prefix and target_prefix == answer_prefix) or
-                (target_body and answer_body and target_body == answer_body) or
-                str(target).strip().lower() == str(applicant_answer).strip().lower()
-            ):
+            if _answers_match(target, normalized_answer):
+                is_correct = True
+                q_earned = q.marks or 0
+                earned_marks += q_earned
+            else:
+                is_correct = False
+                q_earned = 0
+        elif q.correct_answer is not None:
+            total_marks += q.marks or 0
+            if _answers_match(q.correct_answer, normalized_answer):
                 is_correct = True
                 q_earned = q.marks or 0
                 earned_marks += q_earned
@@ -411,7 +463,7 @@ def get_assessment_submission_detail(
             "question": q.question,
             "options": q.options,
             "correct_answer": q.correct_answer,
-            "applicant_answer": applicant_answer,
+            "applicant_answer": normalized_answer,
             "marks": q.marks or 0,
             "earned_marks": q_earned,
             "is_correct": is_correct,
@@ -603,6 +655,12 @@ def create_item(resource: str, data: Dict[str, Any], db: Session = Depends(get_d
             return {"status": "success", "id": existing.id, "data": _model_to_dict(existing)}
 
     item = model_class()
+
+    # Auto-assign sort_order for new job positions if not provided
+    if resource == "job-position" and "sort_order" not in data:
+        max_order = db.query(model_class.sort_order).order_by(model_class.sort_order.desc()).first()
+        data["sort_order"] = (max_order[0] if max_order else 0) + 1
+
     _apply_data(item, data)
     db.add(item)
     db.commit()
@@ -932,4 +990,20 @@ def delete_assessment_question(position_id: int, question_id: int, db: Session =
     db.delete(question)
     db.commit()
     return {"status": "success", "message": "Question deleted"}
+
+
+@router.post("/hiring/positions/{position_id}/questions/reorder")
+def reorder_assessment_questions(position_id: int, order: List[int], db: Session = Depends(get_db)):
+    """Update assessment question sort_order based on provided ordered id list."""
+    position = db.query(JobPosition).filter(JobPosition.id == position_id).first()
+    if not position:
+        raise HTTPException(status_code=404, detail="Position not found")
+
+    for idx, question_id in enumerate(order):
+        db.query(AssessmentQuestion).filter(
+            AssessmentQuestion.id == question_id,
+            AssessmentQuestion.position_id == position_id
+        ).update({"sort_order": idx})
+    db.commit()
+    return {"status": "success"}
 

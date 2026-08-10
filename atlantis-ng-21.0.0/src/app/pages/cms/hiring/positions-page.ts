@@ -72,10 +72,12 @@ const LOCATIONS = [
             </p-toolbar>
 
             <p-table [value]="positions()" [rows]="10" [paginator]="true"
+                (onRowReorder)="onRowReorder($event)"
                 [tableStyle]="{ 'min-width': '75rem' }">
                 <ng-template #header>
                     <tr>
-                        <th>ID</th>
+                        <th style="width: 3rem"></th>
+                        <th>Order</th>
                         <th>Title</th>
                         <th>Department</th>
                         <th>Type</th>
@@ -85,9 +87,10 @@ const LOCATIONS = [
                         <th>Actions</th>
                     </tr>
                 </ng-template>
-                <ng-template #body let-item>
-                    <tr>
-                        <td>{{item.id}}</td>
+                <ng-template #body let-item let-i="rowIndex">
+                    <tr [pReorderableRow]="i">
+                        <td><span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span></td>
+                        <td><span class="font-bold text-primary">{{i + 1}}</span></td>
                         <td>{{item.title}}</td>
                         <td>{{item.department}}</td>
                         <td><p-tag [value]="item.job_type" severity="info" /></td>
@@ -289,6 +292,20 @@ export class PositionsPage implements OnInit {
                         this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to delete position' });
                     }
                 });
+            }
+        });
+    }
+
+    onRowReorder(event: any) {
+        const order = this.positions().map(p => p.id!).filter(id => id !== undefined);
+        if (!order.length) return;
+        this.api.reorderJobPositions(order).subscribe({
+            next: () => {
+                this.messageService.add({ severity: 'success', summary: 'Reordered', detail: 'Job positions order saved', life: 3000 });
+            },
+            error: (err) => {
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to save order' });
+                this.loadPositions();
             }
         });
     }
