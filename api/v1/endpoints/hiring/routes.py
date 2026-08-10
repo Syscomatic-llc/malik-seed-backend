@@ -389,21 +389,26 @@ def _sanitize_filename_part(value: str) -> str:
 @router.post("/upload-cv")
 def upload_cv(
     file: UploadFile = File(...),
+    resume_type: str = Form(...),
+    position_id: Optional[int] = Form(None),
+    applicant_name: Optional[str] = Form(None),
     name: Optional[str] = Form(None),
     email: Optional[str] = Form(None),
     phone: Optional[str] = Form(None),
     position: Optional[str] = Form(None),
     message: Optional[str] = Form(None),
-    resume_type: Optional[str] = Form(None),
-    position_id: Optional[int] = Form(None),
-    applicant_name: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
-    """Public endpoint for uploading a CV/resume with optional position metadata"""
-    allowed_extensions = {".pdf", ".doc", ".docx"}
-    file_ext = os.path.splitext(file.filename)[1].lower()
+    """Public endpoint for uploading a CV/resume.
 
-    if file_ext not in allowed_extensions:
+    - open_position: requires position_id (job position). Only resume PDF is needed.
+    - future_leader: no extra fields needed. Only resume PDF is needed.
+    - general: full applicant details (name, email, phone) are expected.
+    """
+    allowed_extensions = {".pdf", ".doc", ".docx"}
+    file_ext = os.path.splitext(file.filename or "")[1].lower()
+
+    if not file_ext or file_ext not in allowed_extensions:
         raise HTTPException(
             status_code=400,
             detail=f"Invalid file type. Allowed: {', '.join(allowed_extensions)}"
@@ -412,48 +417,51 @@ def upload_cv(
     resumes_dir = os.path.join(UPLOAD_DIR, "resumes")
     os.makedirs(resumes_dir, exist_ok=True)
 
-    # Normalize resume type to lowercase
     normalized_resume_type = (resume_type or "").lower().strip()
-    if normalized_resume_type and normalized_resume_type not in {"open_position", "future_leader", "general"}:
+    if normalized_resume_type not in {"open_position", "future_leader", "general"}:
         raise HTTPException(
             status_code=400,
             detail="Invalid resume_type. Allowed: open_position, future_leader, general"
         )
 
-    # Resolve position name and legacy position field when applicable
+    # Resolve open position details
+    resolved_position_id = None
     resolved_position_name = None
     resolved_position = position
-    if normalized_resume_type == "open_position" and position_id:
+    if normalized_resume_type == "open_position":
+        if not position_id:
+            raise HTTPException(
+                status_code=400,
+                detail="position_id is required for open_position resume uploads"
+            )
         job_position = db.query(JobPosition).filter(JobPosition.id == position_id).first()
-        if job_position:
-            resolved_position_name = job_position.title
-            resolved_position = job_position.title
+        if not job_position:
+            raise HTTPException(status_code=404, detail="Job position not found")
+        resolved_position_id = job_position.id
+        resolved_position_name = job_position.title
+        resolved_position = job_position.title
 
-    # Build the displayed applicant name (fallback to legacy name field)
-    displayed_applicant_name = (applicant_name or name or "Applicant").strip()
+    # Applicant name fallback with timestamp to keep filenames unique
+    effective_name = (applicant_name or name or "").strip()
+    if not effective_name:
+        effective_name = f"Applicant_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
-    # Build human-readable hiring type segment for filename
+    # Human-readable segments
     if normalized_resume_type == "open_position":
         hiring_type = "Open Position"
+        position_segment = resolved_position_name or ""
     elif normalized_resume_type == "future_leader":
         hiring_type = "Future Leader Program"
-    elif normalized_resume_type == "general":
+        position_segment = ""
+    else:  # general
         hiring_type = "General Resume"
-    else:
-        hiring_type = "Resume"
+        position_segment = ""
 
-    # Build position/program segment for filename
-    position_segment = resolved_position_name or resolved_position or ""
-    if normalized_resume_type == "future_leader":
-        position_segment = "Future Leader Program"
-    elif normalized_resume_type == "general":
-        position_segment = "General Resume"
-
-    # Build stored filename: Malik Seeds_{Hiring Type}_{Position/Program}_{Applicant Name} Resume.pdf
+    # Build filename: Malik Seeds_{Hiring Type}_{Position/Program}_{Applicant Name} Resume.pdf
     parts = ["Malik Seeds", hiring_type]
     if position_segment:
         parts.append(position_segment)
-    parts.append(f"{displayed_applicant_name} Resume")
+    parts.append(f"{effective_name} Resume")
 
     filename = "_".join(_sanitize_filename_part(part) for part in parts)
     filename = f"{filename}{file_ext}"
@@ -462,7 +470,7 @@ def upload_cv(
     file_size = 0
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-        file_size = os.path.getsize(file_path)
+    file_size = os.path.getsize(file_path)
 
     upload = ResumeUpload(
         name=name,
@@ -470,8 +478,8 @@ def upload_cv(
         phone=phone,
         position=resolved_position,
         message=message,
-        resume_type=normalized_resume_type or None,
-        position_id=position_id if normalized_resume_type == "open_position" else None,
+        resume_type=normalized_resume_type,
+        position_id=resolved_position_id,
         position_name=resolved_position_name or resolved_position or None,
         applicant_name=applicant_name or name or None,
         filename=filename,
