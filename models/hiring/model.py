@@ -314,6 +314,11 @@ class ResumeUpload(Base):
     file_url = Column(String(500), nullable=False)
     file_size = Column(Integer, nullable=True)
 
+    current_location = Column(String(200), nullable=True)
+    linkedin_url = Column(String(500), nullable=True)
+    portfolio_url = Column(String(500), nullable=True)
+    source = Column(JSON, default=list)
+
     is_reviewed = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

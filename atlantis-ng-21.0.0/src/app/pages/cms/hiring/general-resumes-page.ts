@@ -13,7 +13,6 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { InputTextModule } from 'primeng/inputtext';
-import { SelectModule } from 'primeng/select';
 import { environment } from '@/environments/environment';
 
 @Component({
@@ -21,7 +20,7 @@ import { environment } from '@/environments/environment';
     standalone: true,
     imports: [
         CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
-        ToastModule, ToolbarModule, TagModule, ToggleSwitchModule, ConfirmDialogModule, InputTextModule, SelectModule
+        ToastModule, ToolbarModule, TagModule, ToggleSwitchModule, ConfirmDialogModule, InputTextModule
     ],
     providers: [MessageService, ConfirmationService],
     template: `
@@ -31,11 +30,7 @@ import { environment } from '@/environments/environment';
             <p-toolbar styleClass="mb-4">
                 <ng-template #start>
                     <h5 class="m-0 mr-4">General Resumes</h5>
-                    <input type="text" pInputText [(ngModel)]="filterText" placeholder="Search name, email..." class="w-64 mr-2" />
-                    <p-select [options]="positionOptions()" [(ngModel)]="positionFilter"
-                        (ngModelChange)="positionFilter.set($event)"
-                        optionLabel="label" optionValue="value" placeholder="Filter by position"
-                        styleClass="w-56" appendTo="body" />
+                    <input type="text" pInputText [(ngModel)]="filterText" placeholder="Search file..." class="w-64" />
                 </ng-template>
                 <ng-template #end>
                     <p-button label="Bulk Delete" icon="pi pi-trash" severity="danger" class="mr-2"
@@ -51,9 +46,7 @@ import { environment } from '@/environments/environment';
                 <ng-template #header>
                     <tr>
                         <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Phone</th>
+                        <th>Program</th>
                         <th>File</th>
                         <th>Size</th>
                         <th>Reviewed</th>
@@ -64,11 +57,9 @@ import { environment } from '@/environments/environment';
                 <ng-template #body let-item>
                     <tr>
                         <td><p-tableCheckbox [value]="item" /></td>
-                        <td>{{item.name || item.applicant_name || 'N/A'}}</td>
-                        <td>{{item.email || 'N/A'}}</td>
-                        <td>{{item.phone || 'N/A'}}</td>
+                        <td>General</td>
                         <td>
-                            <a *ngIf="item.file_url" [href]="resolveUrl(item.file_url)" [attr.download]="item.filename" class="text-primary hover:underline">
+                            <a *ngIf="item.file_url" [href]="resolveUrl(item.file_url)" target="_blank" class="text-primary hover:underline">
                                 <i class="pi pi-file-pdf mr-1"></i>{{item.filename}}
                             </a>
                             <span *ngIf="!item.file_url" class="text-muted-color">No file</span>
@@ -92,33 +83,15 @@ export class GeneralResumesPage implements OnInit {
     resumes = signal<ResumeUpload[]>([]);
     selectedResumes = signal<ResumeUpload[]>([]);
     filterText = signal<string>('');
-    positionFilter = signal<string | null>(null);
     mediaBaseUrl = environment.mediaBaseUrl;
     resumeType = 'general';
 
-    positionOptions = computed(() => {
-        const positions = Array.from(new Set(
-            this.resumes()
-                .map(r => r.position)
-                .filter((p): p is string => !!p)
-        )).sort();
-        return [
-            { label: 'All Positions', value: null },
-            ...positions.map(p => ({ label: p, value: p }))
-        ];
-    });
-
     filteredResumes = computed(() => {
         const text = this.filterText().toLowerCase().trim();
-        const position = this.positionFilter();
-        return this.resumes().filter(r => {
-            const matchesText = !text ||
-                (r.name || r.applicant_name || '').toLowerCase().includes(text) ||
-                (r.email || '').toLowerCase().includes(text) ||
-                (r.position || '').toLowerCase().includes(text);
-            const matchesPosition = !position || r.position === position;
-            return matchesText && matchesPosition;
-        });
+        if (!text) return this.resumes();
+        return this.resumes().filter(r =>
+            (r.filename || '').toLowerCase().includes(text)
+        );
     });
 
     constructor(
@@ -151,7 +124,7 @@ export class GeneralResumesPage implements OnInit {
 
     deleteResume(item: ResumeUpload) {
         this.confirmationService.confirm({
-            message: `Delete resume from ${item.name || item.applicant_name || item.email || 'anonymous'}?`,
+            message: `Delete resume file "${item.filename || item.id}"?`,
             header: 'Confirm Delete',
             icon: 'pi pi-exclamation-triangle',
             accept: () => {

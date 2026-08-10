@@ -262,6 +262,10 @@ export interface ResumeUpload {
   position_id?: number;
   position_name?: string;
   applicant_name?: string;
+  current_location?: string;
+  linkedin_url?: string;
+  portfolio_url?: string;
+  source?: string[];
   created_at?: string;
   updated_at?: string;
 }

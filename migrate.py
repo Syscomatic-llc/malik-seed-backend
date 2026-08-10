@@ -198,6 +198,10 @@ def main():
     add_column("resume_uploads", "position_id", "INTEGER")
     add_column("resume_uploads", "position_name", "VARCHAR(300)")
     add_column("resume_uploads", "applicant_name", "VARCHAR(300)")
+    add_column("resume_uploads", "current_location", "VARCHAR(200)")
+    add_column("resume_uploads", "linkedin_url", "VARCHAR(500)")
+    add_column("resume_uploads", "portfolio_url", "VARCHAR(500)")
+    add_json_column("resume_uploads", "source")
 
     # Job applications OTP verification
     add_column("job_applications", "otp_code", "VARCHAR(10)")

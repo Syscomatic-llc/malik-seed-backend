@@ -13,6 +13,7 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { InputTextModule } from 'primeng/inputtext';
+import { SelectModule } from 'primeng/select';
 import { environment } from '@/environments/environment';
 
 @Component({
@@ -20,7 +21,7 @@ import { environment } from '@/environments/environment';
     standalone: true,
     imports: [
         CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
-        ToastModule, ToolbarModule, TagModule, ToggleSwitchModule, ConfirmDialogModule, InputTextModule
+        ToastModule, ToolbarModule, TagModule, ToggleSwitchModule, ConfirmDialogModule, InputTextModule, SelectModule
     ],
     providers: [MessageService, ConfirmationService],
     template: `
@@ -30,7 +31,11 @@ import { environment } from '@/environments/environment';
             <p-toolbar styleClass="mb-4">
                 <ng-template #start>
                     <h5 class="m-0 mr-4">Open Position Resumes</h5>
-                    <input type="text" pInputText [(ngModel)]="filterText" placeholder="Search position or file..." class="w-64" />
+                    <input type="text" pInputText [(ngModel)]="filterText" placeholder="Search name, email, position..." class="w-64 mr-2" />
+                    <p-select [options]="positionOptions()" [(ngModel)]="positionFilter"
+                        (ngModelChange)="positionFilter.set($event)"
+                        optionLabel="label" optionValue="value" placeholder="Filter by position"
+                        styleClass="w-56" appendTo="body" />
                 </ng-template>
                 <ng-template #end>
                     <p-button label="Bulk Delete" icon="pi pi-trash" severity="danger" class="mr-2"
@@ -42,14 +47,20 @@ import { environment } from '@/environments/environment';
 
             <p-table [value]="filteredResumes()" [rows]="10" [paginator]="true"
                 [selection]="selectedResumes()" (selectionChange)="selectedResumes.set($event)"
-                dataKey="id" [tableStyle]="{ 'min-width': '75rem' }">
+                dataKey="id" [tableStyle]="{ 'min-width': '100rem' }">
                 <ng-template #header>
                     <tr>
                         <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
-                        <th>Position</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Address</th>
                         <th>File</th>
                         <th>Size</th>
                         <th>Reviewed</th>
+                        <th>LinkedIn</th>
+                        <th>Website</th>
+                        <th>Source</th>
                         <th>Submitted</th>
                         <th>Actions</th>
                     </tr>
@@ -57,9 +68,12 @@ import { environment } from '@/environments/environment';
                 <ng-template #body let-item>
                     <tr>
                         <td><p-tableCheckbox [value]="item" /></td>
-                        <td>{{item.position_name || item.position || 'N/A'}}</td>
+                        <td>{{item.name || item.applicant_name || 'N/A'}}</td>
+                        <td>{{item.email || 'N/A'}}</td>
+                        <td>{{item.phone || 'N/A'}}</td>
+                        <td>{{item.current_location || 'N/A'}}</td>
                         <td>
-                            <a *ngIf="item.file_url" [href]="resolveUrl(item.file_url)" [attr.download]="item.filename" class="text-primary hover:underline">
+                            <a *ngIf="item.file_url" [href]="resolveUrl(item.file_url)" target="_blank" class="text-primary hover:underline">
                                 <i class="pi pi-file-pdf mr-1"></i>{{item.filename}}
                             </a>
                             <span *ngIf="!item.file_url" class="text-muted-color">No file</span>
@@ -67,6 +81,22 @@ import { environment } from '@/environments/environment';
                         <td>{{formatSize(item.file_size)}}</td>
                         <td>
                             <p-toggleSwitch [(ngModel)]="item.is_reviewed" (onChange)="toggleReviewed(item)" />
+                        </td>
+                        <td>
+                            <a *ngIf="item.linkedin_url" [href]="item.linkedin_url" target="_blank" class="text-primary hover:underline">
+                                <i class="pi pi-linkedin"></i>
+                            </a>
+                            <span *ngIf="!item.linkedin_url" class="text-muted-color">-</span>
+                        </td>
+                        <td>
+                            <a *ngIf="item.portfolio_url" [href]="item.portfolio_url" target="_blank" class="text-primary hover:underline">
+                                <i class="pi pi-globe"></i>
+                            </a>
+                            <span *ngIf="!item.portfolio_url" class="text-muted-color">-</span>
+                        </td>
+                        <td>
+                            <span *ngIf="item.source?.length; else noSource">{{item.source.join(', ')}}</span>
+                            <ng-template #noSource><span class="text-muted-color">-</span></ng-template>
                         </td>
                         <td>{{item.created_at | date:'mediumDate'}}</td>
                         <td>
@@ -83,16 +113,33 @@ export class OpenPositionsResumesPage implements OnInit {
     resumes = signal<ResumeUpload[]>([]);
     selectedResumes = signal<ResumeUpload[]>([]);
     filterText = signal<string>('');
+    positionFilter = signal<string | null>(null);
     mediaBaseUrl = environment.mediaBaseUrl;
     resumeType = 'open_position';
 
+    positionOptions = computed(() => {
+        const positions = Array.from(new Set(
+            this.resumes()
+                .map(r => r.position_name || r.position)
+                .filter((p): p is string => !!p)
+        )).sort();
+        return [
+            { label: 'All Positions', value: null },
+            ...positions.map(p => ({ label: p, value: p }))
+        ];
+    });
+
     filteredResumes = computed(() => {
         const text = this.filterText().toLowerCase().trim();
-        if (!text) return this.resumes();
-        return this.resumes().filter(r =>
-            (r.position_name || r.position || '').toLowerCase().includes(text) ||
-            (r.filename || '').toLowerCase().includes(text)
-        );
+        const position = this.positionFilter();
+        return this.resumes().filter(r => {
+            const matchesText = !text ||
+                (r.name || r.applicant_name || '').toLowerCase().includes(text) ||
+                (r.email || '').toLowerCase().includes(text) ||
+                (r.position_name || r.position || '').toLowerCase().includes(text);
+            const matchesPosition = !position || (r.position_name === position || r.position === position);
+            return matchesText && matchesPosition;
+        });
     });
 
     constructor(

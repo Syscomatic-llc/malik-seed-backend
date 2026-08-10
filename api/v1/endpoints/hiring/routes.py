@@ -397,6 +397,10 @@ def upload_cv(
     phone: Optional[str] = Form(None),
     position: Optional[str] = Form(None),
     message: Optional[str] = Form(None),
+    current_location: Optional[str] = Form(None),
+    linkedin_url: Optional[str] = Form(None),
+    portfolio_url: Optional[str] = Form(None),
+    source: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
     """Public endpoint for uploading a CV/resume.
@@ -464,6 +468,17 @@ def upload_cv(
         shutil.copyfileobj(file.file, buffer)
     file_size = os.path.getsize(file_path)
 
+    parsed_source = []
+    if source:
+        source = source.strip()
+        if source.startswith("["):
+            try:
+                parsed_source = json.loads(source)
+            except json.JSONDecodeError:
+                parsed_source = [s.strip() for s in source.split(",") if s.strip()]
+        else:
+            parsed_source = [s.strip() for s in source.split(",") if s.strip()]
+
     upload = ResumeUpload(
         name=name,
         email=email,
@@ -476,6 +491,10 @@ def upload_cv(
         filename=filename,
         file_url=f"uploads/resumes/{filename}",
         file_size=file_size,
+        current_location=current_location,
+        linkedin_url=linkedin_url,
+        portfolio_url=portfolio_url,
+        source=parsed_source,
     )
     db.add(upload)
     db.commit()
@@ -592,11 +611,16 @@ def submit_additional_info(
         phone=application.phone,
         position=position_title,
         resume_type="open_position",
+        position_id=position.id if position else None,
         position_name=position_title,
         applicant_name=f"{application.first_name or ''} {application.last_name or ''}".strip(),
         filename=os.path.basename(file_url),
         file_url=file_url,
         file_size=os.path.getsize(file_path) if os.path.exists(file_path) else 0,
+        current_location=application.current_location,
+        linkedin_url=application.linkedin_url,
+        portfolio_url=application.portfolio_url,
+        source=application.source or [],
         is_reviewed=False,
     )
     db.add(resume_upload)
