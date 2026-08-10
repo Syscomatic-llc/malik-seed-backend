@@ -563,14 +563,26 @@ def submit_additional_info(
     application_id: int,
     email: str = Form(...),
     phone: str = Form(...),
-    current_location: str = Form(...),
+    current_location: Optional[str] = Form(None),
+    address: Optional[str] = Form(None),
     linkedin_url: Optional[str] = Form(None),
+    linkedin: Optional[str] = Form(None),
     portfolio_url: Optional[str] = Form(None),
+    portfolio: Optional[str] = Form(None),
     source: str = Form(...),
-    resume: UploadFile = File(...),
+    resume: Optional[UploadFile] = File(None),
+    file: Optional[UploadFile] = File(None),
+    cv: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ):
-    """Submit additional applicant information and resume using the application_id from step-1."""
+    """Submit additional applicant information and resume using the application_id from step-1.
+
+    Field aliases accepted:
+    - address -> current_location
+    - linkedin -> linkedin_url
+    - portfolio -> portfolio_url
+    - file / cv -> resume
+    """
     application = db.query(JobApplication).filter(
         JobApplication.id == application_id,
         JobApplication.email == email
@@ -579,12 +591,22 @@ def submit_additional_info(
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
 
-    _validate_resume_file(resume)
+    location = current_location or address
+    if not location:
+        raise HTTPException(status_code=400, detail="current_location (or address) is required")
+
+    linkedin = linkedin_url or linkedin
+    portfolio = portfolio_url or portfolio
+    resume_file = resume or file or cv
+    if not resume_file:
+        raise HTTPException(status_code=400, detail="resume (or file/cv) is required")
+
+    _validate_resume_file(resume_file)
 
     application.phone = phone
-    application.current_location = current_location
-    application.linkedin_url = linkedin_url or application.linkedin_url
-    application.portfolio_url = portfolio_url or application.portfolio_url
+    application.current_location = location
+    application.linkedin_url = linkedin or application.linkedin_url
+    application.portfolio_url = portfolio or application.portfolio_url
 
     source = source.strip()
     if source.startswith("["):
@@ -600,7 +622,7 @@ def submit_additional_info(
 
     position = db.query(JobPosition).filter(JobPosition.id == application.position_id).first()
     position_title = position.title if position else None
-    file_url = _save_application_resume(resume, position_title)
+    file_url = _save_application_resume(resume_file, position_title)
     application.resume_url = file_url
 
     # Also store a ResumeUpload record so the resume appears in CMS Open Position Resumes.
@@ -791,6 +813,108 @@ def submit_assessment(
         "earned_marks": earned_marks,
         "results": question_results,
         "application": application
+    }
+
+
+@router.get("/apply/{application_id}/assessment")
+def get_assessment_result(
+    application_id: int,
+    email: str,
+    db: Session = Depends(get_db)
+):
+    """Public endpoint for an applicant to view their own assessment result without a token."""
+    application = db.query(JobApplication).filter(
+        JobApplication.id == application_id,
+        JobApplication.email == email
+    ).first()
+
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    position = db.query(JobPosition).filter(
+        JobPosition.id == application.position_id
+    ).first()
+
+    questions = db.query(AssessmentQuestion).filter(
+        AssessmentQuestion.position_id == application.position_id,
+        AssessmentQuestion.is_active == True
+    ).order_by(AssessmentQuestion.sort_order).all()
+
+    def _option_prefix(text):
+        m = re.match(r'^([A-Za-z0-9]+)[\.\)]', str(text or ''))
+        return m.group(1).lower() if m else None
+
+    def _option_body(text):
+        return re.sub(r'^[A-Za-z0-9]+[\.\)]\s*', '', str(text or '')).strip().lower()
+
+    def _resolve_correct_option(correct, options):
+        if not options or correct is None:
+            return correct
+        correct = str(correct).strip()
+        correct_lower = correct.lower()
+        for opt in options:
+            if opt.strip().lower() == correct_lower:
+                return opt
+        for opt in options:
+            prefix = _option_prefix(opt)
+            if prefix and prefix == correct_lower:
+                return opt
+        return correct
+
+    answers = application.assessment_answers or {}
+    total_marks = 0
+    earned_marks = 0
+    question_results = []
+
+    for q in questions:
+        applicant_answer = answers.get(str(q.id))
+        is_correct = None
+        q_earned = None
+
+        if q.question_type == "mcq" and q.correct_answer is not None:
+            total_marks += q.marks or 0
+            target = _resolve_correct_option(q.correct_answer, q.options or [])
+            target_prefix = _option_prefix(target)
+            target_body = _option_body(target)
+            answer_prefix = _option_prefix(applicant_answer)
+            answer_body = _option_body(applicant_answer)
+
+            if applicant_answer is not None and (
+                (target_prefix and answer_prefix and target_prefix == answer_prefix) or
+                (target_body and answer_body and target_body == answer_body) or
+                str(target).strip().lower() == str(applicant_answer).strip().lower()
+            ):
+                is_correct = True
+                q_earned = q.marks or 0
+                earned_marks += q_earned
+            else:
+                is_correct = False
+                q_earned = 0
+
+        question_results.append({
+            "question_id": q.id,
+            "question_type": q.question_type,
+            "question": q.question,
+            "options": q.options,
+            "correct_answer": q.correct_answer,
+            "applicant_answer": applicant_answer,
+            "marks": q.marks or 0,
+            "earned_marks": q_earned,
+            "is_correct": is_correct,
+        })
+
+    score = application.assessment_score
+    if score is None and total_marks > 0:
+        score = round((earned_marks / total_marks) * 100)
+
+    return {
+        "status": "success",
+        "application_id": application.id,
+        "score": score,
+        "passing_score": position.passing_score if position else 70,
+        "total_marks": total_marks,
+        "earned_marks": earned_marks,
+        "results": question_results,
     }
 
 
