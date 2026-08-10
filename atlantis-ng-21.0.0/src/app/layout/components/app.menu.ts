@@ -167,8 +167,8 @@ export class AppMenu {
                     path: '/cms/hiring/resumes',
                     items: [
                         {
-                            label: 'Open Positions Resumes',
-                            icon: 'pi pi-fw pi-briefcase',
+                            label: 'General Resumes',
+                            icon: 'pi pi-fw pi-file-o',
                             routerLink: ['/cms/hiring/resumes/open-positions']
                         },
                         {
@@ -177,8 +177,8 @@ export class AppMenu {
                             routerLink: ['/cms/hiring/resumes/future-leaders']
                         },
                         {
-                            label: 'General Resumes',
-                            icon: 'pi pi-fw pi-file-o',
+                            label: 'Open Positions Resumes',
+                            icon: 'pi pi-fw pi-briefcase',
                             routerLink: ['/cms/hiring/resumes/general']
                         }
                     ]

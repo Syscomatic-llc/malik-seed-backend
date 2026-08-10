@@ -144,7 +144,7 @@ export default [
     {
         path: 'hiring/resumes/open-positions',
         loadComponent: () => import('./hiring/open-positions-resumes-page').then((c) => c.OpenPositionsResumesPage),
-        data: { breadcrumb: 'Open Position Resumes' }
+        data: { breadcrumb: 'General Resumes' }
     },
     {
         path: 'hiring/resumes/future-leaders',
@@ -154,7 +154,7 @@ export default [
     {
         path: 'hiring/resumes/general',
         loadComponent: () => import('./hiring/general-resumes-page').then((c) => c.GeneralResumesPage),
-        data: { breadcrumb: 'General Resumes' }
+        data: { breadcrumb: 'Open Position Resumes' }
     },
 
     // ===== CONTACT =====
