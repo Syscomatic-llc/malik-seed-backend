@@ -109,7 +109,7 @@ import { ToolbarModule } from 'primeng/toolbar';
                             <div class="flex items-start justify-between gap-2 mb-3">
                                 <div>
                                     <span class="text-xs font-bold uppercase text-primary">MCQ</span>
-                                    <div class="font-semibold mt-1">{{i + 1}}. {{q.question}}</div>
+                                    <div class="font-semibold mt-1">{{i + 1}}. <span [innerHTML]="q.question"></span></div>
                                 </div>
                                 <p-tag [value]="q.is_correct ? 'Correct' : 'Incorrect'"
                                     [severity]="q.is_correct ? 'success' : 'danger'" />
@@ -118,15 +118,15 @@ import { ToolbarModule } from 'primeng/toolbar';
                             <div class="flex flex-col gap-2 mb-3">
                                 <div *ngFor="let opt of q.options; let idx = index" class="p-2 rounded border text-sm"
                                     [ngClass]="{
-                                        'border-green-500 bg-green-50 text-green-700': opt === q.correct_answer,
-                                        'border-orange-500 bg-orange-50 text-orange-700': opt === q.applicant_answer && opt !== q.correct_answer,
-                                        'border-surface-200': opt !== q.correct_answer && opt !== q.applicant_answer
+                                        'border-green-500 bg-green-50 text-green-700': isCorrectOption(opt, q),
+                                        'border-orange-500 bg-orange-50 text-orange-700': isApplicantOption(opt, q) && !isCorrectOption(opt, q),
+                                        'border-surface-200': !isCorrectOption(opt, q) && !isApplicantOption(opt, q)
                                     }">
                                     <div class="flex items-center justify-between">
                                         <span>{{opt}}</span>
-                                        <span *ngIf="opt === q.correct_answer" class="text-xs font-bold text-green-700">Correct</span>
-                                        <span *ngIf="opt === q.applicant_answer && opt !== q.correct_answer" class="text-xs font-bold text-orange-700">Applicant's answer</span>
-                                        <span *ngIf="opt === q.applicant_answer && opt === q.correct_answer" class="text-xs font-bold text-green-700">Applicant's answer</span>
+                                        <span *ngIf="isCorrectOption(opt, q) && isApplicantOption(opt, q)" class="text-xs font-bold text-green-700">Correct & applicant's answer</span>
+                                        <span *ngIf="isCorrectOption(opt, q) && !isApplicantOption(opt, q)" class="text-xs font-bold text-green-700">Correct</span>
+                                        <span *ngIf="isApplicantOption(opt, q) && !isCorrectOption(opt, q)" class="text-xs font-bold text-orange-700">Applicant's answer</span>
                                     </div>
                                 </div>
                             </div>
@@ -142,11 +142,11 @@ import { ToolbarModule } from 'primeng/toolbar';
                         <p-card *ngFor="let q of shortQuestions(); let i = index">
                             <div class="mb-2">
                                 <span class="text-xs font-bold uppercase text-primary">Short Answer</span>
-                                <div class="font-semibold mt-1">{{i + 1}}. {{q.question}}</div>
+                                <div class="font-semibold mt-1">{{i + 1}}. <span [innerHTML]="q.question"></span></div>
                             </div>
-                            <div class="p-3 rounded bg-surface-50 border border-surface-200">
+                            <div class="p-3 rounded bg-surface-50 border border-surface-200 max-h-60 overflow-y-auto">
                                 <div class="text-xs text-muted-color mb-1">Applicant answer</div>
-                                <div class="text-sm whitespace-pre-wrap">{{q.applicant_answer || 'No answer'}}</div>
+                                <div class="text-sm whitespace-pre-wrap" [innerHTML]="q.applicant_answer || 'No answer'"></div>
                             </div>
                             <div class="text-xs text-muted-color mt-2">Marks: {{q.marks}}</div>
                         </p-card>
@@ -157,11 +157,11 @@ import { ToolbarModule } from 'primeng/toolbar';
                         <p-card *ngFor="let q of longQuestions(); let i = index">
                             <div class="mb-2">
                                 <span class="text-xs font-bold uppercase text-primary">Long Answer</span>
-                                <div class="font-semibold mt-1">{{i + 1}}. {{q.question}}</div>
+                                <div class="font-semibold mt-1">{{i + 1}}. <span [innerHTML]="q.question"></span></div>
                             </div>
-                            <div class="p-3 rounded bg-surface-50 border border-surface-200">
+                            <div class="p-3 rounded bg-surface-50 border border-surface-200 max-h-80 overflow-y-auto">
                                 <div class="text-xs text-muted-color mb-1">Applicant answer</div>
-                                <div class="text-sm whitespace-pre-wrap">{{q.applicant_answer || 'No answer'}}</div>
+                                <div class="text-sm whitespace-pre-wrap" [innerHTML]="q.applicant_answer || 'No answer'"></div>
                             </div>
                             <div class="text-xs text-muted-color mt-2">Marks: {{q.marks}}</div>
                         </p-card>
@@ -235,5 +235,27 @@ export class AssessmentSubmissionsPage implements OnInit {
         if (score >= 70) return 'success';
         if (score >= 50) return 'warn';
         return 'danger';
+    }
+
+    private _optionPrefix(text?: string | null): string | null {
+        const m = String(text || '').match(/^([A-Za-z0-9]+)[\.\)]/);
+        return m ? m[1].toLowerCase() : null;
+    }
+
+    isCorrectOption(option: string, q: AssessmentSubmissionQuestion): boolean {
+        if (!q.correct_answer) return false;
+        const correct = String(q.correct_answer).trim().toLowerCase();
+        if (option.trim().toLowerCase() === correct) return true;
+        const prefix = this._optionPrefix(option);
+        return !!prefix && prefix === correct;
+    }
+
+    isApplicantOption(option: string, q: AssessmentSubmissionQuestion): boolean {
+        if (!q.applicant_answer) return false;
+        const answer = String(q.applicant_answer).trim().toLowerCase();
+        if (option.trim().toLowerCase() === answer) return true;
+        const optionPrefix = this._optionPrefix(option);
+        const answerPrefix = this._optionPrefix(q.applicant_answer);
+        return !!(optionPrefix && answerPrefix && optionPrefix === answerPrefix);
     }
 }
