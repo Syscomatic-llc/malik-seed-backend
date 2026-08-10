@@ -266,6 +266,40 @@ export interface ResumeUpload {
   updated_at?: string;
 }
 
+export interface AssessmentSubmission {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  position_id?: number;
+  position_title?: string;
+  assessment_score?: number;
+  assessment_submitted_at?: string;
+  status?: string;
+}
+
+export interface AssessmentSubmissionQuestion {
+  id: number;
+  question_type: string;
+  question: string;
+  options?: string[];
+  correct_answer?: string;
+  applicant_answer?: string;
+  marks: number;
+  earned_marks?: number;
+  is_correct?: boolean | null;
+}
+
+export interface AssessmentSubmissionDetail extends AssessmentSubmission {
+  passing_score?: number;
+  total_questions?: number;
+  mcq_score?: string;
+  total_marks?: number;
+  earned_marks?: number;
+  questions?: AssessmentSubmissionQuestion[];
+}
+
 // ============ CONTACT TYPES ============
 export interface ContactInfo {
   id?: number;
@@ -701,6 +735,19 @@ export class MalikApiService {
 
   deleteAssessmentQuestion(positionId: number, questionId: number): Observable<any> {
     return this.http.delete<any>(`${this.apiUrl}/admin/hiring/positions/${positionId}/questions/${questionId}`);
+  }
+
+  // ============ ASSESSMENT SUBMISSIONS ============
+  getAssessmentSubmissions(positionId?: number): Observable<AssessmentSubmission[]> {
+    let params = new HttpParams();
+    if (positionId) {
+      params = params.set('position_id', positionId.toString());
+    }
+    return this.http.get<AssessmentSubmission[]>(`${this.apiUrl}/admin/hiring/assessment-submissions`, { params });
+  }
+
+  getAssessmentSubmission(id: number): Observable<AssessmentSubmissionDetail> {
+    return this.http.get<AssessmentSubmissionDetail>(`${this.apiUrl}/admin/hiring/assessment-submissions/${id}`);
   }
 
   // ============ SITE SETTINGS / SEO / SITEMAP ============

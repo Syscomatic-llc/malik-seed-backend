@@ -157,6 +157,11 @@ export class AppMenu {
                     routerLink: ['/cms/hiring/assessments']
                 },
                 {
+                    label: 'Assessment Submissions',
+                    icon: 'pi pi-fw pi-check-square',
+                    routerLink: ['/cms/hiring/assessment-submissions']
+                },
+                {
                     label: 'Resumes',
                     icon: 'pi pi-fw pi-file-pdf',
                     path: '/cms/hiring/resumes',

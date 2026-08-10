@@ -259,6 +259,115 @@ def get_activity_logs(db: Session = Depends(get_db)):
     return logs
 
 
+# ============== ASSESSMENT SUBMISSIONS ==============
+
+@router.get("/hiring/assessment-submissions")
+def list_assessment_submissions(
+    position_id: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    """List all job applications that have submitted an assessment (admin)."""
+    query = db.query(JobApplication).filter(
+        JobApplication.assessment_submitted_at.isnot(None)
+    ).order_by(JobApplication.assessment_submitted_at.desc())
+
+    if position_id:
+        query = query.filter(JobApplication.position_id == position_id)
+
+    applications = query.all()
+    result = []
+    for app in applications:
+        position = db.query(JobPosition).filter(JobPosition.id == app.position_id).first()
+        result.append({
+            "id": app.id,
+            "first_name": app.first_name,
+            "last_name": app.last_name,
+            "email": app.email,
+            "phone": app.phone,
+            "position_id": app.position_id,
+            "position_title": position.title if position else None,
+            "assessment_score": app.assessment_score,
+            "assessment_submitted_at": app.assessment_submitted_at,
+            "status": app.status,
+        })
+    return result
+
+
+@router.get("/hiring/assessment-submissions/{application_id}")
+def get_assessment_submission_detail(
+    application_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get a single assessment submission with questions and answers."""
+    application = db.query(JobApplication).filter(
+        JobApplication.id == application_id
+    ).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    position = db.query(JobPosition).filter(
+        JobPosition.id == application.position_id
+    ).first()
+
+    questions = db.query(AssessmentQuestion).filter(
+        AssessmentQuestion.position_id == application.position_id
+    ).order_by(AssessmentQuestion.sort_order).all()
+
+    answers = application.assessment_answers or {}
+
+    total_marks = 0
+    earned_marks = 0
+    question_details = []
+    for q in questions:
+        applicant_answer = answers.get(str(q.id))
+        is_correct = None
+        q_earned = None
+
+        if q.question_type == "mcq" and q.correct_answer is not None:
+            total_marks += q.marks or 0
+            if applicant_answer is not None and str(applicant_answer).lower().strip() == str(q.correct_answer).lower().strip():
+                is_correct = True
+                q_earned = q.marks or 0
+                earned_marks += q_earned
+            else:
+                is_correct = False
+                q_earned = 0
+
+        question_details.append({
+            "id": q.id,
+            "question_type": q.question_type,
+            "question": q.question,
+            "options": q.options,
+            "correct_answer": q.correct_answer,
+            "applicant_answer": applicant_answer,
+            "marks": q.marks or 0,
+            "earned_marks": q_earned,
+            "is_correct": is_correct,
+        })
+
+    mcq_total = sum(1 for q in question_details if q["question_type"] == "mcq")
+    mcq_correct = sum(1 for q in question_details if q["question_type"] == "mcq" and q["is_correct"] is True)
+
+    return {
+        "id": application.id,
+        "first_name": application.first_name,
+        "last_name": application.last_name,
+        "email": application.email,
+        "phone": application.phone,
+        "position_id": application.position_id,
+        "position_title": position.title if position else None,
+        "assessment_score": application.assessment_score,
+        "passing_score": position.passing_score if position else 70,
+        "assessment_submitted_at": application.assessment_submitted_at,
+        "status": application.status,
+        "total_questions": len(question_details),
+        "mcq_score": f"{mcq_correct}/{mcq_total}" if mcq_total else None,
+        "total_marks": total_marks,
+        "earned_marks": earned_marks,
+        "questions": question_details,
+    }
+
+
 @router.get("/{resource}")
 def list_items(resource: str, db: Session = Depends(get_db)):
     """List all items for a resource (including inactive)"""
@@ -630,3 +739,4 @@ def delete_assessment_question(position_id: int, question_id: int, db: Session =
     db.delete(question)
     db.commit()
     return {"status": "success", "message": "Question deleted"}
+

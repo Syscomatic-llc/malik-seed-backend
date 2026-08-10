@@ -132,6 +132,11 @@ export default [
         data: { breadcrumb: 'Assessment Questions' }
     },
     {
+        path: 'hiring/assessment-submissions',
+        loadComponent: () => import('./hiring/assessment-submissions-page').then((c) => c.AssessmentSubmissionsPage),
+        data: { breadcrumb: 'Assessment Submissions' }
+    },
+    {
         path: 'hiring/resumes',
         redirectTo: 'hiring/resumes/open-positions',
         pathMatch: 'full'
