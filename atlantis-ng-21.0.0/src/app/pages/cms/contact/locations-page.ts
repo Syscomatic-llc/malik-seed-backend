@@ -26,7 +26,7 @@ import { ConfirmationService } from 'primeng/api';
     ],
     providers: [MessageService, ConfirmationService],
     template: `
-        <p-toast />
+        <p-toast position="top-right" />
         <p-confirmdialog />
         <div class="card">
             <p-toolbar styleClass="mb-4">
@@ -148,7 +148,10 @@ export class LocationsPage implements OnInit {
     }
 
     saveLocation() {
-        if (!this.location.name?.trim() || !this.location.address?.trim() || !this.location.city?.trim()) return;
+        if (!this.location.name?.trim() || !this.location.address?.trim() || !this.location.city?.trim()) {
+            this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Please fill in all required fields.', life: 3000 });
+            return;
+        }
         this.saving = true;
         const data = { ...this.location };
         const request = data.id

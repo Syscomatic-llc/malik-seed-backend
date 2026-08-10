@@ -21,7 +21,7 @@ import { environment } from '@/environments/environment';
     ],
     providers: [MessageService],
     template: `
-        <p-toast />
+        <p-toast position="top-right" />
         <div class="grid grid-cols-12 gap-4">
             <div class="col-span-12 lg:col-span-8">
                 <p-card header="About Section Content">

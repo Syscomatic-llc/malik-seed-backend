@@ -23,7 +23,7 @@ import { environment } from '@/environments/environment';
     ],
     providers: [MessageService, ConfirmationService],
     template: `
-        <p-toast position="bottom-left" />
+        <p-toast position="top-right" />
         <p-confirmdialog />
         <div class="card">
             <p-toolbar styleClass="mb-4">

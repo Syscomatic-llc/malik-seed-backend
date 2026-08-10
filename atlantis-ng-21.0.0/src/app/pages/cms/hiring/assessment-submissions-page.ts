@@ -28,7 +28,7 @@ import { ToolbarModule } from 'primeng/toolbar';
     ],
     providers: [MessageService],
     template: `
-        <p-toast position="bottom-left" />
+        <p-toast position="top-right" />
         <div class="card">
             <p-toolbar styleClass="mb-4">
                 <ng-template #start>

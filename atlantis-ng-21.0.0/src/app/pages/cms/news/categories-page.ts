@@ -30,7 +30,7 @@ import { slugify } from '@/app/utils/slugify';
     ],
     providers: [MessageService, ConfirmationService],
     template: `
-        <p-toast position="bottom-left" />
+        <p-toast position="top-right" />
         <p-confirmdialog />
         <div class="card">
             <p-toolbar styleClass="mb-4">
@@ -147,7 +147,10 @@ export class NewsCategoriesPage implements OnInit {
     }
 
     saveCategory() {
-        if (!this.category.name?.trim() || !this.category.slug?.trim()) return;
+        if (!this.category.name?.trim() || !this.category.slug?.trim()) {
+            this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Please fill in all required fields.', life: 3000 });
+            return;
+        }
         this.saving = true;
         const data = { ...this.category };
         const request = data.id

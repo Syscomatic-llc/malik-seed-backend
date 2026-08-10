@@ -30,7 +30,7 @@ import { environment } from '@/environments/environment';
     ],
     providers: [MessageService, ConfirmationService],
     template: `
-        <p-toast />
+        <p-toast position="top-right" />
         <p-confirmdialog />
         <p-card header="Settings">
             <p-tabs value="0">

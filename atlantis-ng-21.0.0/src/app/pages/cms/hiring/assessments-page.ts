@@ -26,7 +26,7 @@ interface PositionWithCount extends JobPosition {
     ],
     providers: [MessageService],
     template: `
-        <p-toast />
+        <p-toast position="top-right" />
         <div class="card">
             <p-toolbar styleClass="mb-4">
                 <ng-template #start>

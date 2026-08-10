@@ -28,7 +28,7 @@ import { environment } from '@/environments/environment';
     ],
     providers: [MessageService, ConfirmationService],
     template: `
-        <p-toast />
+        <p-toast position="top-right" />
         <p-confirmdialog />
         <div class="card">
             <p-toolbar styleClass="mb-4">
@@ -160,7 +160,10 @@ export class TestimonialsPage implements OnInit {
     }
 
     saveTestimonial() {
-        if (!this.testimonial.name?.trim() || !this.testimonial.content?.trim()) return;
+        if (!this.testimonial.name?.trim() || !this.testimonial.content?.trim()) {
+            this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Please fill in all required fields.', life: 3000 });
+            return;
+        }
         this.saving = true;
         const data = { ...this.testimonial };
         const request = data.id

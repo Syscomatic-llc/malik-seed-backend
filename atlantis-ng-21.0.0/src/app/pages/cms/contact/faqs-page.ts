@@ -25,7 +25,7 @@ import { ConfirmationService } from 'primeng/api';
     ],
     providers: [MessageService, ConfirmationService],
     template: `
-        <p-toast />
+        <p-toast position="top-right" />
         <p-confirmdialog />
         <div class="card">
             <p-toolbar styleClass="mb-4">
@@ -124,7 +124,10 @@ export class FAQsPage implements OnInit {
     }
 
     saveFAQ() {
-        if (!this.faq.question?.trim() || !this.faq.answer?.trim()) return;
+        if (!this.faq.question?.trim() || !this.faq.answer?.trim()) {
+            this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Please fill in all required fields.', life: 3000 });
+            return;
+        }
         this.saving = true;
         const data = { ...this.faq };
         const request = data.id

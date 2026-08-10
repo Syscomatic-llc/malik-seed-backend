@@ -31,7 +31,7 @@ import { slugify } from '@/app/utils/slugify';
     ],
     providers: [MessageService, ConfirmationService],
     template: `
-        <p-toast position="bottom-left" />
+        <p-toast position="top-right" />
         <p-confirmdialog />
         <div class="card">
             <p-toolbar styleClass="mb-4">
@@ -163,7 +163,10 @@ export class BrandsListPage implements OnInit {
     }
 
     saveBrand() {
-        if (!this.brand.name?.trim() || !this.brand.slug?.trim()) return;
+        if (!this.brand.name?.trim() || !this.brand.slug?.trim()) {
+            this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Please fill in all required fields.', life: 3000 });
+            return;
+        }
         this.saving = true;
         const data = { ...this.brand };
         const request = data.id

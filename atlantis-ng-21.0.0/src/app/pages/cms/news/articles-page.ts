@@ -31,7 +31,7 @@ import { slugify } from '@/app/utils/slugify';
     ],
     providers: [MessageService, ConfirmationService],
     template: `
-        <p-toast />
+        <p-toast position="top-right" />
         <p-confirmdialog />
         <div class="card">
             <p-toolbar styleClass="mb-4">
@@ -201,7 +201,10 @@ export class ArticlesPage implements OnInit {
     }
 
     saveArticle() {
-        if (!this.article.title?.trim() || !this.article.slug?.trim()) return;
+        if (!this.article.title?.trim() || !this.article.slug?.trim()) {
+            this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Please fill in all required fields.', life: 3000 });
+            return;
+        }
         this.saving = true;
         const data: any = { ...this.article };
 
