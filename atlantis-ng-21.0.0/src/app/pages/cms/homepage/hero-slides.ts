@@ -40,24 +40,11 @@ import { environment } from '@/environments/environment';
             </p-toolbar>
 
             <p-table [value]="heroSlides()" (onRowReorder)="onRowReorder($event)" [rows]="100"
-                [globalFilterFields]="['title']"
-                [tableStyle]="{ 'min-width': '50rem' }"
-                currentPageReportTemplate="Showing {first} to {last} of {totalRecords} slides"
-                [showCurrentPageReport]="true">
-                <ng-template #caption>
-                    <div class="flex items-center justify-between">
-                        <h5 class="m-0">Hero Slides</h5>
-                        <div class="relative">
-                            <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-muted-color"></i>
-                            <input pInputText type="text" placeholder="Search..." class="pl-10" />
-                        </div>
-                    </div>
-                </ng-template>
+                [tableStyle]="{ 'min-width': '50rem' }">
                 <ng-template #header>
                     <tr>
                         <th style="width: 3rem"></th>
                         <th>Order</th>
-                        <th style="min-width: 4rem">ID</th>
                         <th style="min-width: 16rem">Title</th>
                         <th>Background Image</th>
                         <th style="min-width: 8rem">Actions</th>
@@ -67,7 +54,6 @@ import { environment } from '@/environments/environment';
                     <tr [pReorderableRow]="i">
                         <td><span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span></td>
                         <td><span class="font-bold text-primary">{{i + 1}}</span></td>
-                        <td>{{slide.id}}</td>
                         <td>{{slide.title}}</td>
                         <td>
                             <img *ngIf="slide.background_image" [src]="mediaBaseUrl + slide.background_image"

@@ -52,23 +52,47 @@ const QUESTION_TYPES = [
                         (onClick)="saveDurations()" [loading]="savingDurations" />
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div class="p-3 bg-primary/5 rounded flex flex-col gap-2">
-                        <label class="text-sm font-bold">MCQ Duration</label>
-                        <input type="number" pInputText [(ngModel)]="mcqDuration" placeholder="0" fluid />
-                        <span class="text-xs text-muted-color">Default: 0 min</span>
+                    <div class="p-4 rounded border border-surface-200 bg-surface-0 flex flex-col gap-2 shadow-sm"
+                        [ngClass]="{'opacity-60': !hasMCQQuestions()}">
+                        <div class="flex items-center justify-between">
+                            <label class="text-sm font-bold flex items-center gap-2">
+                                <i class="pi pi-check-circle text-primary"></i> MCQ Duration
+                            </label>
+                            <p-tag [value]="hasMCQQuestions() ? 'Enabled' : 'No MCQ yet'" [severity]="hasMCQQuestions() ? 'success' : 'secondary'" styleClass="text-xs" />
+                        </div>
+                        <input type="number" pInputText [(ngModel)]="mcqDuration" placeholder="0"
+                            [disabled]="!hasMCQQuestions()" fluid />
+                        <span class="text-xs text-muted-color">
+                            {{ hasMCQQuestions() ? 'Time allowed for all MCQ questions' : 'Add at least one MCQ question to enable' }}
+                        </span>
                     </div>
-                    <div class="p-3 bg-primary/5 rounded flex flex-col gap-2">
-                        <label class="text-sm font-bold">Short Answer Duration</label>
+                    <div class="p-4 rounded border border-surface-200 bg-surface-0 flex flex-col gap-2 shadow-sm"
+                        [ngClass]="{'opacity-60': !hasShortAnswerQuestions()}">
+                        <div class="flex items-center justify-between">
+                            <label class="text-sm font-bold flex items-center gap-2">
+                                <i class="pi pi-pencil text-info"></i> Short Answer Duration
+                            </label>
+                            <p-tag [value]="hasShortAnswerQuestions() ? 'Enabled' : 'No short answers'" [severity]="hasShortAnswerQuestions() ? 'success' : 'secondary'" styleClass="text-xs" />
+                        </div>
                         <input type="number" pInputText [(ngModel)]="shortAnswerDuration" placeholder="0"
                             [disabled]="!hasShortAnswerQuestions()" fluid />
                         <span class="text-xs text-muted-color">
-                            {{ hasShortAnswerQuestions() ? 'Default: 0 min' : 'Disabled until a short answer question is added' }}
+                            {{ hasShortAnswerQuestions() ? 'Time allowed for all short answer questions' : 'Add at least one short answer question to enable' }}
                         </span>
                     </div>
-                    <div *ngIf="hasLongAnswerQuestions()" class="p-3 bg-primary/5 rounded flex flex-col gap-2">
-                        <label class="text-sm font-bold">Long Answer Duration</label>
-                        <input type="number" pInputText [(ngModel)]="longAnswerDuration" placeholder="0" fluid />
-                        <span class="text-xs text-muted-color">Default: 0 min</span>
+                    <div class="p-4 rounded border border-surface-200 bg-surface-0 flex flex-col gap-2 shadow-sm"
+                        [ngClass]="{'opacity-60': !hasLongAnswerQuestions()}">
+                        <div class="flex items-center justify-between">
+                            <label class="text-sm font-bold flex items-center gap-2">
+                                <i class="pi pi-align-left text-warn"></i> Long Answer Duration
+                            </label>
+                            <p-tag [value]="hasLongAnswerQuestions() ? 'Enabled' : 'No long answers'" [severity]="hasLongAnswerQuestions() ? 'success' : 'secondary'" styleClass="text-xs" />
+                        </div>
+                        <input type="number" pInputText [(ngModel)]="longAnswerDuration" placeholder="0"
+                            [disabled]="!hasLongAnswerQuestions()" fluid />
+                        <span class="text-xs text-muted-color">
+                            {{ hasLongAnswerQuestions() ? 'Time allowed for all long answer questions' : 'Add at least one long answer question to enable' }}
+                        </span>
                     </div>
                 </div>
 
@@ -90,7 +114,6 @@ const QUESTION_TYPES = [
                             <th style="width: 3rem"></th>
                             <th>Order</th>
                             <th>Type</th>
-                            <th>Category</th>
                             <th>Question</th>
                             <th>Correct Answer</th>
                             <th>Marks</th>
@@ -103,7 +126,6 @@ const QUESTION_TYPES = [
                             <td><span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span></td>
                             <td><span class="font-bold text-primary">{{index + 1}}</span></td>
                             <td><p-tag [value]="q.question_type" [severity]="getTypeSeverity(q.question_type)" /></td>
-                            <td>{{q.category || '-'}}</td>
                             <td>{{q.question | slice:0:60}}...</td>
                             <td>{{q.correct_answer || '-'}}</td>
                             <td>{{q.marks}}</td>
@@ -126,16 +148,10 @@ const QUESTION_TYPES = [
         <p-dialog [(visible)]="dialog" [style]="{ width: '700px' }" header="Assessment Question" [modal]="true">
             <ng-template #content>
                 <div class="flex flex-col gap-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block font-bold mb-2">Question Type</label>
-                            <p-select [options]="questionTypes" [(ngModel)]="question.question_type"
-                                optionLabel="label" optionValue="value" placeholder="Select Type" fluid appendTo="body" />
-                        </div>
-                        <div>
-                            <label class="block font-bold mb-2">Category</label>
-                            <input type="text" pInputText [(ngModel)]="question.category" placeholder="e.g. Technical" fluid />
-                        </div>
+                    <div>
+                        <label class="block font-bold mb-2">Question Type</label>
+                        <p-select [options]="questionTypes" [(ngModel)]="question.question_type"
+                            optionLabel="label" optionValue="value" placeholder="Select Type" fluid appendTo="body" />
                     </div>
                     <div>
                         <label class="block font-bold mb-2">Question</label>
@@ -212,6 +228,7 @@ export class AssessmentPage implements OnInit {
         ]
     };
 
+    hasMCQQuestions = computed(() => this.questions().some(q => q.question_type === 'mcq'));
     hasShortAnswerQuestions = computed(() => this.questions().some(q => q.question_type === 'short_answer'));
     hasLongAnswerQuestions = computed(() => this.questions().some(q => q.question_type === 'long_answer'));
 

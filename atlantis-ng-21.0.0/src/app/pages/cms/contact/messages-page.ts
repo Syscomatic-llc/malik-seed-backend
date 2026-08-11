@@ -45,7 +45,7 @@ import { ConfirmationService } from 'primeng/api';
                 [tableStyle]="{ 'min-width': '75rem' }">
                 <ng-template #header>
                     <tr>
-                        <th>ID</th>
+                        <th>Order No</th>
                         <th>Name</th>
                         <th>Email</th>
                         <th>Subject</th>
@@ -55,9 +55,9 @@ import { ConfirmationService } from 'primeng/api';
                         <th>Actions</th>
                     </tr>
                 </ng-template>
-                <ng-template #body let-item>
+                <ng-template #body let-item let-i="rowIndex">
                     <tr [ngClass]="{'bg-primary-50': !item.is_read}">
-                        <td>{{item.id}}</td>
+                        <td><span class="font-bold text-primary">{{i + 1}}</span></td>
                         <td>{{item.name}}</td>
                         <td>{{item.email}}</td>
                         <td><p-tag [value]="item.subject || 'N/A'" severity="info" /></td>

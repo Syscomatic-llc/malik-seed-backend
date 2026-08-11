@@ -40,7 +40,6 @@ import { ConfirmationService } from 'primeng/api';
                     <tr>
                         <th style="width: 3rem"></th>
                         <th>Order</th>
-                        <th>Icon</th>
                         <th>Title</th>
                         <th>Description</th>
                         <th>Actions</th>
@@ -50,7 +49,6 @@ import { ConfirmationService } from 'primeng/api';
                     <tr [pReorderableRow]="i">
                         <td><span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span></td>
                         <td><span class="font-bold text-primary">{{i + 1}}</span></td>
-                        <td><i class="pi pi-{{item.icon}} text-primary text-xl"></i></td>
                         <td>{{item.title}}</td>
                         <td>{{item.description}}</td>
                         <td>

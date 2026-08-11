@@ -53,8 +53,8 @@ import { MessageService } from 'primeng/api';
                                 <input type="text" pInputText [(ngModel)]="info.facebook_url" fluid />
                             </div>
                             <div>
-                                <label class="block font-bold mb-2">Instagram URL</label>
-                                <input type="text" pInputText [(ngModel)]="info.instagram_url" fluid />
+                                <label class="block font-bold mb-2">LinkedIn URL</label>
+                                <input type="text" pInputText [(ngModel)]="info.linkedin_url" fluid />
                             </div>
                         </div>
                         <div>
@@ -91,6 +91,10 @@ import { MessageService } from 'primeng/api';
                         <div class="flex items-center gap-2">
                             <i class="pi pi-map-marker text-primary"></i>
                             <span>{{info.address}}</span>
+                        </div>
+                        <div *ngIf="info.linkedin_url" class="flex items-center gap-2">
+                            <i class="pi pi-linkedin text-primary"></i>
+                            <a [href]="info.linkedin_url" target="_blank" class="text-primary hover:underline">{{info.linkedin_url}}</a>
                         </div>
                     </div>
                 </p-card>

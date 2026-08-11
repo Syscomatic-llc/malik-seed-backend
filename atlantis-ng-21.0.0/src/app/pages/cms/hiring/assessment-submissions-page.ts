@@ -16,19 +16,21 @@ import { DialogModule } from 'primeng/dialog';
 import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
-import { MessageService } from 'primeng/api';
+import { MessageService, ConfirmationService } from 'primeng/api';
 import { ToolbarModule } from 'primeng/toolbar';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 
 @Component({
     selector: 'app-assessment-submissions-page',
     standalone: true,
     imports: [
         CommonModule, FormsModule, RouterModule, CardModule, ButtonModule, TableModule,
-        DialogModule, TagModule, SelectModule, ToastModule, ToolbarModule
+        DialogModule, TagModule, SelectModule, ToastModule, ToolbarModule, ConfirmDialogModule
     ],
-    providers: [MessageService],
+    providers: [MessageService, ConfirmationService],
     template: `
         <p-toast position="top-right" />
+        <p-confirmdialog />
         <div class="card">
             <p-toolbar styleClass="mb-4">
                 <ng-template #start>
@@ -72,6 +74,8 @@ import { ToolbarModule } from 'primeng/toolbar';
                         <td>
                             <p-button icon="pi pi-eye" class="mr-2" [rounded]="true" [outlined]="true"
                                 (onClick)="viewSubmission(item)" />
+                            <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
+                                (onClick)="deleteSubmission(item)" />
                         </td>
                     </tr>
                 </ng-template>
@@ -193,7 +197,8 @@ export class AssessmentSubmissionsPage implements OnInit {
 
     constructor(
         private api: MalikApiService,
-        private messageService: MessageService
+        private messageService: MessageService,
+        private confirmationService: ConfirmationService
     ) {}
 
     ngOnInit() {
@@ -227,6 +232,23 @@ export class AssessmentSubmissionsPage implements OnInit {
                 this.dialogVisible = true;
             },
             error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load submission details' })
+        });
+    }
+
+    deleteSubmission(item: AssessmentSubmission) {
+        this.confirmationService.confirm({
+            message: `Delete assessment submission from ${item.first_name || ''} ${item.last_name || ''} (${item.email || item.id})?`,
+            header: 'Confirm Delete',
+            icon: 'pi pi-exclamation-triangle',
+            accept: () => {
+                this.api.adminDelete('hiring/applications', item.id).subscribe({
+                    next: () => {
+                        this.submissions.set(this.submissions().filter(s => s.id !== item.id));
+                        this.messageService.add({ severity: 'success', summary: 'Deleted', detail: 'Submission deleted' });
+                    },
+                    error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete submission' })
+                });
+            }
         });
     }
 

@@ -44,7 +44,7 @@ import { slugify } from '@/app/utils/slugify';
                 [tableStyle]="{ 'min-width': '75rem' }">
                 <ng-template #header>
                     <tr>
-                        <th>ID</th>
+                        <th>Order</th>
                         <th>Image</th>
                         <th>Title</th>
                         <th>Category</th>
@@ -54,9 +54,9 @@ import { slugify } from '@/app/utils/slugify';
                         <th>Actions</th>
                     </tr>
                 </ng-template>
-                <ng-template #body let-item>
+                <ng-template #body let-item let-i="rowIndex">
                     <tr>
-                        <td>{{item.id}}</td>
+                        <td><span class="font-bold text-primary">{{i + 1}}</span></td>
                         <td>
                             <img *ngIf="item.featured_image" [src]="mediaBaseUrl + item.featured_image"
                                 alt="{{item.title}}" class="w-16 h-12 object-cover rounded" />

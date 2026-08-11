@@ -95,13 +95,14 @@ export class AssessmentsPage implements OnInit {
         this.loading.set(true);
         this.api.getJobPositions().subscribe({
             next: (data) => {
-                if (data.length === 0) {
+                const sortedData = [...data].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+                if (sortedData.length === 0) {
                     this.positions.set([]);
                     this.loading.set(false);
                     return;
                 }
 
-                const countRequests = data.map(p =>
+                const countRequests = sortedData.map(p =>
                     this.api.getAssessmentQuestions(p.id!).pipe(
                         map((res: any) => ({ id: p.id, count: (res.questions || []).length })),
                         catchError(() => of({ id: p.id, count: 0 }))
@@ -111,14 +112,14 @@ export class AssessmentsPage implements OnInit {
                 forkJoin(countRequests).subscribe({
                     next: (counts) => {
                         const countMap = new Map(counts.map(c => [c.id, c.count]));
-                        this.positions.set(data.map(p => ({
+                        this.positions.set(sortedData.map(p => ({
                             ...p,
                             questionCount: countMap.get(p.id) ?? 0
                         })));
                         this.loading.set(false);
                     },
                     error: () => {
-                        this.positions.set(data);
+                        this.positions.set(sortedData);
                         this.loading.set(false);
                     }
                 });

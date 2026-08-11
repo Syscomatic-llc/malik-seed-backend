@@ -40,6 +40,7 @@ import { environment } from '@/environments/environment';
                 <ng-template #end>
                     <p-button label="Bulk Delete" icon="pi pi-trash" severity="danger" class="mr-2"
                         [disabled]="selectedResumes().length === 0" (onClick)="bulkDelete()" />
+                    <p-button label="Export CSV" icon="pi pi-file-excel" class="mr-2" (onClick)="exportCSV()" />
                     <p-button label="Download PDFs" icon="pi pi-file-pdf" class="mr-2" (onClick)="downloadPDFs()" />
                     <p-button label="Refresh" icon="pi pi-refresh" (onClick)="loadResumes()" />
                 </ng-template>
@@ -224,6 +225,23 @@ export class OpenPositionsResumesPage implements OnInit {
                 this.messageService.add({ severity: 'success', summary: 'Downloaded', detail: 'Resume PDFs downloaded' });
             },
             error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to download PDFs' })
+        });
+    }
+
+    exportCSV() {
+        this.api.exportResumes(this.resumeType).subscribe({
+            next: (blob) => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${this.resumeType}_resumes.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                this.messageService.add({ severity: 'success', summary: 'Exported', detail: 'Resume CSV exported' });
+            },
+            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to export CSV' })
         });
     }
 

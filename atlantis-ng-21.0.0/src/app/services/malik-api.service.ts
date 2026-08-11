@@ -346,6 +346,7 @@ export interface ContactInfo {
   email_primary?: string;
   facebook_url?: string;
   instagram_url?: string;
+  linkedin_url?: string;
   youtube_url?: string;
   subject_options?: string[];
 }
