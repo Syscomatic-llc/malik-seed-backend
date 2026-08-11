@@ -95,7 +95,7 @@ export class AssessmentsPage implements OnInit {
         this.loading.set(true);
         this.api.getJobPositions().subscribe({
             next: (data) => {
-                const sortedData = [...data].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+                const sortedData = [...data].sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
                 if (sortedData.length === 0) {
                     this.positions.set([]);
                     this.loading.set(false);
