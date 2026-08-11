@@ -1,6 +1,7 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { AuthService } from '@/app/services/auth.service';
+import { catchError, throwError } from 'rxjs';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
     const auth = inject(AuthService);
@@ -16,5 +17,14 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
     req = req.clone({ setHeaders: headers });
 
-    return next(req);
+    return next(req).pipe(
+        catchError((err) => {
+            // If the API rejects the token, log the user out immediately so they
+            // don't get stuck in a broken authenticated state.
+            if (err.status === 401) {
+                auth.logout();
+            }
+            return throwError(() => err);
+        })
+    );
 };

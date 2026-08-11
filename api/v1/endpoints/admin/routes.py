@@ -230,6 +230,15 @@ def _get_resource_name(data: dict, item: any = None) -> str:
     return ""
 
 
+def _compact_sort_order(db: Session, model_class):
+    """Renumber sort_order values so they are contiguous starting from 0."""
+    items = db.query(model_class).order_by(model_class.sort_order.asc(), model_class.id.asc()).all()
+    for idx, item in enumerate(items):
+        if item.sort_order != idx:
+            item.sort_order = idx
+    db.commit()
+
+
 def _log_activity(
     db: Session,
     user: User,
@@ -790,8 +799,20 @@ def delete_item(resource: str, item_id: int, db: Session = Depends(get_db), user
         for article in linked_articles:
             db.delete(article)
 
+    if resource == "job-position":
+        # Preserve job applications by clearing their position reference.
+        # Assessment questions are removed via SQLAlchemy cascade.
+        db.query(JobApplication).filter(JobApplication.position_id == item_id).update({"position_id": None})
+        db.query(ResumeUpload).filter(ResumeUpload.position_id == item_id).update({"position_id": None})
+
     db.delete(item)
     db.commit()
+
+    # Compact sort_order for resources that support it so there are no gaps after deletion.
+    if resource in MODEL_REGISTRY:
+        model_class, _ = MODEL_REGISTRY[resource]
+        if hasattr(model_class, 'sort_order'):
+            _compact_sort_order(db, model_class)
     _log_activity(
         db, user, "delete", resource, item_id,
         resource_name=_get_resource_name({}, item),

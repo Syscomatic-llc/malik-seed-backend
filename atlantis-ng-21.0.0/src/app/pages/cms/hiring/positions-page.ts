@@ -156,6 +156,10 @@ const LOCATIONS = [
                         <input type="text" pInputText [(ngModel)]="position.experience_required" placeholder="e.g. 2-3 years" fluid />
                     </div>
                     <div>
+                        <label class="block font-bold mb-2">Salary Range</label>
+                        <input type="text" pInputText [(ngModel)]="position.salary_range" placeholder="e.g. 50,000 - 80,000 BDT" fluid />
+                    </div>
+                    <div>
                         <label class="block font-bold mb-2">Job Details PDF</label>
                         <div *ngIf="position.details_pdf_url" class="flex items-center gap-2 mb-2">
                             <a [href]="mediaBaseUrl + position.details_pdf_url" target="_blank" class="text-primary hover:underline">

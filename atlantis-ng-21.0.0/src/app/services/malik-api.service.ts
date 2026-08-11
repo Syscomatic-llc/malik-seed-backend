@@ -276,6 +276,8 @@ export interface JobPosition {
   responsibilities?: string[];
   skills_required?: string[];
   experience_required?: string;
+  salary_range?: string;
+  salary_currency?: string;
   details_pdf_url?: string;
   is_active?: boolean;
   has_assessment?: boolean;

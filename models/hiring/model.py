@@ -50,6 +50,10 @@ class JobPosition(Base):
     job_type = Column(Enum(JobType), default=JobType.FULL_TIME, nullable=False)
     location = Column(Enum(JobLocation), default=JobLocation.DHAKA, nullable=False)
 
+    # Relationships
+    applications = relationship("JobApplication", back_populates="position")
+    assessment_questions = relationship("AssessmentQuestion", back_populates="position", cascade="all, delete-orphan")
+
     # Description
     description = Column(Text, nullable=False)
     short_description = Column(String(500), nullable=True)
@@ -112,7 +116,9 @@ class JobApplication(Base):
 
     # User reference (nullable - applicants can apply without being logged in)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    position_id = Column(Integer, ForeignKey("job_positions.id"), nullable=False)
+    position_id = Column(Integer, ForeignKey("job_positions.id", ondelete="SET NULL"), nullable=True)
+
+    position = relationship("JobPosition", back_populates="applications")
 
     # Application status flow
     status = Column(String(50), default="step_1")
@@ -185,7 +191,9 @@ class AssessmentQuestion(Base):
     __tablename__ = "assessment_questions"
 
     id = Column(Integer, primary_key=True, index=True)
-    position_id = Column(Integer, ForeignKey("job_positions.id"), nullable=False)
+    position_id = Column(Integer, ForeignKey("job_positions.id", ondelete="CASCADE"), nullable=False)
+
+    position = relationship("JobPosition", back_populates="assessment_questions")
 
     # question_type: "mcq" | "short_answer" | "long_answer"
     # Matches Figma sections: Technical Knowledge (MCQ), Short Answers, Long Answers

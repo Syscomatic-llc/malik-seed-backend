@@ -335,6 +335,9 @@ def main():
     # Job applications admin manual scoring for short/long answers
     add_json_column("job_applications", "admin_scores")
 
+    # Make job application position_id nullable so deleting a position can preserve applications
+    make_column_nullable("job_applications", "position_id")
+
     # Our brands rich page content
     add_json_column("our_brands", "content")
 

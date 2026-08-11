@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MalikApiService, ResumeUpload } from '@/app/services/malik-api.service';
+import { MalikApiService, ResumeUpload, JobPosition } from '@/app/services/malik-api.service';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
@@ -32,7 +32,7 @@ import { environment } from '@/environments/environment';
                 <ng-template #start>
                     <h5 class="m-0 mr-4">Open Position Resumes</h5>
                     <input type="text" pInputText [(ngModel)]="filterText" placeholder="Search name, email, position..." class="w-64 mr-2" />
-                    <p-select [options]="positionOptions()" [(ngModel)]="positionFilter"
+                    <p-select [options]="positionOptions()" [ngModel]="positionFilter()"
                         (ngModelChange)="positionFilter.set($event)"
                         optionLabel="label" optionValue="value" placeholder="Filter by position"
                         styleClass="w-56" appendTo="body" />
@@ -112,6 +112,7 @@ import { environment } from '@/environments/environment';
 })
 export class OpenPositionsResumesPage implements OnInit {
     resumes = signal<ResumeUpload[]>([]);
+    positions = signal<JobPosition[]>([]);
     selectedResumes = signal<ResumeUpload[]>([]);
     filterText = signal<string>('');
     positionFilter = signal<string | null>(null);
@@ -119,14 +120,13 @@ export class OpenPositionsResumesPage implements OnInit {
     resumeType = 'open_position';
 
     positionOptions = computed(() => {
-        const positions = Array.from(new Set(
-            this.resumes()
-                .map(r => r.position_name || r.position)
-                .filter((p): p is string => !!p)
-        )).sort();
+        const options = this.positions()
+            .map(p => p.title)
+            .filter((t): t is string => !!t)
+            .sort();
         return [
             { label: 'All Positions', value: null },
-            ...positions.map(p => ({ label: p, value: p }))
+            ...Array.from(new Set(options)).map(title => ({ label: title, value: title }))
         ];
     });
 
@@ -150,7 +150,15 @@ export class OpenPositionsResumesPage implements OnInit {
     ) {}
 
     ngOnInit() {
+        this.loadPositions();
         this.loadResumes();
+    }
+
+    loadPositions() {
+        this.api.getJobPositions().subscribe({
+            next: (data) => this.positions.set(data),
+            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load positions' })
+        });
     }
 
     loadResumes() {
