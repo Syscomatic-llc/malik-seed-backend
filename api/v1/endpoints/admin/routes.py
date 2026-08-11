@@ -465,6 +465,7 @@ def get_assessment_submission_detail(
             "marks": q.marks or 0,
             "earned_marks": q_earned,
             "is_correct": is_correct,
+            "sort_order": q.sort_order or 0,
         })
 
     mcq_total = sum(1 for q in question_details if q["question_type"] == "mcq")
@@ -540,9 +541,8 @@ def update_assessment_scores(
         normalized_scores[str(qid)] = earned
 
     # Merge with existing admin scores (so partial updates keep prior values)
-    existing = application.admin_scores or {}
-    existing.update(normalized_scores)
-    application.admin_scores = existing
+    # Create a new dict so SQLAlchemy detects the change.
+    application.admin_scores = {**(application.admin_scores or {}), **normalized_scores}
 
     # Recalculate total assessment score
     answers = application.assessment_answers or {}

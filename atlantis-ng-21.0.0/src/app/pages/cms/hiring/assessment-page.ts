@@ -124,7 +124,7 @@ const QUESTION_TYPES = [
                     <ng-template #body let-q let-index="rowIndex">
                         <tr [pReorderableRow]="index">
                             <td><span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span></td>
-                            <td><span class="font-bold text-primary">{{index + 1}}</span></td>
+                            <td><span class="font-bold text-primary">{{(q.sort_order ?? 0) + 1}}</span></td>
                             <td><p-tag [value]="q.question_type" [severity]="getTypeSeverity(q.question_type)" /></td>
                             <td>{{q.question | slice:0:60}}...</td>
                             <td>{{q.correct_answer || '-'}}</td>

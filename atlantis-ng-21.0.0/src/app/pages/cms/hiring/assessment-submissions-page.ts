@@ -16,7 +16,7 @@ import { DialogModule } from 'primeng/dialog';
 import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
-import { InputNumberModule } from 'primeng/inputnumber';
+import { InputTextModule } from 'primeng/inputtext';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { ToolbarModule } from 'primeng/toolbar';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -26,7 +26,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
     standalone: true,
     imports: [
         CommonModule, FormsModule, RouterModule, CardModule, ButtonModule, TableModule,
-        DialogModule, TagModule, SelectModule, ToastModule, InputNumberModule,
+        DialogModule, TagModule, SelectModule, ToastModule, InputTextModule,
         ToolbarModule, ConfirmDialogModule
     ],
     providers: [MessageService, ConfirmationService],
@@ -119,7 +119,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
                             <div class="flex flex-wrap items-start justify-between gap-2 mb-3">
                                 <div class="min-w-0 flex-1">
                                     <span class="text-xs font-bold uppercase text-primary">MCQ</span>
-                                    <div class="font-semibold mt-1 break-words">{{i + 1}}. <span [innerHTML]="q.question"></span></div>
+                                    <div class="font-semibold mt-1 break-words">{{questionOrder(q)}}. <span [innerHTML]="q.question"></span></div>
                                 </div>
                                 <p-tag [value]="q.is_correct ? 'Correct' : 'Incorrect'"
                                     [severity]="q.is_correct ? 'success' : 'danger'" />
@@ -156,7 +156,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
                         <p-card *ngFor="let q of textQuestions(); let i = index">
                             <div class="mb-2">
                                 <span class="text-xs font-bold uppercase text-primary">{{q.question_type === 'long_answer' ? 'Long Answer' : 'Short Answer'}}</span>
-                                <div class="font-semibold mt-1 break-words">{{i + 1}}. <span [innerHTML]="q.question"></span></div>
+                                <div class="font-semibold mt-1 break-words">{{questionOrder(q)}}. <span [innerHTML]="q.question"></span></div>
                             </div>
                             <div class="p-3 rounded bg-surface-50 border border-surface-200 max-h-80 overflow-y-auto">
                                 <div class="text-xs text-muted-color mb-1">Applicant answer</div>
@@ -164,13 +164,13 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
                             </div>
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-3">
                                 <div class="text-xs text-muted-color">
-                                    Marks: <span class="font-semibold">{{q.earned_marks ?? 'Pending'}}</span> / {{q.marks}}
+                                    Current marks: <span class="font-semibold">{{q.earned_marks ?? 'Pending'}}</span> / {{q.marks}}
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <label class="text-sm font-medium">Earned marks</label>
-                                    <p-inputNumber [ngModel]="pendingScores()[q.id]" (ngModelChange)="setPendingScore(q.id, $event)"
-                                        [min]="0" [max]="q.marks" [step]="0.5" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="2"
-                                        inputStyleClass="w-24" placeholder="0" />
+                                    <input type="number" pInputText [(ngModel)]="scoreInputs[q.id]"
+                                        [min]="0" [max]="q.marks" step="0.5"
+                                        class="w-24 text-center" placeholder="0" />
                                     <span class="text-xs text-muted-color">/ {{q.marks}}</span>
                                 </div>
                             </div>
@@ -189,7 +189,7 @@ export class AssessmentSubmissionsPage implements OnInit {
     positions = signal<JobPosition[]>([]);
     selectedPositionId = signal<number | null>(null);
     selectedSubmission = signal<AssessmentSubmissionDetail | null>(null);
-    pendingScores = signal<Record<number, number | null>>({});
+    scoreInputs: Record<number, number | null> = {};
     savingScores = signal(false);
     dialogVisible = false;
 
@@ -232,25 +232,25 @@ export class AssessmentSubmissionsPage implements OnInit {
         this.loadSubmissions();
     }
 
+    questionOrder(q: AssessmentSubmissionQuestion): number {
+        return (q.sort_order ?? 0) + 1;
+    }
+
     viewSubmission(item: AssessmentSubmission) {
         this.api.getAssessmentSubmission(item.id).subscribe({
             next: (data) => {
                 this.selectedSubmission.set(data);
-                const initial: Record<number, number | null> = {};
+                const inputs: Record<number, number | null> = {};
                 (data.questions || []).forEach(q => {
                     if (q.question_type !== 'mcq') {
-                        initial[q.id] = q.earned_marks ?? null;
+                        inputs[q.id] = q.earned_marks ?? null;
                     }
                 });
-                this.pendingScores.set(initial);
+                this.scoreInputs = inputs;
                 this.dialogVisible = true;
             },
             error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load submission details' })
         });
-    }
-
-    setPendingScore(questionId: number, value: number | null) {
-        this.pendingScores.update(scores => ({ ...scores, [questionId]: value }));
     }
 
     saveScores() {
@@ -259,9 +259,11 @@ export class AssessmentSubmissionsPage implements OnInit {
 
         const scores: Record<string, number> = {};
         for (const q of this.textQuestions()) {
-            const value = this.pendingScores()[q.id];
+            const value = this.scoreInputs[q.id];
             if (value !== null && value !== undefined && !isNaN(value)) {
-                scores[q.id] = value;
+                const parsed = Number(value);
+                if (parsed < 0 || parsed > q.marks) continue;
+                scores[q.id] = parsed;
             }
         }
 
@@ -275,19 +277,20 @@ export class AssessmentSubmissionsPage implements OnInit {
             next: (data) => {
                 this.selectedSubmission.set(data);
                 this.submissions.update(list => list.map(s => s.id === data.id ? { ...s, assessment_score: data.assessment_score } : s));
-                const updated: Record<number, number | null> = {};
+                const inputs: Record<number, number | null> = {};
                 (data.questions || []).forEach(q => {
                     if (q.question_type !== 'mcq') {
-                        updated[q.id] = q.earned_marks ?? null;
+                        inputs[q.id] = q.earned_marks ?? null;
                     }
                 });
-                this.pendingScores.set(updated);
+                this.scoreInputs = inputs;
                 this.savingScores.set(false);
                 this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Scores saved successfully' });
             },
-            error: () => {
+            error: (err) => {
                 this.savingScores.set(false);
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to save scores' });
+                const detail = err?.error?.detail || 'Failed to save scores';
+                this.messageService.add({ severity: 'error', summary: 'Error', detail });
             }
         });
     }

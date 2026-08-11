@@ -294,6 +294,7 @@ export interface AssessmentSubmissionQuestion {
   marks: number;
   earned_marks?: number;
   is_correct?: boolean | null;
+  sort_order?: number;
 }
 
 export interface AssessmentSubmissionDetail extends AssessmentSubmission {
