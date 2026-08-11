@@ -148,6 +148,8 @@ class JobApplication(Base):
     # Long answers: {"question_id": "answer_text", ...}
     assessment_answers = Column(JSON, default=dict)
     assessment_score = Column(Integer, nullable=True)
+    # Admin manual scores for short/long answer questions: {question_id: earned_marks}
+    admin_scores = Column(JSON, default=dict)
     assessment_submitted_at = Column(DateTime(timezone=True), nullable=True)
 
     # Step 5: Additional Info & Submit

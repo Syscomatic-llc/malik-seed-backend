@@ -312,6 +312,9 @@ def main():
     add_column("job_applications", "current_location", "VARCHAR(200)")
     add_json_column("job_applications", "source")
 
+    # Job applications admin manual scoring for short/long answers
+    add_json_column("job_applications", "admin_scores")
+
     # Hero global CTA buttons
     add_column("site_settings", "hero_primary_cta_text", "VARCHAR(100)")
     add_column("site_settings", "hero_primary_cta_link", "VARCHAR(500)")

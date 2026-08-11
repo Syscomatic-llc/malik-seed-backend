@@ -16,6 +16,7 @@ import { DialogModule } from 'primeng/dialog';
 import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
+import { InputNumberModule } from 'primeng/inputnumber';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { ToolbarModule } from 'primeng/toolbar';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -25,7 +26,8 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
     standalone: true,
     imports: [
         CommonModule, FormsModule, RouterModule, CardModule, ButtonModule, TableModule,
-        DialogModule, TagModule, SelectModule, ToastModule, ToolbarModule, ConfirmDialogModule
+        DialogModule, TagModule, SelectModule, ToastModule, InputNumberModule,
+        ToolbarModule, ConfirmDialogModule
     ],
     providers: [MessageService, ConfirmationService],
     template: `
@@ -87,10 +89,11 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
             </p-table>
         </div>
 
-        <p-dialog [(visible)]="dialogVisible" [style]="{ width: '800px' }" header="Assessment Details" [modal]="true">
+        <p-dialog [(visible)]="dialogVisible" [style]="{ width: '90vw', 'max-width': '900px' }"
+            header="Assessment Details" [modal]="true" [dismissableMask]="true">
             <ng-template #content>
                 <div *ngIf="selectedSubmission()" class="flex flex-col gap-4">
-                    <div class="grid grid-cols-2 gap-4 mb-2">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
                         <p-card header="Applicant">
                             <div class="text-lg font-bold">{{selectedSubmission()?.first_name}} {{selectedSubmission()?.last_name}}</div>
                             <div class="text-muted-color">{{selectedSubmission()?.email}}</div>
@@ -104,30 +107,33 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
                             <div *ngIf="selectedSubmission()?.mcq_score" class="text-sm mt-1">
                                 MCQ: {{selectedSubmission()?.mcq_score}}
                             </div>
+                            <div class="text-sm mt-1 text-muted-color">
+                                Total: {{selectedSubmission()?.earned_marks ?? 0}} / {{selectedSubmission()?.total_marks ?? 0}}
+                            </div>
                         </p-card>
                     </div>
 
                     <div *ngIf="mcqQuestions().length" class="flex flex-col gap-3">
                         <div class="font-bold text-lg">Multiple Choice Questions</div>
                         <p-card *ngFor="let q of mcqQuestions(); let i = index">
-                            <div class="flex items-start justify-between gap-2 mb-3">
-                                <div>
+                            <div class="flex flex-wrap items-start justify-between gap-2 mb-3">
+                                <div class="min-w-0 flex-1">
                                     <span class="text-xs font-bold uppercase text-primary">MCQ</span>
-                                    <div class="font-semibold mt-1">{{i + 1}}. <span [innerHTML]="q.question"></span></div>
+                                    <div class="font-semibold mt-1 break-words">{{i + 1}}. <span [innerHTML]="q.question"></span></div>
                                 </div>
                                 <p-tag [value]="q.is_correct ? 'Correct' : 'Incorrect'"
                                     [severity]="q.is_correct ? 'success' : 'danger'" />
                             </div>
 
                             <div class="flex flex-col gap-2 mb-3">
-                                <div *ngFor="let opt of q.options; let idx = index" class="p-2 rounded border text-sm"
+                                <div *ngFor="let opt of q.options; let idx = index" class="p-2 rounded border text-sm break-words"
                                     [ngClass]="{
                                         'border-green-500 bg-green-50 text-green-700': isCorrectOption(opt, q),
                                         'border-orange-500 bg-orange-50 text-orange-700': isApplicantOption(opt, q) && !isCorrectOption(opt, q),
                                         'border-surface-200': !isCorrectOption(opt, q) && !isApplicantOption(opt, q)
                                     }">
-                                    <div class="flex items-center justify-between">
-                                        <span>{{opt}}</span>
+                                    <div class="flex flex-wrap items-center justify-between gap-2">
+                                        <span class="break-words">{{opt}}</span>
                                         <span *ngIf="isCorrectOption(opt, q) && isApplicantOption(opt, q)" class="text-xs font-bold text-green-700">Correct & applicant's answer</span>
                                         <span *ngIf="isCorrectOption(opt, q) && !isApplicantOption(opt, q)" class="text-xs font-bold text-green-700">Correct</span>
                                         <span *ngIf="isApplicantOption(opt, q) && !isCorrectOption(opt, q)" class="text-xs font-bold text-orange-700">Applicant's answer</span>
@@ -141,33 +147,33 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
                         </p-card>
                     </div>
 
-                    <div *ngIf="shortQuestions().length" class="flex flex-col gap-3">
-                        <div class="font-bold text-lg">Short Answers</div>
-                        <p-card *ngFor="let q of shortQuestions(); let i = index">
+                    <div *ngIf="textQuestions().length" class="flex flex-col gap-3">
+                        <div class="flex items-center justify-between">
+                            <div class="font-bold text-lg">Manual Scoring</div>
+                            <p-button label="Save Marks" icon="pi pi-save" severity="success" [loading]="savingScores()"
+                                (onClick)="saveScores()" />
+                        </div>
+                        <p-card *ngFor="let q of textQuestions(); let i = index">
                             <div class="mb-2">
-                                <span class="text-xs font-bold uppercase text-primary">Short Answer</span>
-                                <div class="font-semibold mt-1">{{i + 1}}. <span [innerHTML]="q.question"></span></div>
-                            </div>
-                            <div class="p-3 rounded bg-surface-50 border border-surface-200 max-h-60 overflow-y-auto">
-                                <div class="text-xs text-muted-color mb-1">Applicant answer</div>
-                                <div class="text-sm whitespace-pre-wrap" [innerHTML]="q.applicant_answer || 'No answer'"></div>
-                            </div>
-                            <div class="text-xs text-muted-color mt-2">Marks: {{q.marks}}</div>
-                        </p-card>
-                    </div>
-
-                    <div *ngIf="longQuestions().length" class="flex flex-col gap-3">
-                        <div class="font-bold text-lg">Long Answers</div>
-                        <p-card *ngFor="let q of longQuestions(); let i = index">
-                            <div class="mb-2">
-                                <span class="text-xs font-bold uppercase text-primary">Long Answer</span>
-                                <div class="font-semibold mt-1">{{i + 1}}. <span [innerHTML]="q.question"></span></div>
+                                <span class="text-xs font-bold uppercase text-primary">{{q.question_type === 'long_answer' ? 'Long Answer' : 'Short Answer'}}</span>
+                                <div class="font-semibold mt-1 break-words">{{i + 1}}. <span [innerHTML]="q.question"></span></div>
                             </div>
                             <div class="p-3 rounded bg-surface-50 border border-surface-200 max-h-80 overflow-y-auto">
                                 <div class="text-xs text-muted-color mb-1">Applicant answer</div>
-                                <div class="text-sm whitespace-pre-wrap" [innerHTML]="q.applicant_answer || 'No answer'"></div>
+                                <div class="text-sm whitespace-pre-wrap break-words" [innerHTML]="q.applicant_answer || 'No answer'"></div>
                             </div>
-                            <div class="text-xs text-muted-color mt-2">Marks: {{q.marks}}</div>
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-3">
+                                <div class="text-xs text-muted-color">
+                                    Marks: <span class="font-semibold">{{q.earned_marks ?? 'Pending'}}</span> / {{q.marks}}
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <label class="text-sm font-medium">Earned marks</label>
+                                    <p-inputNumber [ngModel]="pendingScores()[q.id]" (ngModelChange)="setPendingScore(q.id, $event)"
+                                        [min]="0" [max]="q.marks" [step]="0.5" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="2"
+                                        inputStyleClass="w-24" placeholder="0" />
+                                    <span class="text-xs text-muted-color">/ {{q.marks}}</span>
+                                </div>
+                            </div>
                         </p-card>
                     </div>
                 </div>
@@ -183,6 +189,8 @@ export class AssessmentSubmissionsPage implements OnInit {
     positions = signal<JobPosition[]>([]);
     selectedPositionId = signal<number | null>(null);
     selectedSubmission = signal<AssessmentSubmissionDetail | null>(null);
+    pendingScores = signal<Record<number, number | null>>({});
+    savingScores = signal(false);
     dialogVisible = false;
 
     positionOptions = computed(() => [
@@ -192,8 +200,7 @@ export class AssessmentSubmissionsPage implements OnInit {
 
     questions = computed(() => this.selectedSubmission()?.questions || []);
     mcqQuestions = computed(() => this.questions().filter(q => q.question_type === 'mcq'));
-    shortQuestions = computed(() => this.questions().filter(q => q.question_type === 'short_answer'));
-    longQuestions = computed(() => this.questions().filter(q => q.question_type === 'long_answer'));
+    textQuestions = computed(() => this.questions().filter(q => q.question_type === 'short_answer' || q.question_type === 'long_answer'));
 
     constructor(
         private api: MalikApiService,
@@ -229,9 +236,59 @@ export class AssessmentSubmissionsPage implements OnInit {
         this.api.getAssessmentSubmission(item.id).subscribe({
             next: (data) => {
                 this.selectedSubmission.set(data);
+                const initial: Record<number, number | null> = {};
+                (data.questions || []).forEach(q => {
+                    if (q.question_type !== 'mcq') {
+                        initial[q.id] = q.earned_marks ?? null;
+                    }
+                });
+                this.pendingScores.set(initial);
                 this.dialogVisible = true;
             },
             error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load submission details' })
+        });
+    }
+
+    setPendingScore(questionId: number, value: number | null) {
+        this.pendingScores.update(scores => ({ ...scores, [questionId]: value }));
+    }
+
+    saveScores() {
+        const submission = this.selectedSubmission();
+        if (!submission || !submission.id) return;
+
+        const scores: Record<string, number> = {};
+        for (const q of this.textQuestions()) {
+            const value = this.pendingScores()[q.id];
+            if (value !== null && value !== undefined && !isNaN(value)) {
+                scores[q.id] = value;
+            }
+        }
+
+        if (Object.keys(scores).length === 0) {
+            this.messageService.add({ severity: 'warn', summary: 'No marks entered', detail: 'Please enter earned marks for at least one question' });
+            return;
+        }
+
+        this.savingScores.set(true);
+        this.api.updateAssessmentScores(submission.id, scores).subscribe({
+            next: (data) => {
+                this.selectedSubmission.set(data);
+                this.submissions.update(list => list.map(s => s.id === data.id ? { ...s, assessment_score: data.assessment_score } : s));
+                const updated: Record<number, number | null> = {};
+                (data.questions || []).forEach(q => {
+                    if (q.question_type !== 'mcq') {
+                        updated[q.id] = q.earned_marks ?? null;
+                    }
+                });
+                this.pendingScores.set(updated);
+                this.savingScores.set(false);
+                this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Scores saved successfully' });
+            },
+            error: () => {
+                this.savingScores.set(false);
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to save scores' });
+            }
         });
     }
 

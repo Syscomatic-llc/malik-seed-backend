@@ -798,6 +798,13 @@ export class MalikApiService {
     return this.http.get<AssessmentSubmissionDetail>(`${this.apiUrl}/admin/hiring/assessment-submissions/${id}`);
   }
 
+  updateAssessmentScores(id: number, scores: Record<number | string, number>): Observable<AssessmentSubmissionDetail> {
+    return this.http.put<AssessmentSubmissionDetail>(
+      `${this.apiUrl}/admin/hiring/assessment-submissions/${id}/score`,
+      { scores }
+    );
+  }
+
   // ============ JOB APPLICATIONS ============
   getJobApplications(positionId?: number, search?: string): Observable<JobApplication[]> {
     let params = new HttpParams();

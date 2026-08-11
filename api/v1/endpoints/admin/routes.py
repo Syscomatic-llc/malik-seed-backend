@@ -427,6 +427,7 @@ def get_assessment_submission_detail(
     ).order_by(AssessmentQuestion.sort_order).all()
 
     answers = application.assessment_answers or {}
+    admin_scores = application.admin_scores or {}
 
     total_marks = 0
     earned_marks = 0
@@ -447,15 +448,12 @@ def get_assessment_submission_detail(
             else:
                 is_correct = False
                 q_earned = 0
-        elif q.correct_answer is not None:
+        elif q.question_type in ("short_answer", "long_answer"):
             total_marks += q.marks or 0
-            if _answers_match(q.correct_answer, normalized_answer):
-                is_correct = True
-                q_earned = q.marks or 0
+            manual = admin_scores.get(str(q.id))
+            if manual is not None:
+                q_earned = float(manual)
                 earned_marks += q_earned
-            else:
-                is_correct = False
-                q_earned = 0
 
         question_details.append({
             "id": q.id,
@@ -490,6 +488,86 @@ def get_assessment_submission_detail(
         "earned_marks": earned_marks,
         "questions": question_details,
     }
+
+
+@router.put("/hiring/assessment-submissions/{application_id}/score")
+def update_assessment_scores(
+    application_id: int,
+    payload: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    """Admin manually scores short/long answer questions and recalculates total score."""
+    application = db.query(JobApplication).filter(
+        JobApplication.id == application_id
+    ).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    scores = payload.get("scores") or {}
+    if not isinstance(scores, dict):
+        raise HTTPException(status_code=400, detail="scores must be an object mapping question_id to earned_marks")
+
+    questions = db.query(AssessmentQuestion).filter(
+        AssessmentQuestion.position_id == application.position_id
+    ).all()
+    question_map = {q.id: q for q in questions}
+
+    # Validate every provided score
+    normalized_scores = {}
+    for key, value in scores.items():
+        try:
+            qid = int(key)
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=400, detail=f"Invalid question id: {key}")
+
+        question = question_map.get(qid)
+        if not question:
+            raise HTTPException(status_code=400, detail=f"Question {qid} does not belong to this position")
+        if question.question_type == "mcq":
+            raise HTTPException(status_code=400, detail=f"Question {qid} is an MCQ and cannot be manually scored")
+
+        try:
+            earned = float(value)
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=400, detail=f"Invalid earned marks for question {qid}: {value}")
+
+        max_marks = question.marks or 0
+        if earned < 0 or earned > max_marks:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Earned marks for question {qid} must be between 0 and {max_marks}"
+            )
+        normalized_scores[str(qid)] = earned
+
+    # Merge with existing admin scores (so partial updates keep prior values)
+    existing = application.admin_scores or {}
+    existing.update(normalized_scores)
+    application.admin_scores = existing
+
+    # Recalculate total assessment score
+    answers = application.assessment_answers or {}
+    total_earned = 0
+    total_marks = 0
+    for q in questions:
+        if not q.marks:
+            continue
+        total_marks += q.marks
+        if q.question_type == "mcq" and q.correct_answer is not None:
+            applicant_answer = _normalize_answer(answers.get(str(q.id)), q.options or [])
+            target = _resolve_correct_option(q.correct_answer, q.options or [])
+            if _answers_match(target, applicant_answer):
+                total_earned += q.marks
+        elif q.question_type in ("short_answer", "long_answer"):
+            manual = application.admin_scores.get(str(q.id))
+            if manual is not None:
+                total_earned += float(manual)
+
+    application.assessment_score = round((total_earned / total_marks) * 100) if total_marks else 0
+    db.commit()
+    db.refresh(application)
+
+    # Return updated detail
+    return get_assessment_submission_detail(application_id, db=db)
 
 
 # ============== JOB APPLICATIONS ==============
