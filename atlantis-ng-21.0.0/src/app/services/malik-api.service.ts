@@ -156,6 +156,64 @@ export interface OurStoryTimeline {
 }
 
 // ============ OUR BRANDS TYPES ============
+export interface BrandHeroSection {
+  title?: string;
+  subtitle?: string;
+  background_image?: string;
+  scroll_text?: string;
+}
+
+export interface BrandIntroSection {
+  heading?: string;
+  heading_highlight?: string;
+  description?: string;
+  tags?: string[];
+}
+
+export interface BrandFarmersSection {
+  badge?: string;
+  heading?: string;
+  description?: string;
+  images?: string[];
+}
+
+export interface BrandQualityCard {
+  number?: number;
+  title?: string;
+  description?: string;
+}
+
+export interface BrandQualitiesSection {
+  badge?: string;
+  heading?: string;
+  description?: string;
+  cards?: BrandQualityCard[];
+}
+
+export interface BrandPortfolioSection {
+  badge?: string;
+  heading?: string;
+  description?: string;
+  tags?: string[];
+}
+
+export interface BrandHeritageSection {
+  badge?: string;
+  heading?: string;
+  description?: string;
+  images?: string[];
+  youtube_url?: string;
+}
+
+export interface BrandContent {
+  hero?: BrandHeroSection;
+  intro?: BrandIntroSection;
+  farmers?: BrandFarmersSection;
+  qualities?: BrandQualitiesSection;
+  portfolio?: BrandPortfolioSection;
+  heritage?: BrandHeritageSection;
+}
+
 export interface OurBrand {
   id?: number;
   name: string;
@@ -163,10 +221,27 @@ export interface OurBrand {
   category?: string;
   tagline?: string;
   description?: string;
+  long_description?: string;
   logo_url?: string;
   image_url?: string;
+  hero_image?: string;
+  gallery_images?: string[];
+  features?: string[];
+  stats?: BrandQualityCard[];
+  link?: string;
+  content?: BrandContent;
+  is_active?: boolean;
   is_featured?: boolean;
   sort_order?: number;
+}
+
+export interface OurBrandDetail extends OurBrand {
+  hero: BrandHeroSection;
+  intro: BrandIntroSection;
+  farmers: BrandFarmersSection;
+  qualities: BrandQualitiesSection;
+  portfolio: BrandPortfolioSection;
+  heritage: BrandHeritageSection;
 }
 
 // ============ GALLERY TYPES ============
@@ -587,6 +662,10 @@ export class MalikApiService {
 
   getBrandBySlug(slug: string): Observable<OurBrand> {
     return this.http.get<OurBrand>(`${this.apiUrl}/our-brands/brands/${slug}`);
+  }
+
+  getBrandDetailBySlug(slug: string): Observable<OurBrandDetail> {
+    return this.http.get<OurBrandDetail>(`${this.apiUrl}/our-brands/brands/${slug}/detail`);
   }
 
   // ============ GALLERY ============

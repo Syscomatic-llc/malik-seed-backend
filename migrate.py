@@ -96,6 +96,26 @@ def ensure_varchar_length(table_name: str, column_name: str, min_length: int):
     print(f"  ✓ Resized {table_name}.{column_name} to VARCHAR({min_length})")
 
 
+def add_enum_value(enum_name: str, value: str):
+    """Add a value to a PostgreSQL enum type if it does not already exist."""
+    dialect = engine.dialect.name
+    if dialect != "postgresql":
+        return
+
+    with engine.connect() as conn:
+        result = conn.execute(text(
+            f"SELECT enumlabel FROM pg_enum WHERE enumtypid = (SELECT oid FROM pg_type WHERE typname = '{enum_name}')"
+        )).fetchall()
+        existing = {row[0] for row in result}
+        if value in existing:
+            print(f"  ✓ Enum {enum_name}.{value} already exists")
+            return
+
+        conn.execute(text(f"ALTER TYPE {enum_name} ADD VALUE '{value}'"))
+        conn.commit()
+    print(f"  ✓ Added value {value} to enum {enum_name}")
+
+
 def make_column_nullable(table_name: str, column_name: str):
     if not table_exists(table_name):
         return
@@ -314,6 +334,12 @@ def main():
 
     # Job applications admin manual scoring for short/long answers
     add_json_column("job_applications", "admin_scores")
+
+    # Our brands rich page content
+    add_json_column("our_brands", "content")
+
+    # Ensure brand category enum includes 'features' for PostgreSQL
+    add_enum_value("brandcategory", "features")
 
     # Hero global CTA buttons
     add_column("site_settings", "hero_primary_cta_text", "VARCHAR(100)")

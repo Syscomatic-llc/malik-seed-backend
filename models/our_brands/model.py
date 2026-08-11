@@ -14,6 +14,7 @@ class BrandCategory(str, enum.Enum):
     TRAINING = "training"
     FRESH = "fresh"
     PLANTED_BY_MALIK = "planted_by_malik"
+    FEATURES = "features"
 
 
 class OurBrand(Base):
@@ -43,6 +44,9 @@ class OurBrand(Base):
 
     # Link
     link = Column(String(500), nullable=True)
+
+    # Rich page content sections (hero, intro, farmers, qualities, portfolio, heritage)
+    content = Column(JSON, default=dict)
 
     is_active = Column(Boolean, default=True)
     is_featured = Column(Boolean, default=False)

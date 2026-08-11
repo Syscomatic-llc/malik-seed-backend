@@ -47,6 +47,71 @@ def get_brand_by_slug(slug: str, db: Session = Depends(get_db)):
     return brand
 
 
+@router.get("/brands/{slug}/detail")
+def get_brand_detail_by_slug(slug: str, db: Session = Depends(get_db)):
+    """Get a brand with its full structured page content."""
+    brand = db.query(OurBrand).filter(OurBrand.slug == slug, OurBrand.is_active == True).first()
+    if not brand:
+        raise HTTPException(status_code=404, detail="Brand not found")
+
+    content = brand.content or {}
+
+    def section(name: str, defaults: dict):
+        return {**defaults, **(content.get(name) or {})}
+
+    return {
+        "id": brand.id,
+        "name": brand.name,
+        "slug": brand.slug,
+        "category": brand.category.value if brand.category else None,
+        "tagline": brand.tagline,
+        "description": brand.description,
+        "long_description": brand.long_description,
+        "logo_url": brand.logo_url,
+        "image_url": brand.image_url,
+        "link": brand.link,
+        "is_featured": brand.is_featured,
+        "sort_order": brand.sort_order,
+        "hero": section("hero", {
+            "title": brand.name,
+            "subtitle": "",
+            "background_image": brand.hero_image,
+            "scroll_text": "Scroll to explore"
+        }),
+        "intro": section("intro", {
+            "heading": "Seeds built for",
+            "heading_highlight": "Bangladesh's farmers.",
+            "description": brand.description or "",
+            "tags": brand.features or []
+        }),
+        "farmers": section("farmers", {
+            "badge": "WITH OUR FARMERS",
+            "heading": "Built for the farmers who grow them",
+            "description": "Every variety we release is tested, proven, and trusted by the farmers who plant it.",
+            "images": brand.gallery_images or []
+        }),
+        "qualities": section("qualities", {
+            "badge": "WHAT WE BREED FOR",
+            "heading": "Three qualities. Every variety.",
+            "description": "Our portfolio is selected for three qualities that matter most to Bangladesh's farmers.",
+            "cards": brand.stats or []
+        }),
+        "portfolio": section("portfolio", {
+            "badge": "SEED PORTFOLIO",
+            "heading": f"Bangladesh's Trusted {brand.name} Portfolio",
+            "description": f"A carefully curated range of high-value crops selected for what performs in Bangladesh's fields.",
+            "tags": []
+        }),
+        "heritage": section("heritage", {
+            "badge": "OUR HERITAGE",
+            "heading": "Over half a century in the field",
+            "description": "",
+            "images": [],
+            "youtube_url": brand.link
+        })
+    }
+
+
 @router.get("/flower-portfolio")
 def get_flower_portfolio(
     category: Optional[str] = None,
