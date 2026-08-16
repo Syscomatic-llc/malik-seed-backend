@@ -237,7 +237,8 @@ export class OpenPositionsResumesPage implements OnInit {
     }
 
     exportCSV() {
-        this.api.exportResumes(this.resumeType).subscribe({
+        const ids = this.selectedResumes().length ? this.selectedResumes().map(r => r.id!).filter(Boolean) : undefined;
+        this.api.exportResumes(this.resumeType, ids).subscribe({
             next: (blob) => {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');

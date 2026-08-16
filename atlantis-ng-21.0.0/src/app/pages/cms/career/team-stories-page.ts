@@ -45,7 +45,7 @@ import { ConfirmationService } from 'primeng/api';
                         <th>Profile</th>
                         <th>Name</th>
                         <th>Designation</th>
-                        <th>Department</th>
+                        <th>Team</th>
                         <th>Content</th>
                         <th>Actions</th>
                     </tr>
@@ -66,7 +66,7 @@ import { ConfirmationService } from 'primeng/api';
                         <td>{{item.department}}</td>
                         <td>{{item.content | slice:0:80}}...</td>
                         <td>
-                            <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" 
+                            <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true"
                                 (onClick)="editTestimonial(item)" />
                             <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
                                 (onClick)="deleteTestimonial(item)" />
@@ -94,7 +94,7 @@ import { ConfirmationService } from 'primeng/api';
                         <input type="text" pInputText [(ngModel)]="testimonial.designation" fluid />
                     </div>
                     <div>
-                        <label class="block font-bold mb-2">Department</label>
+                        <label class="block font-bold mb-2">Team</label>
                         <input type="text" pInputText [(ngModel)]="testimonial.department" fluid />
                     </div>
                     <div>

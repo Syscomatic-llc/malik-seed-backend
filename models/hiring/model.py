@@ -45,10 +45,10 @@ class JobPosition(Base):
     title = Column(String(200), nullable=False)
     slug = Column(String(200), unique=True, nullable=False)
 
-    # Job details
-    department = Column(Enum(JobDepartment), nullable=False)
-    job_type = Column(Enum(JobType), default=JobType.FULL_TIME, nullable=False)
-    location = Column(Enum(JobLocation), default=JobLocation.DHAKA, nullable=False)
+    # Job details - now free-text so admin can add custom options
+    department = Column(String(100), nullable=False)
+    job_type = Column(String(100), default="full_time", nullable=False)
+    location = Column(String(100), default="dhaka", nullable=False)
 
     # Relationships
     applications = relationship("JobApplication", back_populates="position")
@@ -82,7 +82,7 @@ class JobPosition(Base):
     # Assessment - matches Figma MCQ/Short Answer/Long Answer flow
     has_assessment = Column(Boolean, default=False)
     assessment_duration = Column(Integer, default=30)
-    passing_score = Column(Integer, default=70)
+    passing_score = Column(Integer, nullable=True)
 
     # Per-section time limits (minutes). Fall back to assessment_duration when not set.
     mcq_duration = Column(Integer, nullable=True)
@@ -92,8 +92,8 @@ class JobPosition(Base):
     # Ordering
     sort_order = Column(Integer, default=0)
 
-    # Status
-    is_active = Column(Boolean, default=True)
+    # Status: is_published replaces is_active. Unpublished positions remain in CMS but hidden on frontend.
+    is_published = Column(Boolean, default=True)
     is_featured = Column(Boolean, default=False)
     is_urgent = Column(Boolean, default=False)
 

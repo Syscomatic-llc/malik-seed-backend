@@ -42,9 +42,13 @@ def add_column(table_name: str, column_name: str, column_def: str):
     dialect = engine.dialect.name
     with engine.connect() as conn:
         if dialect == "sqlite":
-            conn.execute(text(f'ALTER TABLE {table_name} ADD COLUMN {column_name} {column_def}'))
+            # SQLite uses 0/1 for boolean
+            sqlite_def = column_def.replace("DEFAULT TRUE", "DEFAULT 1").replace("DEFAULT FALSE", "DEFAULT 0")
+            conn.execute(text(f'ALTER TABLE {table_name} ADD COLUMN {column_name} {sqlite_def}'))
         elif dialect == "postgresql":
-            conn.execute(text(f'ALTER TABLE {table_name} ADD COLUMN {column_name} {column_def}'))
+            # PostgreSQL uses TRUE/FALSE for boolean
+            pg_def = column_def.replace("DEFAULT 1", "DEFAULT TRUE").replace("DEFAULT 0", "DEFAULT FALSE")
+            conn.execute(text(f'ALTER TABLE {table_name} ADD COLUMN {column_name} {pg_def}'))
         else:
             print(f"  ✗ Unsupported dialect: {dialect}")
             return
@@ -114,6 +118,36 @@ def add_enum_value(enum_name: str, value: str):
         conn.execute(text(f"ALTER TYPE {enum_name} ADD VALUE '{value}'"))
         conn.commit()
     print(f"  ✓ Added value {value} to enum {enum_name}")
+
+
+def convert_enum_column_to_varchar(table_name: str, column_name: str):
+    """Convert a PostgreSQL enum column to VARCHAR so custom free-text values can be stored."""
+    if not table_exists(table_name):
+        return
+
+    dialect = engine.dialect.name
+    if dialect != "postgresql":
+        return
+
+    with engine.connect() as conn:
+        # Check current column type
+        result = conn.execute(text(
+            f"SELECT data_type, udt_name FROM information_schema.columns WHERE table_name = '{table_name}' AND column_name = '{column_name}'"
+        )).fetchone()
+
+        if not result:
+            return
+
+        data_type, udt_name = result
+        if data_type.lower() != "user-defined" or udt_name.lower() == "varchar":
+            print(f"  ✓ {table_name}.{column_name} is already VARCHAR or not an enum")
+            return
+
+        conn.execute(text(
+            f"ALTER TABLE {table_name} ALTER COLUMN {column_name} TYPE VARCHAR(100) USING {column_name}::text"
+        ))
+        conn.commit()
+    print(f"  ✓ Converted {table_name}.{column_name} from enum to VARCHAR(100)")
 
 
 def make_column_nullable(table_name: str, column_name: str):
@@ -226,6 +260,36 @@ def backfill_resume_upload_fields():
     print("  ✓ Backfilled resume_upload fields from job_applications")
 
 
+def backfill_is_published():
+    if not table_exists("job_positions"):
+        return
+
+    dialect = engine.dialect.name
+    with engine.connect() as conn:
+        if dialect == "postgresql":
+            conn.execute(text(
+                """
+                UPDATE job_positions
+                SET is_published = COALESCE(is_active, TRUE)
+                WHERE is_published IS NULL
+                """
+            ))
+        elif dialect == "sqlite":
+            conn.execute(text(
+                """
+                UPDATE job_positions
+                SET is_published = COALESCE(is_active, 1)
+                WHERE is_published IS NULL
+                """
+            ))
+        else:
+            print(f"  ~ Skipped is_published backfill for dialect: {dialect}")
+            return
+        conn.commit()
+
+    print("  ✓ Backfilled job_positions.is_published from is_active")
+
+
 def backfill_job_positions_sort_order():
     if not table_exists("job_positions"):
         return
@@ -303,6 +367,15 @@ def main():
 
     # Homepage news items icon
     add_column("homepage_news_items", "icon", "VARCHAR(100)")
+
+    # Migrate is_active to is_published for job_positions
+    add_column("job_positions", "is_published", "BOOLEAN DEFAULT TRUE")
+    backfill_is_published()
+
+    # Convert legacy enum columns to VARCHAR so admin can add custom options
+    convert_enum_column_to_varchar("job_positions", "department")
+    convert_enum_column_to_varchar("job_positions", "job_type")
+    convert_enum_column_to_varchar("job_positions", "location")
 
     # Job position details PDF
     add_column("job_positions", "details_pdf_url", "VARCHAR(500)")

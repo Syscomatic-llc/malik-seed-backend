@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -21,36 +21,18 @@ import { ConfirmationService } from 'primeng/api';
 import { slugify } from '@/app/utils/slugify';
 import { environment } from '@/environments/environment';
 
-const DEPARTMENTS = [
-    { label: 'Sales', value: 'sales' },
-    { label: 'Marketing', value: 'marketing' },
-    { label: 'Operations', value: 'operations' },
-    { label: 'Research', value: 'research' },
-    { label: 'Finance', value: 'finance' },
-    { label: 'HR', value: 'hr' },
-    { label: 'IT', value: 'it' },
-    { label: 'Field', value: 'field' },
-    { label: 'Logistics', value: 'logistics' },
-    { label: 'Production', value: 'production' }
-];
+const DEFAULT_DEPARTMENTS = ['Sales', 'Marketing', 'Operations', 'Research', 'Finance', 'HR', 'IT', 'Field', 'Logistics', 'Production'];
+const DEFAULT_JOB_TYPES = ['Full Time', 'Part Time', 'Contract', 'Internship'];
+const DEFAULT_LOCATIONS = ['Dhaka', 'Chittagong', 'Rajshahi', 'Khulna', 'Sylhet', 'Barisal', 'Rangpur', 'Remote'];
 
-const JOB_TYPES = [
-    { label: 'Full Time', value: 'full_time' },
-    { label: 'Part Time', value: 'part_time' },
-    { label: 'Contract', value: 'contract' },
-    { label: 'Internship', value: 'internship' }
-];
+function capitalizeWords(str?: string): string {
+    if (!str) return '';
+    return str.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
 
-const LOCATIONS = [
-    { label: 'Dhaka', value: 'dhaka' },
-    { label: 'Chittagong', value: 'chittagong' },
-    { label: 'Rajshahi', value: 'rajshahi' },
-    { label: 'Khulna', value: 'khulna' },
-    { label: 'Sylhet', value: 'sylhet' },
-    { label: 'Barisal', value: 'barisal' },
-    { label: 'Rangpur', value: 'rangpur' },
-    { label: 'Remote', value: 'remote' }
-];
+function toSlug(str: string): string {
+    return str.toLowerCase().trim().replace(/\s+/g, '_');
+}
 
 @Component({
     selector: 'app-positions-page',
@@ -58,7 +40,8 @@ const LOCATIONS = [
     imports: [
         CommonModule, FormsModule, RouterModule, CardModule, ButtonModule, TableModule,
         DialogModule, InputTextModule, TextareaModule, ToastModule, ToolbarModule,
-        ToggleSwitchModule, TagModule, SelectModule, EditorModule, ConfirmDialogModule
+        ToggleSwitchModule, TagModule, SelectModule, EditorModule, ConfirmDialogModule,
+        EditableSelectComponent
     ],
     providers: [MessageService, ConfirmationService],
     template: `
@@ -79,11 +62,11 @@ const LOCATIONS = [
                         <th style="width: 3rem"></th>
                         <th>Order</th>
                         <th>Title</th>
-                        <th>Department</th>
+                        <th>Team</th>
                         <th>Type</th>
                         <th>Location</th>
                         <th>Experience</th>
-                        <th>Active</th>
+                        <th>Publish</th>
                         <th>Actions</th>
                     </tr>
                 </ng-template>
@@ -92,16 +75,16 @@ const LOCATIONS = [
                         <td><span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span></td>
                         <td><span class="font-bold text-primary">{{i + 1}}</span></td>
                         <td>{{item.title}}</td>
-                        <td>{{item.department}}</td>
-                        <td><p-tag [value]="item.job_type" severity="info" /></td>
-                        <td>{{item.location}}</td>
+                        <td>{{capitalizeWords(item.department)}}</td>
+                        <td><p-tag [value]="capitalizeWords(item.job_type)" severity="info" /></td>
+                        <td>{{capitalizeWords(item.location)}}</td>
                         <td>{{item.experience_required}}</td>
                         <td>
-                            <p-tag [value]="item.is_active ? 'Yes' : 'No'" 
-                                [severity]="item.is_active ? 'success' : 'danger'" />
+                            <p-tag [value]="item.is_published ? 'Published' : 'Unpublished'"
+                                [severity]="item.is_published ? 'success' : 'danger'" />
                         </td>
                         <td>
-                            <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" 
+                            <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true"
                                 (onClick)="editPosition(item)" />
                             <p-button icon="pi pi-trash" severity="danger" class="mr-2" [rounded]="true" [outlined]="true"
                                 (onClick)="deletePosition(item)" />
@@ -126,21 +109,27 @@ const LOCATIONS = [
                             <input type="text" pInputText [(ngModel)]="position.slug" placeholder="e.g. it-head" fluid />
                         </div>
                         <div>
-                            <label class="block font-bold mb-2">Department *</label>
-                            <p-select [options]="departments" [(ngModel)]="position.department"
-                                optionLabel="label" optionValue="value" placeholder="Select" fluid appendTo="body" />
+                            <label class="block font-bold mb-2">Team *</label>
+                            <app-editable-select
+                                [options]="departments()"
+                                [(ngModel)]="position.department"
+                                placeholder="Select or type team name" />
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block font-bold mb-2">Job Type *</label>
-                            <p-select [options]="jobTypes" [(ngModel)]="position.job_type"
-                                optionLabel="label" optionValue="value" placeholder="Select" fluid appendTo="body" />
+                            <app-editable-select
+                                [options]="jobTypes()"
+                                [(ngModel)]="position.job_type"
+                                placeholder="Select or type job type" />
                         </div>
                         <div>
                             <label class="block font-bold mb-2">Location *</label>
-                            <p-select [options]="locations" [(ngModel)]="position.location"
-                                optionLabel="label" optionValue="value" placeholder="Select" fluid appendTo="body" />
+                            <app-editable-select
+                                [options]="locations()"
+                                [(ngModel)]="position.location"
+                                placeholder="Select or type location" />
                         </div>
                     </div>
                     <div>
@@ -167,11 +156,13 @@ const LOCATIONS = [
                             </a>
                             <p-button icon="pi pi-times" severity="danger" [text]="true" (onClick)="position.details_pdf_url = ''" />
                         </div>
-                        <input type="file" accept=".pdf,.doc,.docx" (change)="onPdfSelected($event)" class="block w-full text-sm text-surface-600" />
+                        <p-button label="Upload PDF" icon="pi pi-upload" severity="secondary" (onClick)="fileInput.click()" />
+                        <input #fileInput type="file" accept=".pdf,.doc,.docx" (change)="onPdfSelected($event)" class="hidden" />
                     </div>
                     <div>
-                        <label class="block font-bold mb-2">Active</label>
-                        <p-toggleSwitch [(ngModel)]="position.is_active" />
+                        <label class="block font-bold mb-2">Publish</label>
+                        <p-toggleSwitch [(ngModel)]="position.is_published" />
+                        <span class="ml-2 text-sm text-muted-color">{{position.is_published ? 'Published' : 'Unpublished'}}</span>
                     </div>
                 </div>
             </ng-template>
@@ -189,9 +180,9 @@ export class PositionsPage implements OnInit {
     saving = false;
     uploadingPdf = false;
     mediaBaseUrl = environment.mediaBaseUrl;
-    departments = DEPARTMENTS;
-    jobTypes = JOB_TYPES;
-    locations = LOCATIONS;
+    departments = signal<string[]>(DEFAULT_DEPARTMENTS);
+    jobTypes = signal<string[]>(DEFAULT_JOB_TYPES);
+    locations = signal<string[]>(DEFAULT_LOCATIONS);
 
     constructor(
         private api: MalikApiService,
@@ -201,17 +192,31 @@ export class PositionsPage implements OnInit {
 
     ngOnInit() {
         this.loadPositions();
+        this.loadDropdownOptions();
     }
 
     loadPositions() {
-        this.api.getJobPositions().subscribe({
+        this.api.adminList('job-position').subscribe({
             next: (data) => this.positions.set(data),
             error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load positions' })
         });
     }
 
+    loadDropdownOptions() {
+        this.api.getDropdownOptions().subscribe({
+            next: (opts) => {
+                this.departments.set([...new Set([...DEFAULT_DEPARTMENTS, ...opts.departments.map(capitalizeWords)])]);
+                this.jobTypes.set([...new Set([...DEFAULT_JOB_TYPES, ...opts.job_types.map(capitalizeWords)])]);
+                this.locations.set([...new Set([...DEFAULT_LOCATIONS, ...opts.locations.map(capitalizeWords)])]);
+            },
+            error: () => {
+                // Silently fail - defaults are already set
+            }
+        });
+    }
+
     openNew() {
-        this.position = { title: '', slug: '', department: '', job_type: '', location: '', description: '', is_active: true };
+        this.position = { title: '', slug: '', department: '', job_type: '', location: '', description: '', is_published: true };
         this.dialog = true;
     }
 
@@ -221,7 +226,7 @@ export class PositionsPage implements OnInit {
     }
 
     onTitleChange(title: string) {
-        if (!this.position.slug) {
+        if (!this.position.slug || this.position.slug === slugify(this.position.title || '')) {
             this.position.slug = slugify(title);
         }
     }
@@ -251,15 +256,18 @@ export class PositionsPage implements OnInit {
     savePosition() {
         const p = this.position;
         if (!p.title?.trim() || !p.slug?.trim() || !p.department || !p.job_type || !p.location || !p.description?.trim()) {
-            this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Please fill Title, Slug, Department, Job Type, Location, and Full Description.', life: 5000 });
+            this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Please fill Title, Slug, Team, Job Type, Location, and Full Description.', life: 5000 });
             return;
         }
 
         this.saving = true;
         const data: JobPosition = {
             ...p,
+            department: toSlug(p.department),
+            job_type: toSlug(p.job_type),
+            location: toSlug(p.location),
             description: p.description.trim(),
-            is_active: !!p.is_active
+            is_published: !!p.is_published
         };
 
         const request = data.id
@@ -270,6 +278,7 @@ export class PositionsPage implements OnInit {
             next: () => {
                 this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Position saved successfully', life: 3000 });
                 this.loadPositions();
+                this.loadDropdownOptions();
                 this.dialog = false;
                 this.saving = false;
             },
@@ -312,5 +321,128 @@ export class PositionsPage implements OnInit {
                 this.loadPositions();
             }
         });
+    }
+
+    capitalizeWords(str?: string): string {
+        return capitalizeWords(str);
+    }
+}
+
+// ====== Editable Select Component ======
+@Component({
+    selector: 'app-editable-select',
+    standalone: true,
+    imports: [CommonModule, FormsModule, InputTextModule, ButtonModule],
+    template: `
+        <div class="relative">
+            <div class="flex gap-1">
+                <input
+                    type="text"
+                    pInputText
+                    [(ngModel)]="displayValue"
+                    (ngModelChange)="onInputChange($event)"
+                    [placeholder]="_placeholderText"
+                    class="w-full"
+                    (focus)="showDropdown = true"
+                    (blur)="onBlur()" />
+                <p-button
+                    icon="pi pi-chevron-down"
+                    severity="secondary"
+                    [text]="true"
+                    (onClick)="toggleDropdown()" />
+            </div>
+            <div *ngIf="showDropdown" class="absolute z-50 w-full mt-1 bg-surface-0 border border-surface-200 rounded shadow-lg max-h-48 overflow-y-auto">
+                <div
+                    *ngFor="let opt of filteredOptions()"
+                    class="px-3 py-2 cursor-pointer hover:bg-surface-100 text-sm"
+                    (mousedown)="selectOption(opt)">
+                    {{opt}}
+                </div>
+                <div *ngIf="displayValue && !filteredOptions().includes(displayValue)"
+                    class="px-3 py-2 cursor-pointer hover:bg-primary-50 text-sm text-primary font-semibold border-t border-surface-200"
+                    (mousedown)="addNewOption(displayValue)">
+                    <i class="pi pi-plus mr-1"></i> Add "{{displayValue}}"
+                </div>
+                <div *ngIf="filteredOptions().length === 0 && !displayValue" class="px-3 py-2 text-sm text-muted-color">
+                    No options
+                </div>
+            </div>
+        </div>
+    `
+})
+export class EditableSelectComponent {
+    _options = signal<string[]>([]);
+    displayValue = '';
+    showDropdown = false;
+    _placeholderText = 'Select or type...';
+    private _value = '';
+
+    filteredOptions = signal<string[]>([]);
+
+    ngOnInit() {
+        this.filteredOptions.set(this._options());
+    }
+
+    @Input() set options(val: string[]) {
+        this._options.set(val || []);
+        this.filteredOptions.set(val || []);
+    }
+
+    @Input() set ngModel(val: string) {
+        this._value = val || '';
+        this.displayValue = capitalizeWords(val);
+    }
+
+    placeholderText = 'Select or type...';
+
+    @Input() set placeholder(val: string) {
+        this._placeholderText = val || 'Select or type...';
+    }
+
+    @Output() ngModelChange = new EventEmitter<string>();
+
+    onInputChange(value: string) {
+        this.displayValue = value;
+        this._value = toSlug(value);
+        this.ngModelChange.emit(this._value);
+        this.filterOptions(value);
+        this.showDropdown = true;
+    }
+
+    filterOptions(search: string) {
+        if (!search) {
+            this.filteredOptions.set(this._options());
+            return;
+        }
+        const lower = search.toLowerCase();
+        this.filteredOptions.set(this._options().filter(o => o.toLowerCase().includes(lower)));
+    }
+
+    selectOption(option: string) {
+        this.displayValue = option;
+        this._value = toSlug(option);
+        this.ngModelChange.emit(this._value);
+        this.showDropdown = false;
+    }
+
+    addNewOption(value: string) {
+        const newOption = value.trim();
+        if (newOption && !this._options().includes(newOption)) {
+            this._options.set([...this._options(), newOption]);
+        }
+        this.selectOption(newOption);
+    }
+
+    toggleDropdown() {
+        this.showDropdown = !this.showDropdown;
+        if (this.showDropdown) {
+            this.filteredOptions.set(this._options());
+        }
+    }
+
+    onBlur() {
+        setTimeout(() => {
+            this.showDropdown = false;
+        }, 200);
     }
 }

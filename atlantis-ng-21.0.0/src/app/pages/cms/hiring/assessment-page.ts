@@ -24,6 +24,13 @@ const QUESTION_TYPES = [
     { label: 'Long Answer', value: 'long_answer' }
 ];
 
+function stripHtml(html?: string): string {
+    if (!html) return '';
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+}
+
 @Component({
     selector: 'app-assessment-page',
     standalone: true,
@@ -102,11 +109,18 @@ const QUESTION_TYPES = [
                         (onClick)="savePassingScore()" [loading]="savingPassingScore" />
                 </div>
                 <div class="p-3 bg-primary/5 rounded flex flex-col gap-2 mb-4">
-                    <input type="number" pInputText [(ngModel)]="passingScore" placeholder="e.g. 70" fluid />
-                    <span class="text-xs text-muted-color">Minimum score (percentage) required to pass the exam</span>
+                    <input type="number" pInputText [(ngModel)]="passingScore" placeholder="Leave empty for no passing score" fluid />
+                    <span class="text-xs text-muted-color">Minimum score (percentage) required to pass the exam. Leave empty for no passing score requirement.</span>
                 </div>
 
-                <p-table [value]="questions()" [rows]="10" [paginator]="true"
+                <div class="flex items-center gap-4 mb-4">
+                    <label class="font-bold">Filter by Type:</label>
+                    <p-select [options]="questionTypeFilterOptions" [(ngModel)]="selectedQuestionTypeFilter"
+                        optionLabel="label" optionValue="value" placeholder="All Types"
+                        styleClass="w-48" appendTo="body" (ngModelChange)="onQuestionTypeFilterChange()" />
+                </div>
+
+                <p-table [value]="filteredQuestions()" [rows]="10" [paginator]="true"
                     (onRowReorder)="onRowReorder($event)"
                     [tableStyle]="{ 'min-width': '75rem' }">
                     <ng-template #header>
@@ -126,12 +140,12 @@ const QUESTION_TYPES = [
                             <td><span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span></td>
                             <td><span class="font-bold text-primary">{{(q.sort_order ?? 0) + 1}}</span></td>
                             <td><p-tag [value]="q.question_type" [severity]="getTypeSeverity(q.question_type)" /></td>
-                            <td>{{q.question | slice:0:60}}...</td>
+                            <td>{{stripHtml(q.question) | slice:0:60}}...</td>
                             <td>{{q.correct_answer || '-'}}</td>
                             <td>{{q.marks}}</td>
                             <td>{{q.char_limit || '-'}}</td>
                             <td>
-                                <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" 
+                                <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true"
                                     (onClick)="editQuestion(q)" />
                                 <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
                                     (onClick)="deleteQuestion(q)" />
@@ -149,12 +163,12 @@ const QUESTION_TYPES = [
             <ng-template #content>
                 <div class="flex flex-col gap-4">
                     <div>
-                        <label class="block font-bold mb-2">Question Type</label>
+                        <label class="block font-bold mb-2">Question Type *</label>
                         <p-select [options]="questionTypes" [(ngModel)]="question.question_type"
                             optionLabel="label" optionValue="value" placeholder="Select Type" fluid appendTo="body" />
                     </div>
                     <div>
-                        <label class="block font-bold mb-2">Question</label>
+                        <label class="block font-bold mb-2">Question *</label>
                         <ng-container *ngIf="question.question_type === 'long_answer'; else plainQuestion">
                             <p-editor [(ngModel)]="question.question" [style]="{ height: '160px' }"
                                 [modules]="editorModules" placeholder="Enter long-answer question">
@@ -174,16 +188,16 @@ const QUESTION_TYPES = [
                         </ng-template>
                     </div>
                     <div *ngIf="question.question_type === 'mcq'">
-                        <label class="block font-bold mb-2">Options (one per line)</label>
+                        <label class="block font-bold mb-2">Options (one per line) *</label>
                         <textarea pTextarea [(ngModel)]="optionsText" rows="4" placeholder="A. Option 1&#10;B. Option 2" fluid></textarea>
                     </div>
                     <div *ngIf="question.question_type === 'mcq'">
-                        <label class="block font-bold mb-2">Correct Answer</label>
+                        <label class="block font-bold mb-2">Correct Answer *</label>
                         <input type="text" pInputText [(ngModel)]="question.correct_answer" placeholder="A or option text" fluid />
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block font-bold mb-2">Marks</label>
+                            <label class="block font-bold mb-2">Marks *</label>
                             <input type="number" pInputText [(ngModel)]="question.marks" fluid />
                         </div>
                         <div>
@@ -193,7 +207,7 @@ const QUESTION_TYPES = [
                     </div>
                     <div *ngIf="question.question_type === 'short_answer' || question.question_type === 'long_answer'">
                         <label class="block font-bold mb-2">Character Limit</label>
-                        <input type="number" pInputText [(ngModel)]="question.char_limit" placeholder="e.g. 300" fluid />
+                        <input type="number" pInputText [(ngModel)]="question.char_limit" placeholder="Leave empty for no limit" fluid />
                         <span class="text-xs text-muted-color">Leave empty for no limit</span>
                     </div>
                 </div>
@@ -209,10 +223,11 @@ export class AssessmentPage implements OnInit {
     positionId = signal<number>(0);
     positionTitle = signal<string>('');
     questions = signal<any[]>([]);
+    filteredQuestions = signal<any[]>([]);
     mcqDuration: number | null = 0;
     shortAnswerDuration: number | null = 0;
     longAnswerDuration: number | null = 0;
-    passingScore: number | null = 70;
+    passingScore: number | null = null;
     dialog = false;
     question: any = {};
     optionsText = '';
@@ -220,6 +235,13 @@ export class AssessmentPage implements OnInit {
     savingDurations = false;
     savingPassingScore = false;
     questionTypes = QUESTION_TYPES;
+    questionTypeFilterOptions = [
+        { label: 'All Types', value: '' },
+        { label: 'MCQ', value: 'mcq' },
+        { label: 'Short Answer', value: 'short_answer' },
+        { label: 'Long Answer', value: 'long_answer' }
+    ];
+    selectedQuestionTypeFilter = '';
 
     editorModules = {
         toolbar: [
@@ -251,16 +273,29 @@ export class AssessmentPage implements OnInit {
         this.api.getAssessmentQuestions(this.positionId()).subscribe({
             next: (res: any) => {
                 this.positionTitle.set(res.position_title);
-                this.questions.set(res.questions || []);
+                const qs = res.questions || [];
+                // Ensure proper indexing/sorting
+                qs.sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+                this.questions.set(qs);
+                this.filteredQuestions.set(qs);
                 this.mcqDuration = res.mcq_duration ?? 0;
                 this.shortAnswerDuration = res.short_answer_duration ?? 0;
                 this.longAnswerDuration = res.long_answer_duration ?? 0;
-                this.passingScore = res.passing_score ?? 70;
+                this.passingScore = res.passing_score ?? null;
             },
             error: () => {
                 this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load assessment questions' });
             }
         });
+    }
+
+    onQuestionTypeFilterChange() {
+        const filter = this.selectedQuestionTypeFilter;
+        if (!filter) {
+            this.filteredQuestions.set(this.questions());
+        } else {
+            this.filteredQuestions.set(this.questions().filter(q => q.question_type === filter));
+        }
     }
 
     saveDurations() {
@@ -284,7 +319,10 @@ export class AssessmentPage implements OnInit {
 
     savePassingScore() {
         this.savingPassingScore = true;
-        this.api.adminUpdate('job-position', this.positionId(), { passing_score: this.passingScore }).subscribe({
+        const payload = this.passingScore !== null && this.passingScore !== undefined
+            ? { passing_score: this.passingScore }
+            : { passing_score: null };
+        this.api.adminUpdate('job-position', this.positionId(), payload).subscribe({
             next: () => {
                 this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Passing score saved successfully', life: 3000 });
                 this.savingPassingScore = false;
@@ -330,10 +368,31 @@ export class AssessmentPage implements OnInit {
     }
 
     saveQuestion() {
-        if (!this.question.question?.trim()) {
-            this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Please fill in all required fields.', life: 3000 });
+        const q = this.question;
+        // Validation: all fields required for MCQ, Short, Long
+        if (!q.question?.trim()) {
+            this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Question text is required.', life: 3000 });
             return;
         }
+        if (!q.question_type) {
+            this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Question type is required.', life: 3000 });
+            return;
+        }
+        if (q.marks === null || q.marks === undefined || q.marks === '') {
+            this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Marks is required.', life: 3000 });
+            return;
+        }
+        if (q.question_type === 'mcq') {
+            if (!this.optionsText?.trim()) {
+                this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Options are required for MCQ.', life: 3000 });
+                return;
+            }
+            if (!q.correct_answer?.trim()) {
+                this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Correct answer is required for MCQ.', life: 3000 });
+                return;
+            }
+        }
+
         this.saving = true;
 
         const data = { ...this.question };
@@ -398,5 +457,9 @@ export class AssessmentPage implements OnInit {
                 this.loadQuestions();
             }
         });
+    }
+
+    stripHtml(html?: string): string {
+        return stripHtml(html);
     }
 }

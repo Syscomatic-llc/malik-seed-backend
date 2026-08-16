@@ -179,7 +179,8 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
                 </div>
             </ng-template>
             <ng-template #footer>
-                <p-button label="Close" icon="pi pi-times" text (onClick)="dialogVisible = false" />
+                <p-button label="Save Marks & Close" icon="pi pi-save" severity="success" [loading]="savingScores()"
+                    (onClick)="saveScoresAndClose()" />
             </ng-template>
         </p-dialog>
     `
@@ -293,6 +294,11 @@ export class AssessmentSubmissionsPage implements OnInit {
                 this.messageService.add({ severity: 'error', summary: 'Error', detail });
             }
         });
+    }
+
+    saveScoresAndClose() {
+        this.saveScores();
+        this.dialogVisible = false;
     }
 
     deleteSubmission(item: AssessmentSubmission) {

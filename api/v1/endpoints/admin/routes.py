@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from starlette.responses import StreamingResponse
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 import os
@@ -53,6 +54,21 @@ router = APIRouter(dependencies=[Depends(require_admin)])
 
 UPLOAD_DIR = get_upload_directory()
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
+# ============== DROPDOWN OPTIONS ==============
+
+@router.get("/hiring/dropdown-options")
+def get_dropdown_options(db: Session = Depends(get_db)):
+    """Get all unique department, job_type, and location values from existing positions."""
+    departments = [r[0] for r in db.query(JobPosition.department).distinct().all() if r[0]]
+    job_types = [r[0] for r in db.query(JobPosition.job_type).distinct().all() if r[0]]
+    locations = [r[0] for r in db.query(JobPosition.location).distinct().all() if r[0]]
+    return {
+        "departments": sorted(set(departments)),
+        "job_types": sorted(set(job_types)),
+        "locations": sorted(set(locations)),
+    }
 
 
 # ============== ASSESSMENT SCORING HELPERS ==============
@@ -277,24 +293,31 @@ def list_resumes(
 @router.get("/resume/export")
 def export_resumes(
     resume_type: Optional[str] = None,
+    ids: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """Export resumes to CSV."""
+    """Export resumes to CSV. Optionally filter by selected IDs."""
     query = db.query(ResumeUpload)
     if resume_type:
         query = query.filter(ResumeUpload.resume_type == resume_type)
+    if ids:
+        try:
+            id_list = [int(x.strip()) for x in ids.split(",") if x.strip()]
+            if id_list:
+                query = query.filter(ResumeUpload.id.in_(id_list))
+        except ValueError:
+            pass
     resumes = query.order_by(ResumeUpload.created_at.desc()).all()
 
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
-        "ID", "Name", "Email", "Phone", "Resume Type", "Position", "Position Name",
+        "Name", "Email", "Phone", "Resume Type", "Position", "Position Name",
         "File Name", "File URL", "Size (KB)", "Reviewed", "Submitted At"
     ])
     for r in resumes:
         size_kb = round((r.file_size or 0) / 1024, 2) if r.file_size else 0
         writer.writerow([
-            r.id,
             r.name or "",
             r.email or "",
             r.phone or "",
@@ -359,7 +382,7 @@ def download_resume_pdfs(
         for resume in resumes:
             file_path = os.path.join(UPLOAD_DIR, resume.file_url.replace("uploads/", "", 1))
             if os.path.exists(file_path):
-                arcname = f"{resume.id}_{resume.filename}"
+                arcname = resume.filename
                 zip_file.write(file_path, arcname)
 
     zip_buffer.seek(0)
@@ -743,15 +766,45 @@ def create_item(resource: str, data: Dict[str, Any], db: Session = Depends(get_d
 
     item = model_class()
 
+    # Validate required fields for job positions
+    if resource == "job-position":
+        required = ["title", "slug", "department", "job_type", "location", "description"]
+        missing = [f for f in required if not data.get(f)]
+        if missing:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Missing required fields: {', '.join(missing)}"
+            )
+        # Check for duplicate slug before attempting insert
+        existing_slug = db.query(model_class).filter(model_class.slug == data.get("slug")).first()
+        if existing_slug:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"A job position with slug '{data.get('slug')}' already exists"
+            )
+
     # Auto-assign sort_order for new job positions if not provided
     if resource == "job-position" and "sort_order" not in data:
         max_order = db.query(model_class.sort_order).order_by(model_class.sort_order.desc()).first()
-        data["sort_order"] = (max_order[0] if max_order else 0) + 1
+        data["sort_order"] = (max_order[0] if max_order and max_order[0] is not None else 0) + 1
 
     _apply_data(item, data)
     db.add(item)
-    db.commit()
-    db.refresh(item)
+    try:
+        db.commit()
+        db.refresh(item)
+    except IntegrityError as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Database constraint error: {str(e.orig)}"
+        )
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
+        )
     _log_activity(
         db, user, "create", resource, item.id,
         resource_name=_get_resource_name(data, item),
@@ -771,9 +824,40 @@ def update_item(resource: str, item_id: int, data: Dict[str, Any], db: Session =
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
 
+    # Validate required fields for job positions
+    if resource == "job-position":
+        required = ["title", "slug", "department", "job_type", "location", "description"]
+        missing = [f for f in required if not data.get(f)]
+        if missing:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Missing required fields: {', '.join(missing)}"
+            )
+        # Check for duplicate slug when changing slug
+        if "slug" in data and data["slug"] != item.slug:
+            existing_slug = db.query(model_class).filter(model_class.slug == data.get("slug")).first()
+            if existing_slug:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"A job position with slug '{data.get('slug')}' already exists"
+                )
+
     _apply_data(item, data)
-    db.commit()
-    db.refresh(item)
+    try:
+        db.commit()
+        db.refresh(item)
+    except IntegrityError as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Database constraint error: {str(e.orig)}"
+        )
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
+        )
     _log_activity(
         db, user, "update", resource, item.id,
         resource_name=_get_resource_name(data, item),

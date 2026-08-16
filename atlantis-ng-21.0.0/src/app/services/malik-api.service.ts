@@ -280,12 +280,13 @@ export interface JobPosition {
   salary_currency?: string;
   details_pdf_url?: string;
   is_active?: boolean;
+  is_published?: boolean;
   has_assessment?: boolean;
   assessment_duration?: number;
   mcq_duration?: number;
   short_answer_duration?: number;
   long_answer_duration?: number;
-  passing_score?: number;
+  passing_score?: number | null;
   sort_order?: number;
 }
 
@@ -710,10 +711,13 @@ export class MalikApiService {
     return this.http.get<ResumeUpload[]>(`${this.apiUrl}/admin/resume`, { params });
   }
 
-  exportResumes(resumeType?: string): Observable<Blob> {
+  exportResumes(resumeType?: string, ids?: number[]): Observable<Blob> {
     let params = new HttpParams();
     if (resumeType) {
       params = params.set('resume_type', resumeType);
+    }
+    if (ids && ids.length > 0) {
+      params = params.set('ids', ids.join(','));
     }
     return this.http.get(`${this.apiUrl}/admin/resume/export`, { params, responseType: 'blob' });
   }
@@ -844,6 +848,11 @@ export class MalikApiService {
 
   reorderJobPositions(order: number[]): Observable<{ status: string }> {
     return this.http.post<{ status: string }>(`${this.apiUrl}/admin/job-position/reorder`, order);
+  }
+
+  // ============ DROPDOWN OPTIONS ============
+  getDropdownOptions(): Observable<{ departments: string[]; job_types: string[]; locations: string[] }> {
+    return this.http.get<{ departments: string[]; job_types: string[]; locations: string[] }>(`${this.apiUrl}/admin/hiring/dropdown-options`);
   }
 
   // ============ ASSESSMENT QUESTIONS ============

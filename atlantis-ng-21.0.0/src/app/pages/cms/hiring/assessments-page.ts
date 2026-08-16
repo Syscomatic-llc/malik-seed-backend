@@ -46,7 +46,7 @@ interface PositionWithCount extends JobPosition {
                         <tr>
                             <th>ID</th>
                             <th>Position</th>
-                            <th>Department</th>
+                            <th>Team</th>
                             <th>Type</th>
                             <th>Questions</th>
                             <th>Actions</th>

@@ -120,7 +120,7 @@ def get_job_positions(
     db: Session = Depends(get_db)
 ):
     """Get all active job positions with optional filters"""
-    query = db.query(JobPosition).filter(JobPosition.is_active == True)
+    query = db.query(JobPosition).filter(JobPosition.is_published == True)
     if department:
         query = query.filter(JobPosition.department == department)
     if location:
@@ -137,13 +137,13 @@ def get_position_by_identifier(identifier: str, db: Session = Depends(get_db)):
     """Get job position details by slug or numeric ID"""
     position = db.query(JobPosition).filter(
         JobPosition.slug == identifier,
-        JobPosition.is_active == True
+        JobPosition.is_published == True
     ).first()
 
     if not position and identifier.isdigit():
         position = db.query(JobPosition).filter(
             JobPosition.id == int(identifier),
-            JobPosition.is_active == True
+            JobPosition.is_published == True
         ).first()
 
     if not position:
@@ -158,7 +158,7 @@ def get_position_by_slug(slug: str, db: Session = Depends(get_db)):
     """Get job position details by slug"""
     position = db.query(JobPosition).filter(
         JobPosition.slug == slug,
-        JobPosition.is_active == True
+        JobPosition.is_published == True
     ).first()
     if not position:
         raise HTTPException(status_code=404, detail="Position not found")
@@ -232,7 +232,7 @@ def get_all_hiring_content(db: Session = Depends(get_db)):
     """Get all hiring page content"""
     return {
         "positions": db.query(JobPosition).filter(
-            JobPosition.is_active == True
+            JobPosition.is_published == True
         ).order_by(JobPosition.sort_order.asc(), JobPosition.created_at.desc()).all(),
         "benefits": db.query(CareerBenefit).filter(
             CareerBenefit.is_active == True
@@ -255,7 +255,7 @@ def get_position_assessment(position_id: int, db: Session = Depends(get_db)):
     Matches Figma: Technical Knowledge (MCQ), Short Answers, Long Answers"""
     position = db.query(JobPosition).filter(
         JobPosition.id == position_id,
-        JobPosition.is_active == True
+        JobPosition.is_published == True
     ).first()
     if not position:
         raise HTTPException(status_code=404, detail="Position not found")
@@ -275,7 +275,7 @@ def get_position_assessment(position_id: int, db: Session = Depends(get_db)):
             "short_answer_duration": 0,
             "long_answer_duration": 0,
             "duration": 0,
-            "passing_score": position.passing_score
+            "passing_score": position.passing_score if position else None
         }
 
     # Get all questions grouped by type
