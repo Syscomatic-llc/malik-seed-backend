@@ -148,11 +148,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
                     </div>
 
                     <div *ngIf="textQuestions().length" class="flex flex-col gap-3">
-                        <div class="flex items-center justify-between">
-                            <div class="font-bold text-lg">Manual Scoring</div>
-                            <p-button label="Save Marks" icon="pi pi-save" severity="success" [loading]="savingScores()"
-                                (onClick)="saveScores()" />
-                        </div>
+                        <div class="font-bold text-lg">Manual Scoring</div>
                         <p-card *ngFor="let q of textQuestions(); let i = index">
                             <div class="mb-2">
                                 <span class="text-xs font-bold uppercase text-primary">{{q.question_type === 'long_answer' ? 'Long Answer' : 'Short Answer'}}</span>

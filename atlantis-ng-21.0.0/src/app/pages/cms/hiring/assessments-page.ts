@@ -44,7 +44,7 @@ interface PositionWithCount extends JobPosition {
                     [tableStyle]="{ 'min-width': '75rem' }" [loading]="loading()">
                     <ng-template #header>
                         <tr>
-                            <th>ID</th>
+                            <th>Order No</th>
                             <th>Position</th>
                             <th>Team</th>
                             <th>Type</th>
@@ -52,9 +52,9 @@ interface PositionWithCount extends JobPosition {
                             <th>Actions</th>
                         </tr>
                     </ng-template>
-                    <ng-template #body let-item>
+                    <ng-template #body let-item let-i="rowIndex">
                         <tr>
-                            <td>{{item.id}}</td>
+                            <td>{{i + 1}}</td>
                             <td>{{item.title}}</td>
                             <td>{{item.department}}</td>
                             <td><p-tag [value]="item.job_type" severity="info" /></td>

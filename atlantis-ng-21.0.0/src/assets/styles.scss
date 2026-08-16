@@ -3,3 +3,28 @@
 @use 'cropperjs/dist/cropper.css';
 @use './layout/layout.scss';
 @use './demo/demo.scss';
+
+/* Fix Quill editor list styles so bullet/number markers render correctly */
+.ql-editor {
+    ul,
+    ol {
+        padding-left: 1.5em;
+        margin-bottom: 0.5em;
+    }
+
+    ul > li {
+        list-style-type: disc;
+    }
+
+    ol > li {
+        list-style-type: decimal;
+    }
+
+    li[data-list="bullet"] {
+        list-style-type: disc;
+    }
+
+    li[data-list="ordered"] {
+        list-style-type: decimal;
+    }
+}

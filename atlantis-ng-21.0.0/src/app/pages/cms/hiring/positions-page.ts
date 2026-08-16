@@ -1,6 +1,6 @@
-import { Component, OnInit, signal, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, signal, Input, forwardRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { MalikApiService, JobPosition } from '@/app/services/malik-api.service';
 import { CardModule } from 'primeng/card';
@@ -38,14 +38,21 @@ function toSlug(str: string): string {
     selector: 'app-editable-select',
     standalone: true,
     imports: [CommonModule, FormsModule, InputTextModule, ButtonModule],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => EditableSelectComponent),
+            multi: true
+        }
+    ],
     template: `
         <div class="relative">
             <div class="flex gap-1">
                 <input
                     type="text"
                     pInputText
-                    [(ngModel)]="displayValue"
-                    (ngModelChange)="onInputChange($event)"
+                    [value]="displayValue"
+                    (input)="onInputChange($event)"
                     [placeholder]="_placeholderText"
                     class="w-full"
                     (focus)="showDropdown = true"
@@ -75,41 +82,44 @@ function toSlug(str: string): string {
         </div>
     `
 })
-export class EditableSelectComponent {
+export class EditableSelectComponent implements ControlValueAccessor {
     _options = signal<string[]>([]);
     displayValue = '';
     showDropdown = false;
     _placeholderText = 'Select or type...';
     private _value = '';
+    private _onChange: (value: string) => void = () => {};
+    private _onTouched: () => void = () => {};
 
     filteredOptions = signal<string[]>([]);
-
-    ngOnInit() {
-        this.filteredOptions.set(this._options());
-    }
 
     @Input() set options(val: string[]) {
         this._options.set(val || []);
         this.filteredOptions.set(val || []);
     }
 
-    @Input() set ngModel(val: string) {
-        this._value = val || '';
-        this.displayValue = capitalizeWords(val);
-    }
-
-    placeholderText = 'Select or type...';
-
     @Input() set placeholder(val: string) {
         this._placeholderText = val || 'Select or type...';
     }
 
-    @Output() ngModelChange = new EventEmitter<string>();
+    writeValue(value: string): void {
+        this._value = value || '';
+        this.displayValue = capitalizeWords(value);
+    }
 
-    onInputChange(value: string) {
+    registerOnChange(fn: (value: string) => void): void {
+        this._onChange = fn;
+    }
+
+    registerOnTouched(fn: () => void): void {
+        this._onTouched = fn;
+    }
+
+    onInputChange(event: Event) {
+        const value = (event.target as HTMLInputElement).value;
         this.displayValue = value;
         this._value = toSlug(value);
-        this.ngModelChange.emit(this._value);
+        this._onChange(this._value);
         this.filterOptions(value);
         this.showDropdown = true;
     }
@@ -126,7 +136,7 @@ export class EditableSelectComponent {
     selectOption(option: string) {
         this.displayValue = option;
         this._value = toSlug(option);
-        this.ngModelChange.emit(this._value);
+        this._onChange(this._value);
         this.showDropdown = false;
     }
 
@@ -146,6 +156,7 @@ export class EditableSelectComponent {
     }
 
     onBlur() {
+        this._onTouched();
         setTimeout(() => {
             this.showDropdown = false;
         }, 200);
