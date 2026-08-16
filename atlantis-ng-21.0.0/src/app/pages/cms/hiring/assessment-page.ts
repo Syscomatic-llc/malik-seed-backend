@@ -355,12 +355,21 @@ export class AssessmentPage implements OnInit {
 
     editQuestion(q: any) {
         this.question = { ...q };
+        if (this.question.question) {
+            this.question.question = this.cleanBulletListHtml(this.question.question);
+        }
         if (Array.isArray(q.options)) {
             this.optionsText = q.options.join('\n');
         } else {
             this.optionsText = '';
         }
         this.dialog = true;
+    }
+
+    private cleanBulletListHtml(html: string): string {
+        if (!html) return html;
+        // Remove manually typed leading numbers (1:, 1., 1)) from bullet list items
+        return html.replace(/(<li[^>]*data-list=["']bullet["'][^>]*>)\s*\d+[:.)]\s*/gi, '$1');
     }
 
     hideDialog() {
@@ -405,6 +414,7 @@ export class AssessmentPage implements OnInit {
         // Strip HTML whitespace for empty rich-text values
         if (data.question_type === 'long_answer' && data.question) {
             data.question = data.question.replace(/<p><br\s*\/?><\/p>/g, '<br>').trim();
+            data.question = this.cleanBulletListHtml(data.question);
         }
 
         const request = data.id

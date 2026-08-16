@@ -351,7 +351,16 @@ export class PositionsPage implements OnInit {
 
     editPosition(p: JobPosition) {
         this.position = { ...p };
+        if (this.position.description) {
+            this.position.description = this.cleanBulletListHtml(this.position.description);
+        }
         this.dialog = true;
+    }
+
+    private cleanBulletListHtml(html: string): string {
+        if (!html) return html;
+        // Remove manually typed leading numbers (1:, 1., 1)) from bullet list items
+        return html.replace(/(<li[^>]*data-list=["']bullet["'][^>]*>)\s*\d+[:.)]\s*/gi, '$1');
     }
 
     onTitleChange(title: string) {
@@ -395,7 +404,7 @@ export class PositionsPage implements OnInit {
             department: toSlug(p.department),
             job_type: toSlug(p.job_type),
             location: toSlug(p.location),
-            description: p.description.trim(),
+            description: this.cleanBulletListHtml(p.description.trim()),
             is_published: !!p.is_published
         };
 
