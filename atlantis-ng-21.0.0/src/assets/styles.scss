@@ -4,7 +4,7 @@
 @use './layout/layout.scss';
 @use './demo/demo.scss';
 
-/* Fix Quill editor list styles so bullet/number markers render correctly */
+/* Fix Quill editor list styles: use native markers and prevent double bullets/numbers */
 .ql-editor {
     ul,
     ol {
@@ -12,19 +12,17 @@
         margin-bottom: 0.5em;
     }
 
-    ul > li {
-        list-style-type: disc;
-    }
-
-    ol > li {
-        list-style-type: decimal;
-    }
-
+    ul > li,
     li[data-list="bullet"] {
         list-style-type: disc;
     }
 
+    ol > li,
     li[data-list="ordered"] {
         list-style-type: decimal;
+    }
+
+    li::before {
+        content: none !important;
     }
 }

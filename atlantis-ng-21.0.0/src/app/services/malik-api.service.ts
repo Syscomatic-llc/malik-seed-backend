@@ -855,6 +855,28 @@ export class MalikApiService {
     return this.http.get<{ departments: string[]; job_types: string[]; locations: string[] }>(`${this.apiUrl}/admin/hiring/dropdown-options`);
   }
 
+  getAllDropdownOptions(optionType?: string): Observable<any[]> {
+    let url = `${this.apiUrl}/admin/hiring/dropdown-options/all`;
+    if (optionType) url += `?option_type=${optionType}`;
+    return this.http.get<any[]>(url);
+  }
+
+  createDropdownOption(data: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/admin/hiring/dropdown-options`, data);
+  }
+
+  updateDropdownOption(id: number, data: any): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/admin/hiring/dropdown-options/${id}`, data);
+  }
+
+  deleteDropdownOption(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/admin/hiring/dropdown-options/${id}`);
+  }
+
+  reorderDropdownOptions(optionType: string, order: number[]): Observable<{ status: string }> {
+    return this.http.post<{ status: string }>(`${this.apiUrl}/admin/hiring/dropdown-options/reorder`, { option_type: optionType, order });
+  }
+
   // ============ ASSESSMENT QUESTIONS ============
   getAssessmentQuestions(positionId: number): Observable<{ position_id: number; position_title: string; questions: any[] }> {
     return this.http.get<any>(`${this.apiUrl}/admin/hiring/positions/${positionId}/questions`);

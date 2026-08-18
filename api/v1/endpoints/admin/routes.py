@@ -38,7 +38,8 @@ from models.our_gallery.model import (
 )
 from models.hiring.model import (
     JobPosition, JobApplication, AssessmentQuestion,
-    CareerBenefit, HiringTestimonial, HiringPageContent, ResumeUpload
+    CareerBenefit, HiringTestimonial, HiringPageContent, ResumeUpload,
+    HiringDropdownOption
 )
 from models.contact.model import (
     ContactInfo, ContactMessage, OfficeLocation, FAQ
@@ -60,15 +61,141 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.get("/hiring/dropdown-options")
 def get_dropdown_options(db: Session = Depends(get_db)):
-    """Get all unique department, job_type, and location values from existing positions."""
-    departments = [r[0] for r in db.query(JobPosition.department).distinct().all() if r[0]]
-    job_types = [r[0] for r in db.query(JobPosition.job_type).distinct().all() if r[0]]
-    locations = [r[0] for r in db.query(JobPosition.location).distinct().all() if r[0]]
+    """Get managed department, job_type, and location values."""
+    query = db.query(HiringDropdownOption).filter(HiringDropdownOption.is_active == True)
+    departments = [o.label for o in query.filter(HiringDropdownOption.option_type == "department").order_by(HiringDropdownOption.sort_order).all()]
+    job_types = [o.label for o in query.filter(HiringDropdownOption.option_type == "job_type").order_by(HiringDropdownOption.sort_order).all()]
+    locations = [o.label for o in query.filter(HiringDropdownOption.option_type == "location").order_by(HiringDropdownOption.sort_order).all()]
+
+    # Fallback to existing job positions if no managed options exist yet
+    if not departments and not job_types and not locations:
+        departments = sorted({r[0] for r in db.query(JobPosition.department).distinct().all() if r[0]})
+        job_types = sorted({r[0] for r in db.query(JobPosition.job_type).distinct().all() if r[0]})
+        locations = sorted({r[0] for r in db.query(JobPosition.location).distinct().all() if r[0]})
+
     return {
-        "departments": sorted(set(departments)),
-        "job_types": sorted(set(job_types)),
-        "locations": sorted(set(locations)),
+        "departments": departments,
+        "job_types": job_types,
+        "locations": locations,
     }
+
+
+@router.get("/hiring/dropdown-options/all")
+def get_all_dropdown_options(option_type: Optional[str] = None, db: Session = Depends(get_db)):
+    """Get all managed dropdown options (including inactive) for admin."""
+    query = db.query(HiringDropdownOption)
+    if option_type:
+        query = query.filter(HiringDropdownOption.option_type == option_type)
+    options = query.order_by(HiringDropdownOption.option_type, HiringDropdownOption.sort_order).all()
+    return [{
+        "id": o.id,
+        "option_type": o.option_type,
+        "value": o.value,
+        "label": o.label,
+        "sort_order": o.sort_order,
+        "is_active": o.is_active,
+    } for o in options]
+
+
+@router.post("/hiring/dropdown-options")
+def create_dropdown_option(data: Dict[str, Any], db: Session = Depends(get_db)):
+    """Create a new dropdown option."""
+    option_type = data.get("option_type")
+    label = data.get("label", '').strip()
+    if not option_type or option_type not in ("department", "job_type", "location"):
+        raise HTTPException(status_code=400, detail="Invalid option_type")
+    if not label:
+        raise HTTPException(status_code=400, detail="Label is required")
+
+    value = label.lower().replace(' ', '_')
+    existing = db.query(HiringDropdownOption).filter(
+        HiringDropdownOption.option_type == option_type,
+        HiringDropdownOption.value == value
+    ).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="Option already exists")
+
+    max_order = db.query(HiringDropdownOption.sort_order).filter(
+        HiringDropdownOption.option_type == option_type
+    ).order_by(HiringDropdownOption.sort_order.desc()).first()
+    sort_order = (max_order[0] if max_order and max_order[0] is not None else 0) + 1
+
+    option = HiringDropdownOption(
+        option_type=option_type,
+        value=value,
+        label=label,
+        sort_order=sort_order,
+        is_active=True
+    )
+    db.add(option)
+    db.commit()
+    db.refresh(option)
+    return {"status": "success", "id": option.id, "data": {
+        "id": option.id,
+        "option_type": option.option_type,
+        "value": option.value,
+        "label": option.label,
+        "sort_order": option.sort_order,
+        "is_active": option.is_active,
+    }}
+
+
+@router.put("/hiring/dropdown-options/{option_id}")
+def update_dropdown_option(option_id: int, data: Dict[str, Any], db: Session = Depends(get_db)):
+    """Update a dropdown option label or active status."""
+    option = db.query(HiringDropdownOption).filter(HiringDropdownOption.id == option_id).first()
+    if not option:
+        raise HTTPException(status_code=404, detail="Option not found")
+
+    label = data.get("label", '').strip()
+    if label:
+        option.label = label
+        option.value = label.lower().replace(' ', '_')
+
+    if "is_active" in data:
+        option.is_active = data["is_active"]
+
+    db.commit()
+    db.refresh(option)
+    return {"status": "success", "id": option.id, "data": {
+        "id": option.id,
+        "option_type": option.option_type,
+        "value": option.value,
+        "label": option.label,
+        "sort_order": option.sort_order,
+        "is_active": option.is_active,
+    }}
+
+
+@router.delete("/hiring/dropdown-options/{option_id}")
+def delete_dropdown_option(option_id: int, db: Session = Depends(get_db)):
+    """Delete a dropdown option."""
+    option = db.query(HiringDropdownOption).filter(HiringDropdownOption.id == option_id).first()
+    if not option:
+        raise HTTPException(status_code=404, detail="Option not found")
+
+    db.delete(option)
+    db.commit()
+    return {"status": "success", "id": option_id}
+
+
+@router.post("/hiring/dropdown-options/reorder")
+def reorder_dropdown_options(data: Dict[str, Any], db: Session = Depends(get_db)):
+    """Reorder dropdown options. Expects { option_type, order: [id, id, ...] }."""
+    option_type = data.get("option_type")
+    order = data.get("order", [])
+    if not option_type or option_type not in ("department", "job_type", "location"):
+        raise HTTPException(status_code=400, detail="Invalid option_type")
+    if not isinstance(order, list):
+        raise HTTPException(status_code=400, detail="Order must be a list")
+
+    for idx, option_id in enumerate(order):
+        db.query(HiringDropdownOption).filter(
+            HiringDropdownOption.id == option_id,
+            HiringDropdownOption.option_type == option_type
+        ).update({"sort_order": idx})
+    db.commit()
+    return {"status": "success"}
 
 
 # ============== ASSESSMENT SCORING HELPERS ==============
@@ -1162,7 +1289,7 @@ def update_assessment_question(
 
 @router.delete("/hiring/positions/{position_id}/questions/{question_id}")
 def delete_assessment_question(position_id: int, question_id: int, db: Session = Depends(get_db)):
-    """Delete assessment question"""
+    """Delete assessment question and recompact sort_order so sequence stays gap-free."""
     question = db.query(AssessmentQuestion).filter(
         AssessmentQuestion.id == question_id,
         AssessmentQuestion.position_id == position_id
@@ -1172,7 +1299,22 @@ def delete_assessment_question(position_id: int, question_id: int, db: Session =
 
     db.delete(question)
     db.commit()
+
+    # Recompact remaining questions for this position.
+    _compact_assessment_questions(db, position_id)
+
     return {"status": "success", "message": "Question deleted"}
+
+
+def _compact_assessment_questions(db: Session, position_id: int):
+    """Renumber assessment question sort_order values contiguously starting from 0."""
+    questions = db.query(AssessmentQuestion).filter(
+        AssessmentQuestion.position_id == position_id
+    ).order_by(AssessmentQuestion.sort_order.asc(), AssessmentQuestion.id.asc()).all()
+    for idx, q in enumerate(questions):
+        if q.sort_order != idx:
+            q.sort_order = idx
+    db.commit()
 
 
 @router.post("/hiring/positions/{position_id}/questions/reorder")

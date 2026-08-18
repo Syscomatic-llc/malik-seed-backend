@@ -513,7 +513,101 @@ def main():
     else:
         print("  ✓ sitemaps table already exists")
 
+    # Hiring dropdown options table
+    if not table_exists("hiring_dropdown_options"):
+        dialect = engine.dialect.name
+        with engine.connect() as conn:
+            if dialect == "postgresql":
+                conn.execute(text(
+                    """
+                    CREATE TABLE hiring_dropdown_options (
+                        id SERIAL PRIMARY KEY,
+                        option_type VARCHAR(50) NOT NULL,
+                        value VARCHAR(100) NOT NULL,
+                        label VARCHAR(100) NOT NULL,
+                        sort_order INTEGER DEFAULT 0,
+                        is_active BOOLEAN DEFAULT TRUE,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                        updated_at TIMESTAMP WITH TIME ZONE
+                    )
+                    """
+                ))
+            elif dialect == "sqlite":
+                conn.execute(text(
+                    """
+                    CREATE TABLE hiring_dropdown_options (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        option_type VARCHAR(50) NOT NULL,
+                        value VARCHAR(100) NOT NULL,
+                        label VARCHAR(100) NOT NULL,
+                        sort_order INTEGER DEFAULT 0,
+                        is_active BOOLEAN DEFAULT 1,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP
+                    )
+                    """
+                ))
+            else:
+                print(f"  ✗ Unsupported dialect: {dialect}")
+            conn.commit()
+        print("  ✓ Created hiring_dropdown_options table")
+    else:
+        print("  ✓ hiring_dropdown_options table already exists")
+
+    seed_hiring_dropdown_options()
+
     print("Migrations complete.")
+
+
+def seed_hiring_dropdown_options():
+    """Seed hiring dropdown options from defaults and existing job positions."""
+    if not table_exists("hiring_dropdown_options") or not table_exists("job_positions"):
+        return
+
+    from models.hiring.model import HiringDropdownOption
+
+    defaults = {
+        "department": ["Sales", "Marketing", "Operations", "Research", "Finance", "HR", "IT", "Field", "Logistics", "Production"],
+        "job_type": ["Full Time", "Part Time", "Contract", "Internship"],
+        "location": ["Dhaka", "Chittagong", "Rajshahi", "Khulna", "Sylhet", "Barisal", "Rangpur", "Remote"],
+    }
+
+    with engine.connect() as conn:
+        existing_count = conn.execute(text("SELECT COUNT(*) FROM hiring_dropdown_options")).scalar()
+        if existing_count and existing_count > 0:
+            print("  ✓ hiring_dropdown_options already seeded")
+            return
+
+        # Collect existing values from job_positions
+        existing_values = {t: set() for t in defaults}
+        for option_type in defaults:
+            col_name = "department" if option_type == "department" else ("job_type" if option_type == "job_type" else "location")
+            result = conn.execute(text(f"SELECT DISTINCT {col_name} FROM job_positions WHERE {col_name} IS NOT NULL"))
+            for row in result:
+                val = row[0]
+                if val:
+                    existing_values[option_type].add(val.strip())
+
+        all_values = {}
+        sort_order = 0
+        for option_type, labels in defaults.items():
+            merged = []
+            for label in labels:
+                value = label.lower().replace(' ', '_')
+                merged.append((value, label))
+            for val in sorted(existing_values[option_type]):
+                label = ' '.join(word.capitalize() for word in val.replace('_', ' ').split())
+                if (val, label) not in merged:
+                    merged.append((val, label))
+            all_values[option_type] = merged
+
+        for option_type, values in all_values.items():
+            for idx, (value, label) in enumerate(values):
+                conn.execute(text(
+                    "INSERT INTO hiring_dropdown_options (option_type, value, label, sort_order, is_active) VALUES (:ot, :val, :lbl, :so, TRUE)"
+                ), {"ot": option_type, "val": value, "lbl": label, "so": idx})
+        conn.commit()
+    print("  ✓ Seeded hiring_dropdown_options")
 
 
 if __name__ == "__main__":

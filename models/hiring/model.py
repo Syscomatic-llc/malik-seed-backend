@@ -37,6 +37,24 @@ class JobLocation(str, enum.Enum):
     REMOTE = "remote"
 
 
+class HiringDropdownOption(Base):
+    """Managed dropdown options for job positions (department, job_type, location)"""
+    __tablename__ = "hiring_dropdown_options"
+
+    id = Column(Integer, primary_key=True, index=True)
+    option_type = Column(String(50), nullable=False)  # department, job_type, location
+    value = Column(String(100), nullable=False)
+    label = Column(String(100), nullable=False)
+    sort_order = Column(Integer, default=0)
+    is_active = Column(Boolean, default=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    def __repr__(self):
+        return f"<HiringDropdownOption {self.option_type}: {self.label}>"
+
+
 class JobPosition(Base):
     """Open positions - admin can create/manage. Matches Figma 'Open Positions' screen"""
     __tablename__ = "job_positions"

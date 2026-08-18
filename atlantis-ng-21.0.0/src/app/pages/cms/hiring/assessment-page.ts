@@ -121,11 +121,9 @@ function stripHtml(html?: string): string {
                 </div>
 
                 <p-table [value]="filteredQuestions()" [rows]="10" [paginator]="true"
-                    (onRowReorder)="onRowReorder($event)"
                     [tableStyle]="{ 'min-width': '75rem' }">
                     <ng-template #header>
                         <tr>
-                            <th style="width: 3rem"></th>
                             <th>Order</th>
                             <th>Type</th>
                             <th>Question</th>
@@ -136,8 +134,7 @@ function stripHtml(html?: string): string {
                         </tr>
                     </ng-template>
                     <ng-template #body let-q let-index="rowIndex">
-                        <tr [pReorderableRow]="index">
-                            <td><span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span></td>
+                        <tr>
                             <td><span class="font-bold text-primary">{{(q.sort_order ?? 0) + 1}}</span></td>
                             <td><p-tag [value]="q.question_type" [severity]="getTypeSeverity(q.question_type)" /></td>
                             <td>{{stripHtml(q.question) | slice:0:60}}...</td>
@@ -171,7 +168,8 @@ function stripHtml(html?: string): string {
                         <label class="block font-bold mb-2">Question *</label>
                         <ng-container *ngIf="question.question_type === 'long_answer'; else plainQuestion">
                             <p-editor [(ngModel)]="question.question" [style]="{ height: '160px' }"
-                                [modules]="editorModules" placeholder="Enter long-answer question">
+                                [modules]="editorModules" placeholder="Enter long-answer question"
+                                (onBlur)="cleanQuestionBullets()">
                                 <ng-template #toolbar>
                                     <span class="ql-formats">
                                         <button class="ql-bold" aria-label="Bold"></button>
@@ -366,10 +364,40 @@ export class AssessmentPage implements OnInit {
         this.dialog = true;
     }
 
+    cleanQuestionBullets() {
+        if (this.question.question) {
+            this.question.question = this.cleanBulletListHtml(this.question.question);
+        }
+    }
+
     private cleanBulletListHtml(html: string): string {
         if (!html) return html;
         // Remove manually typed leading numbers (1:, 1., 1)) from bullet list items
-        return html.replace(/(<li[^>]*data-list=["']bullet["'][^>]*>)\s*\d+[:.)]\s*/gi, '$1');
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        let changed = false;
+
+        const stripLeadingNumber = (node: Node): boolean => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                const text = node.textContent || '';
+                const newText = text.replace(/^\s*\d+[:.)]\s*/, '');
+                if (newText !== text) {
+                    node.textContent = newText;
+                    return true;
+                }
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+                for (const child of Array.from(node.childNodes)) {
+                    if (stripLeadingNumber(child)) return true;
+                }
+            }
+            return false;
+        };
+
+        doc.querySelectorAll('li').forEach(li => {
+            if (stripLeadingNumber(li)) changed = true;
+        });
+
+        return changed ? doc.body.innerHTML : html;
     }
 
     hideDialog() {
@@ -451,20 +479,6 @@ export class AssessmentPage implements OnInit {
                         this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to delete question' });
                     }
                 });
-            }
-        });
-    }
-
-    onRowReorder(event: any) {
-        const order = this.questions().map(q => q.id).filter(id => id !== undefined);
-        if (!order.length) return;
-        this.api.reorderAssessmentQuestions(this.positionId(), order).subscribe({
-            next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Reordered', detail: 'Question order saved', life: 3000 });
-            },
-            error: (err) => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to save question order' });
-                this.loadQuestions();
             }
         });
     }

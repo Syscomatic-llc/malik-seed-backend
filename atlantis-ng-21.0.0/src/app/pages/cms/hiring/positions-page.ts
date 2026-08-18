@@ -1,6 +1,6 @@
-import { Component, OnInit, signal, Input, forwardRef } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { MalikApiService, JobPosition } from '@/app/services/malik-api.service';
 import { CardModule } from 'primeng/card';
@@ -17,13 +17,41 @@ import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
 import { EditorModule } from 'primeng/editor';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { TabsModule } from 'primeng/tabs';
 import { ConfirmationService } from 'primeng/api';
 import { slugify } from '@/app/utils/slugify';
 import { environment } from '@/environments/environment';
 
-const DEFAULT_DEPARTMENTS = ['Sales', 'Marketing', 'Operations', 'Research', 'Finance', 'HR', 'IT', 'Field', 'Logistics', 'Production'];
-const DEFAULT_JOB_TYPES = ['Full Time', 'Part Time', 'Contract', 'Internship'];
-const DEFAULT_LOCATIONS = ['Dhaka', 'Chittagong', 'Rajshahi', 'Khulna', 'Sylhet', 'Barisal', 'Rangpur', 'Remote'];
+const DEFAULT_DEPARTMENTS: { label: string; value: string }[] = [
+    { label: 'Sales', value: 'sales' },
+    { label: 'Marketing', value: 'marketing' },
+    { label: 'Operations', value: 'operations' },
+    { label: 'Research', value: 'research' },
+    { label: 'Finance', value: 'finance' },
+    { label: 'HR', value: 'hr' },
+    { label: 'IT', value: 'it' },
+    { label: 'Field', value: 'field' },
+    { label: 'Logistics', value: 'logistics' },
+    { label: 'Production', value: 'production' }
+];
+
+const DEFAULT_JOB_TYPES: { label: string; value: string }[] = [
+    { label: 'Full Time', value: 'full_time' },
+    { label: 'Part Time', value: 'part_time' },
+    { label: 'Contract', value: 'contract' },
+    { label: 'Internship', value: 'internship' }
+];
+
+const DEFAULT_LOCATIONS: { label: string; value: string }[] = [
+    { label: 'Dhaka', value: 'dhaka' },
+    { label: 'Chittagong', value: 'chittagong' },
+    { label: 'Rajshahi', value: 'rajshahi' },
+    { label: 'Khulna', value: 'khulna' },
+    { label: 'Sylhet', value: 'sylhet' },
+    { label: 'Barisal', value: 'barisal' },
+    { label: 'Rangpur', value: 'rangpur' },
+    { label: 'Remote', value: 'remote' }
+];
 
 function capitalizeWords(str?: string): string {
     if (!str) return '';
@@ -34,133 +62,13 @@ function toSlug(str: string): string {
     return str.toLowerCase().trim().replace(/\s+/g, '_');
 }
 
-@Component({
-    selector: 'app-editable-select',
-    standalone: true,
-    imports: [CommonModule, FormsModule, InputTextModule, ButtonModule],
-    providers: [
-        {
-            provide: NG_VALUE_ACCESSOR,
-            useExisting: forwardRef(() => EditableSelectComponent),
-            multi: true
-        }
-    ],
-    template: `
-        <div class="relative">
-            <div class="flex gap-1">
-                <input
-                    type="text"
-                    pInputText
-                    [value]="displayValue"
-                    (input)="onInputChange($event)"
-                    [placeholder]="_placeholderText"
-                    class="w-full"
-                    (focus)="showDropdown = true"
-                    (blur)="onBlur()" />
-                <p-button
-                    icon="pi pi-chevron-down"
-                    severity="secondary"
-                    [text]="true"
-                    (onClick)="toggleDropdown()" />
-            </div>
-            <div *ngIf="showDropdown" class="absolute z-50 w-full mt-1 bg-surface-0 border border-surface-200 rounded shadow-lg max-h-48 overflow-y-auto">
-                <div
-                    *ngFor="let opt of filteredOptions()"
-                    class="px-3 py-2 cursor-pointer hover:bg-surface-100 text-sm"
-                    (mousedown)="selectOption(opt)">
-                    {{opt}}
-                </div>
-                <div *ngIf="displayValue && !filteredOptions().includes(displayValue)"
-                    class="px-3 py-2 cursor-pointer hover:bg-primary-50 text-sm text-primary font-semibold border-t border-surface-200"
-                    (mousedown)="addNewOption(displayValue)">
-                    <i class="pi pi-plus mr-1"></i> Add "{{displayValue}}"
-                </div>
-                <div *ngIf="filteredOptions().length === 0 && !displayValue" class="px-3 py-2 text-sm text-muted-color">
-                    No options
-                </div>
-            </div>
-        </div>
-    `
-})
-export class EditableSelectComponent implements ControlValueAccessor {
-    _options = signal<string[]>([]);
-    displayValue = '';
-    showDropdown = false;
-    _placeholderText = 'Select or type...';
-    private _value = '';
-    private _onChange: (value: string) => void = () => {};
-    private _onTouched: () => void = () => {};
-
-    filteredOptions = signal<string[]>([]);
-
-    @Input() set options(val: string[]) {
-        this._options.set(val || []);
-        this.filteredOptions.set(val || []);
-    }
-
-    @Input() set placeholder(val: string) {
-        this._placeholderText = val || 'Select or type...';
-    }
-
-    writeValue(value: string): void {
-        this._value = value || '';
-        this.displayValue = capitalizeWords(value);
-    }
-
-    registerOnChange(fn: (value: string) => void): void {
-        this._onChange = fn;
-    }
-
-    registerOnTouched(fn: () => void): void {
-        this._onTouched = fn;
-    }
-
-    onInputChange(event: Event) {
-        const value = (event.target as HTMLInputElement).value;
-        this.displayValue = value;
-        this._value = toSlug(value);
-        this._onChange(this._value);
-        this.filterOptions(value);
-        this.showDropdown = true;
-    }
-
-    filterOptions(search: string) {
-        if (!search) {
-            this.filteredOptions.set(this._options());
-            return;
-        }
-        const lower = search.toLowerCase();
-        this.filteredOptions.set(this._options().filter(o => o.toLowerCase().includes(lower)));
-    }
-
-    selectOption(option: string) {
-        this.displayValue = option;
-        this._value = toSlug(option);
-        this._onChange(this._value);
-        this.showDropdown = false;
-    }
-
-    addNewOption(value: string) {
-        const newOption = value.trim();
-        if (newOption && !this._options().includes(newOption)) {
-            this._options.set([...this._options(), newOption]);
-        }
-        this.selectOption(newOption);
-    }
-
-    toggleDropdown() {
-        this.showDropdown = !this.showDropdown;
-        if (this.showDropdown) {
-            this.filteredOptions.set(this._options());
-        }
-    }
-
-    onBlur() {
-        this._onTouched();
-        setTimeout(() => {
-            this.showDropdown = false;
-        }, 200);
-    }
+interface DropdownOption {
+    id?: number;
+    option_type: 'department' | 'job_type' | 'location';
+    label: string;
+    value: string;
+    sort_order?: number;
+    is_active?: boolean;
 }
 
 @Component({
@@ -170,7 +78,7 @@ export class EditableSelectComponent implements ControlValueAccessor {
         CommonModule, FormsModule, RouterModule, CardModule, ButtonModule, TableModule,
         DialogModule, InputTextModule, TextareaModule, ToastModule, ToolbarModule,
         ToggleSwitchModule, TagModule, SelectModule, EditorModule, ConfirmDialogModule,
-        EditableSelectComponent
+        TabsModule
     ],
     providers: [MessageService, ConfirmationService],
     template: `
@@ -180,34 +88,34 @@ export class EditableSelectComponent implements ControlValueAccessor {
             <p-toolbar styleClass="mb-4">
                 <ng-template #start>
                     <p-button label="New Position" icon="pi pi-plus" severity="success" class="mr-2" (onClick)="openNew()" />
+                    <p-button label="Manage Lists" icon="pi pi-cog" severity="secondary" (onClick)="openConfigDialog()" />
                 </ng-template>
             </p-toolbar>
 
             <p-table [value]="positions()" [rows]="10" [paginator]="true"
-                (onRowReorder)="onRowReorder($event)"
                 [tableStyle]="{ 'min-width': '75rem' }">
                 <ng-template #header>
                     <tr>
-                        <th style="width: 3rem"></th>
                         <th>Order</th>
                         <th>Title</th>
                         <th>Team</th>
                         <th>Type</th>
                         <th>Location</th>
                         <th>Experience</th>
+                        <th>Salary</th>
                         <th>Publish</th>
                         <th>Actions</th>
                     </tr>
                 </ng-template>
                 <ng-template #body let-item let-i="rowIndex">
-                    <tr [pReorderableRow]="i">
-                        <td><span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span></td>
+                    <tr>
                         <td><span class="font-bold text-primary">{{i + 1}}</span></td>
                         <td>{{item.title}}</td>
                         <td>{{capitalizeWords(item.department)}}</td>
                         <td><p-tag [value]="capitalizeWords(item.job_type)" severity="info" /></td>
                         <td>{{capitalizeWords(item.location)}}</td>
                         <td>{{item.experience_required}}</td>
+                        <td>{{item.salary_range || '-'}}</td>
                         <td>
                             <p-tag [value]="item.is_published ? 'Published' : 'Unpublished'"
                                 [severity]="item.is_published ? 'success' : 'danger'" />
@@ -235,30 +143,37 @@ export class EditableSelectComponent implements ControlValueAccessor {
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block font-bold mb-2">Slug *</label>
-                            <input type="text" pInputText [(ngModel)]="position.slug" placeholder="e.g. it-head" fluid />
+                            <input type="text" pInputText [(ngModel)]="position.slug" placeholder="auto-generated from title" [disabled]="true" fluid />
                         </div>
                         <div>
                             <label class="block font-bold mb-2">Team *</label>
-                            <app-editable-select
-                                [options]="departments()"
-                                [(ngModel)]="position.department"
-                                placeholder="Select or type team name" />
+                            <p-select [options]="departments()" [(ngModel)]="position.department"
+                                optionLabel="label" optionValue="value"
+                                placeholder="Select team" fluid appendTo="body" />
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block font-bold mb-2">Job Type *</label>
-                            <app-editable-select
-                                [options]="jobTypes()"
-                                [(ngModel)]="position.job_type"
-                                placeholder="Select or type job type" />
+                            <p-select [options]="jobTypes()" [(ngModel)]="position.job_type"
+                                optionLabel="label" optionValue="value"
+                                placeholder="Select job type" fluid appendTo="body" />
                         </div>
                         <div>
                             <label class="block font-bold mb-2">Location *</label>
-                            <app-editable-select
-                                [options]="locations()"
-                                [(ngModel)]="position.location"
-                                placeholder="Select or type location" />
+                            <p-select [options]="locations()" [(ngModel)]="position.location"
+                                optionLabel="label" optionValue="value"
+                                placeholder="Select location" fluid appendTo="body" />
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block font-bold mb-2">Experience Required</label>
+                            <input type="text" pInputText [(ngModel)]="position.experience_required" placeholder="e.g. 2-3 years" fluid />
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-2">Salary Range</label>
+                            <input type="text" pInputText [(ngModel)]="position.salary_range" placeholder="e.g. 50,000 - 80,000 BDT" fluid />
                         </div>
                     </div>
                     <div>
@@ -267,15 +182,7 @@ export class EditableSelectComponent implements ControlValueAccessor {
                     </div>
                     <div>
                         <label class="block font-bold mb-2">Full Description *</label>
-                        <p-editor [(ngModel)]="position.description" [style]="{height: '200px'}"></p-editor>
-                    </div>
-                    <div>
-                        <label class="block font-bold mb-2">Experience Required</label>
-                        <input type="text" pInputText [(ngModel)]="position.experience_required" placeholder="e.g. 2-3 years" fluid />
-                    </div>
-                    <div>
-                        <label class="block font-bold mb-2">Salary Range</label>
-                        <input type="text" pInputText [(ngModel)]="position.salary_range" placeholder="e.g. 50,000 - 80,000 BDT" fluid />
+                        <p-editor [(ngModel)]="position.description" [style]="{height: '200px'}" (onBlur)="cleanDescriptionBullets()"></p-editor>
                     </div>
                     <div>
                         <label class="block font-bold mb-2">Job Details PDF</label>
@@ -300,6 +207,68 @@ export class EditableSelectComponent implements ControlValueAccessor {
                 <p-button label="Save" icon="pi pi-check" (onClick)="savePosition()" [loading]="saving" />
             </ng-template>
         </p-dialog>
+
+        <p-dialog [(visible)]="configDialog" [style]="{ width: '700px' }" header="Manage Job Lists" [modal]="true">
+            <ng-template #content>
+                <p-tabs [(value)]="activeConfigTab" (valueChange)="onConfigTabChange($event)">
+                    <p-tablist>
+                        <p-tab value="department">Team</p-tab>
+                        <p-tab value="job_type">Job Type</p-tab>
+                        <p-tab value="location">Location</p-tab>
+                    </p-tablist>
+                    <p-tabpanels>
+                        <p-tabpanel *ngFor="let tab of configTabs" [value]="tab.value">
+                            <div class="flex flex-col gap-3">
+                                <div class="flex gap-2">
+                                    <input type="text" pInputText [(ngModel)]="newConfigLabel[tab.value]" placeholder="Add new {{tab.label}}" fluid
+                                        (keydown.enter)="addConfigOption(tab.value)" />
+                                    <p-button icon="pi pi-plus" severity="success" (onClick)="addConfigOption(tab.value)" />
+                                </div>
+                                <p-table [value]="configOptionsForTab(tab.value)" [rows]="50" [paginator]="configOptionsForTab(tab.value).length > 10"
+                                    [tableStyle]="{ 'min-width': '30rem' }">
+                                    <ng-template #header>
+                                        <tr>
+                                            <th>Order</th>
+                                            <th>Label</th>
+                                            <th>Active</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </ng-template>
+                                    <ng-template #body let-opt let-i="rowIndex">
+                                        <tr>
+                                            <td>{{i + 1}}</td>
+                                            <td>
+                                                <input *ngIf="editingConfig()?.id === opt.id; else readMode" type="text" pInputText
+                                                    [ngModel]="editingConfig()?.label"
+                                                    (ngModelChange)="updateEditingLabel($event)"
+                                                    (keydown.enter)="saveEditingConfig()" fluid />
+                                                <ng-template #readMode>
+                                                    <span>{{opt.label}}</span>
+                                                </ng-template>
+                                            </td>
+                                            <td>
+                                                <p-toggleSwitch [(ngModel)]="opt.is_active" (onChange)="toggleConfigActive(opt)" />
+                                            </td>
+                                            <td>
+                                                <p-button *ngIf="editingConfig()?.id !== opt.id" icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true"
+                                                    (onClick)="startEditConfig(opt)" />
+                                                <p-button *ngIf="editingConfig()?.id === opt.id" icon="pi pi-check" class="mr-2" [rounded]="true" [outlined]="true"
+                                                    severity="success" (onClick)="saveEditingConfig()" />
+                                                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
+                                                    (onClick)="deleteConfigOption(opt)" />
+                                            </td>
+                                        </tr>
+                                    </ng-template>
+                                </p-table>
+                            </div>
+                        </p-tabpanel>
+                    </p-tabpanels>
+                </p-tabs>
+            </ng-template>
+            <ng-template #footer>
+                <p-button label="Close" icon="pi pi-times" text (onClick)="configDialog = false" />
+            </ng-template>
+        </p-dialog>
     `
 })
 export class PositionsPage implements OnInit {
@@ -309,9 +278,20 @@ export class PositionsPage implements OnInit {
     saving = false;
     uploadingPdf = false;
     mediaBaseUrl = environment.mediaBaseUrl;
-    departments = signal<string[]>(DEFAULT_DEPARTMENTS);
-    jobTypes = signal<string[]>(DEFAULT_JOB_TYPES);
-    locations = signal<string[]>(DEFAULT_LOCATIONS);
+    departments = signal<{ label: string; value: string }[]>(DEFAULT_DEPARTMENTS);
+    jobTypes = signal<{ label: string; value: string }[]>(DEFAULT_JOB_TYPES);
+    locations = signal<{ label: string; value: string }[]>(DEFAULT_LOCATIONS);
+
+    configDialog = false;
+    activeConfigTab: 'department' | 'job_type' | 'location' = 'department';
+    configTabs = [
+        { label: 'Team', value: 'department' as const },
+        { label: 'Job Type', value: 'job_type' as const },
+        { label: 'Location', value: 'location' as const }
+    ];
+    configOptions = signal<DropdownOption[]>([]);
+    newConfigLabel: Record<'department' | 'job_type' | 'location', string> = { department: '', job_type: '', location: '' };
+    editingConfig = signal<DropdownOption | null>(null);
 
     constructor(
         private api: MalikApiService,
@@ -334,9 +314,10 @@ export class PositionsPage implements OnInit {
     loadDropdownOptions() {
         this.api.getDropdownOptions().subscribe({
             next: (opts) => {
-                this.departments.set([...new Set([...DEFAULT_DEPARTMENTS, ...opts.departments.map(capitalizeWords)])]);
-                this.jobTypes.set([...new Set([...DEFAULT_JOB_TYPES, ...opts.job_types.map(capitalizeWords)])]);
-                this.locations.set([...new Set([...DEFAULT_LOCATIONS, ...opts.locations.map(capitalizeWords)])]);
+                const mapLabels = (items: string[]) => items.map(label => ({ label, value: toSlug(label) }));
+                this.departments.set([...DEFAULT_DEPARTMENTS, ...mapLabels(opts.departments).filter(o => !DEFAULT_DEPARTMENTS.some(d => d.value === o.value))]);
+                this.jobTypes.set([...DEFAULT_JOB_TYPES, ...mapLabels(opts.job_types).filter(o => !DEFAULT_JOB_TYPES.some(d => d.value === o.value))]);
+                this.locations.set([...DEFAULT_LOCATIONS, ...mapLabels(opts.locations).filter(o => !DEFAULT_LOCATIONS.some(d => d.value === o.value))]);
             },
             error: () => {
                 // Silently fail - defaults are already set
@@ -357,16 +338,43 @@ export class PositionsPage implements OnInit {
         this.dialog = true;
     }
 
+    cleanDescriptionBullets() {
+        if (this.position.description) {
+            this.position.description = this.cleanBulletListHtml(this.position.description);
+        }
+    }
+
     private cleanBulletListHtml(html: string): string {
         if (!html) return html;
-        // Remove manually typed leading numbers (1:, 1., 1)) from bullet list items
-        return html.replace(/(<li[^>]*data-list=["']bullet["'][^>]*>)\s*\d+[:.)]\s*/gi, '$1');
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        let changed = false;
+
+        const stripLeadingNumber = (node: Node): boolean => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                const text = node.textContent || '';
+                const newText = text.replace(/^\s*\d+[:.)]\s*/, '');
+                if (newText !== text) {
+                    node.textContent = newText;
+                    return true;
+                }
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+                for (const child of Array.from(node.childNodes)) {
+                    if (stripLeadingNumber(child)) return true;
+                }
+            }
+            return false;
+        };
+
+        doc.querySelectorAll('li').forEach(li => {
+            if (stripLeadingNumber(li)) changed = true;
+        });
+
+        return changed ? doc.body.innerHTML : html;
     }
 
     onTitleChange(title: string) {
-        if (!this.position.slug || this.position.slug === slugify(this.position.title || '')) {
-            this.position.slug = slugify(title);
-        }
+        this.position.slug = slugify(title);
     }
 
     hideDialog() {
@@ -394,16 +402,13 @@ export class PositionsPage implements OnInit {
     savePosition() {
         const p = this.position;
         if (!p.title?.trim() || !p.slug?.trim() || !p.department || !p.job_type || !p.location || !p.description?.trim()) {
-            this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Please fill Title, Slug, Team, Job Type, Location, and Full Description.', life: 5000 });
+            this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Please fill Title, Team, Job Type, Location, and Full Description.', life: 5000 });
             return;
         }
 
         this.saving = true;
         const data: JobPosition = {
             ...p,
-            department: toSlug(p.department),
-            job_type: toSlug(p.job_type),
-            location: toSlug(p.location),
             description: this.cleanBulletListHtml(p.description.trim()),
             is_published: !!p.is_published
         };
@@ -447,23 +452,121 @@ export class PositionsPage implements OnInit {
         });
     }
 
-    onRowReorder(event: any) {
-        const order = this.positions().map(p => p.id!).filter(id => id !== undefined);
-        if (!order.length) return;
-        this.api.reorderJobPositions(order).subscribe({
-            next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Reordered', detail: 'Job positions order saved', life: 3000 });
+    capitalizeWords(str?: string): string {
+        return capitalizeWords(str);
+    }
+
+    // ===== CONFIG MANAGEMENT =====
+
+    openConfigDialog() {
+        this.activeConfigTab = 'department';
+        this.newConfigLabel = { department: '', job_type: '', location: '' };
+        this.editingConfig.set(null);
+        this.loadConfigOptions();
+        this.configDialog = true;
+    }
+
+    onConfigTabChange(tab: string | number | undefined) {
+        if (!tab) return;
+        this.activeConfigTab = tab as any;
+        this.editingConfig.set(null);
+    }
+
+    configOptionsForTab(tab: 'department' | 'job_type' | 'location'): DropdownOption[] {
+        return this.configOptions()
+            .filter(o => o.option_type === tab)
+            .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    }
+
+    loadConfigOptions() {
+        this.api.getAllDropdownOptions().subscribe({
+            next: (data) => {
+                this.configOptions.set(data.map((o: any) => ({
+                    id: o.id,
+                    option_type: o.option_type,
+                    label: o.label,
+                    value: o.value,
+                    sort_order: o.sort_order ?? 0,
+                    is_active: o.is_active ?? true
+                })));
             },
-            error: (err) => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to save order' });
-                this.loadPositions();
+            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load list options' })
+        });
+    }
+
+    addConfigOption(type: 'department' | 'job_type' | 'location') {
+        const label = this.newConfigLabel[type]?.trim();
+        if (!label) return;
+        this.api.createDropdownOption({ option_type: type, label }).subscribe({
+            next: () => {
+                this.newConfigLabel[type] = '';
+                this.loadConfigOptions();
+                this.loadDropdownOptions();
+                this.messageService.add({ severity: 'success', summary: 'Added', detail: 'Option added', life: 2000 });
+            },
+            error: (err) => this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to add option' })
+        });
+    }
+
+    startEditConfig(opt: DropdownOption) {
+        this.editingConfig.set({ ...opt });
+    }
+
+    updateEditingLabel(value: string) {
+        const current = this.editingConfig();
+        if (current) {
+            this.editingConfig.set({ ...current, label: value });
+        }
+    }
+
+    saveEditingConfig() {
+        const current = this.editingConfig();
+        if (!current?.id || !current.label?.trim()) {
+            this.editingConfig.set(null);
+            return;
+        }
+        this.api.updateDropdownOption(current.id, { label: current.label.trim() }).subscribe({
+            next: () => {
+                this.editingConfig.set(null);
+                this.loadConfigOptions();
+                this.loadDropdownOptions();
+                this.messageService.add({ severity: 'success', summary: 'Updated', detail: 'Option updated', life: 2000 });
+            },
+            error: (err) => this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to update option' })
+        });
+    }
+
+    toggleConfigActive(opt: DropdownOption) {
+        if (!opt.id) return;
+        this.api.updateDropdownOption(opt.id, { is_active: !!opt.is_active }).subscribe({
+            next: () => {
+                this.loadConfigOptions();
+                this.loadDropdownOptions();
+                this.messageService.add({ severity: 'success', summary: 'Updated', detail: 'Active status updated', life: 2000 });
+            },
+            error: () => {
+                opt.is_active = !opt.is_active;
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to update active status' });
             }
         });
     }
 
-    capitalizeWords(str?: string): string {
-        return capitalizeWords(str);
+    deleteConfigOption(opt: DropdownOption) {
+        if (!opt.id) return;
+        this.confirmationService.confirm({
+            message: `Delete "${opt.label}"?`,
+            header: 'Confirm Delete',
+            icon: 'pi pi-exclamation-triangle',
+            accept: () => {
+                this.api.deleteDropdownOption(opt.id!).subscribe({
+                    next: () => {
+                        this.loadConfigOptions();
+                        this.loadDropdownOptions();
+                        this.messageService.add({ severity: 'success', summary: 'Deleted', detail: 'Option deleted', life: 2000 });
+                    },
+                    error: (err) => this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to delete option' })
+                });
+            }
+        });
     }
 }
-
-
