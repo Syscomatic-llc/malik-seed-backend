@@ -11,6 +11,7 @@ class BrandCategory(str, enum.Enum):
     FLOWER = "flower"
     MALIK_FARMS = "malik_farms"
     INNOVATION = "innovation"
+    ORIGENE = "origene"
     TRAINING = "training"
     FRESH = "fresh"
     PLANTED_BY_MALIK = "planted_by_malik"

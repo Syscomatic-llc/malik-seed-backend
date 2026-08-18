@@ -1,11 +1,123 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import Optional, List, Any
 
 from core.database import get_db
 from models.our_brands.model import OurBrand, FlowerPortfolio, TrainingCentre, BrandProduct, BrandCategory
 
 router = APIRouter()
+
+
+CATEGORY_DATA_KEY = {
+    "innovation": "innovationDevelopmentData",
+    "flower": "maliksFlowerData",
+    "origene": "origeneData",
+    "malik_farms": "maliksFarmData",
+    "potato_seeds": "potatoSeedData",
+    "vegetable_seeds": "vegetableSeedsData",
+}
+
+SLUG_TO_CATEGORY = {
+    "innovation-development": "innovation",
+    "maliks-flower": "flower",
+}
+
+
+def default_content_for_category(category: str) -> dict:
+    """Return the default inner content shape for a dynamic brand category."""
+    if category == "innovation":
+        return {
+            "hero": {"bgImage": ""},
+            "intro": {
+                "stats": [{"value": 0, "suffix": "", "label": ""}],
+                "highlights": [""],
+            },
+            "split1": {"badge": "", "image": ""},
+            "grid": {"badge": "", "images": [""]},
+            "split2": {"badge": "", "image": ""},
+            "Projects": [{"title": "", "duration": "", "focus": "", "location": "", "donor": ""}],
+        }
+    if category == "flower":
+        return {
+            "hero": {"bgImage": ""},
+            "intro": {"highlights": [""]},
+            "grid": {"badge": "", "images": [""]},
+            "split": {"badge": "", "image": ""},
+            "portfolio": {"badge": "", "card": [{"name": "", "image": ""}]},
+        }
+    if category == "origene":
+        return {
+            "hero": {"bgImage": ""},
+            "grid": {"badge": "", "images": [""]},
+            "split1": {"badge": "", "image": ""},
+            "process2": {"badge": "", "images": [""], "buttonText": "", "buttonLink": ""},
+            "split2": {"badge": "", "image": ""},
+        }
+    if category == "malik_farms":
+        return {
+            "hero": {"bgImage": ""},
+            "intro": {"stats": [{"value": 0, "suffix": "", "label": ""}]},
+            "split1": {"badge": "", "image": ""},
+            "process": {"badge": "", "images": [""]},
+            "split2": {
+                "badge": "",
+                "images": [""],
+                "tags": {"Vegetables": [""], "Fruits": [""]},
+                "gallery": [""],
+            },
+            "training": {
+                "badge": "",
+                "programs": [{"title": "", "image": ""}],
+                "facilities": [{"title": "", "capacity": 0, "beds": 0, "description": "", "image": ""}],
+            },
+            "testimonials": {"badge": "", "visitorScans": [{"image": "", "title": ""}]},
+            "cropPortfolio": {"groups": [{"category": "", "items": [[""]]}]},
+        }
+    if category == "potato_seeds":
+        return {
+            "hero": {"bgImage": ""},
+            "intro": {"highlights": [""]},
+            "grid": {"badge": "", "images": [""]},
+            "split": {"badge": "", "image": ""},
+            "youtube": {"youtubeUrl": "", "images": [""], "brandLogo": ""},
+        }
+    if category == "vegetable_seeds":
+        return {
+            "hero": {"bgImage": ""},
+            "grid": {"badge": "", "images": [""]},
+            "youtube": {"badge": "", "youtubeUrl": "", "images": [""]},
+            "cropPortfolio": {"badge": "", "tags": [[""]]},
+        }
+    return {}
+
+
+def _deep_merge(base: Any, override: Any) -> Any:
+    """Recursively merge override into base. Lists are replaced, dicts are merged."""
+    if not isinstance(base, dict) or not isinstance(override, dict):
+        return override
+    merged = dict(base)
+    for key, value in override.items():
+        if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
+            merged[key] = _deep_merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def build_dynamic_response(category: str, content: Any) -> dict:
+    """Wrap merged content under the category-specific data key."""
+    data_key = CATEGORY_DATA_KEY[category]
+    defaults = default_content_for_category(category)
+    stored = content or {}
+    # Allow content stored either as the inner shape or already wrapped under the data key.
+    if isinstance(stored, dict) and data_key in stored and isinstance(stored[data_key], dict):
+        inner = stored[data_key]
+    elif isinstance(stored, dict):
+        inner = stored
+    else:
+        inner = {}
+    merged = _deep_merge(defaults, inner)
+    return {data_key: merged}
 
 
 @router.get("/categories")
@@ -17,6 +129,7 @@ def get_brand_categories():
         {"label": "Flower", "value": BrandCategory.FLOWER.value},
         {"label": "Malik's Farms", "value": BrandCategory.MALIK_FARMS.value},
         {"label": "Innovation", "value": BrandCategory.INNOVATION.value},
+        {"label": "Origene by Malik", "value": BrandCategory.ORIGENE.value},
         {"label": "Training", "value": BrandCategory.TRAINING.value},
         {"label": "Fresh", "value": BrandCategory.FRESH.value},
         {"label": "Planted by Malik", "value": BrandCategory.PLANTED_BY_MALIK.value},
@@ -54,6 +167,13 @@ def get_brand_detail_by_slug(slug: str, db: Session = Depends(get_db)):
     if not brand:
         raise HTTPException(status_code=404, detail="Brand not found")
 
+    category_value = brand.category.value if brand.category else None
+    effective_category = SLUG_TO_CATEGORY.get(brand.slug, category_value)
+
+    if effective_category in CATEGORY_DATA_KEY:
+        return build_dynamic_response(effective_category, brand.content)
+
+    # Fallback generic shape for legacy/older brand pages.
     content = brand.content or {}
 
     def section(name: str, defaults: dict):
@@ -63,7 +183,7 @@ def get_brand_detail_by_slug(slug: str, db: Session = Depends(get_db)):
         "id": brand.id,
         "name": brand.name,
         "slug": brand.slug,
-        "category": brand.category.value if brand.category else None,
+        "category": category_value,
         "tagline": brand.tagline,
         "description": brand.description,
         "long_description": brand.long_description,

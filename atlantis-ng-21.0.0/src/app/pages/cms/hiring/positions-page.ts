@@ -283,7 +283,7 @@ export class PositionsPage implements OnInit {
     locations = signal<{ label: string; value: string }[]>(DEFAULT_LOCATIONS);
 
     configDialog = false;
-    activeConfigTab: 'department' | 'job_type' | 'location' = 'department';
+    activeConfigTab: string = 'department';
     configTabs = [
         { label: 'Team', value: 'department' as const },
         { label: 'Job Type', value: 'job_type' as const },

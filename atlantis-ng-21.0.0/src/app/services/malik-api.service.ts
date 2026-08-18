@@ -230,6 +230,7 @@ export interface OurBrand {
   stats?: BrandQualityCard[];
   link?: string;
   content?: BrandContent;
+  content_data?: Partial<BrandDataMap>;
   is_active?: boolean;
   is_featured?: boolean;
   sort_order?: number;
@@ -243,6 +244,80 @@ export interface OurBrandDetail extends OurBrand {
   portfolio: BrandPortfolioSection;
   heritage: BrandHeritageSection;
 }
+
+// Innovation & Development
+export interface InnovationStat { value: number; suffix: string; label: string; }
+export interface InnovationProject { title: string; duration: string; focus: string; location: string; donor: string; }
+export interface InnovationDevelopmentData {
+  hero: { bgImage?: string };
+  intro: { stats: InnovationStat[]; highlights: string[] };
+  split1: { badge: string; image?: string };
+  grid: { badge: string; images: string[] };
+  split2: { badge: string; image?: string };
+  Projects: InnovationProject[];
+}
+
+// Malik's Flower
+export interface FlowerPortfolioCard { name: string; image?: string; }
+export interface MaliksFlowerData {
+  hero: { bgImage?: string };
+  intro: { highlights: string[] };
+  grid: { badge: string; images: string[] };
+  split: { badge: string; image?: string };
+  portfolio: { badge: string; card: FlowerPortfolioCard[] };
+}
+
+// Origene
+export interface OrigeneData {
+  hero: { bgImage?: string };
+  grid: { badge: string; images: string[] };
+  split1: { badge: string; image?: string };
+  process2: { badge: string; images: string[]; buttonText: string; buttonLink: string };
+  split2: { badge: string; image?: string };
+}
+
+// Malik's Farm
+export interface FarmStat { value: number; suffix: string; label: string; }
+export interface FarmTrainingProgram { title: string; image?: string; }
+export interface FarmTrainingFacility { title: string; capacity?: number; beds?: number; description: string; image?: string; }
+export interface FarmVisitorScan { image?: string; title: string; }
+export interface FarmCropGroup { category: string; items: string[][]; }
+export interface MaliksFarmData {
+  hero: { bgImage?: string };
+  intro: { stats: FarmStat[] };
+  split1: { badge: string; image?: string };
+  process: { badge: string; images: string[] };
+  split2: { badge: string; images: string[]; tags: { Vegetables: string[]; Fruits: string[] }; gallery: string[] };
+  training: { badge: string; programs: FarmTrainingProgram[]; facilities: FarmTrainingFacility[] };
+  testimonials: { badge: string; visitorScans: FarmVisitorScan[] };
+  cropPortfolio: { groups: FarmCropGroup[] };
+}
+
+// Potato Seeds
+export interface PotatoSeedData {
+  hero: { bgImage?: string };
+  intro: { highlights: string[] };
+  grid: { badge: string; images: string[] };
+  split: { badge: string; image?: string };
+  youtube: { youtubeUrl: string; images: string[]; brandLogo?: string };
+}
+
+// Vegetable Seeds
+export interface VegetableSeedsData {
+  hero: { bgImage?: string };
+  grid: { badge: string; images: string[] };
+  youtube: { badge: string; youtubeUrl: string; images: string[] };
+  cropPortfolio: { badge: string; tags: string[][] };
+}
+
+export type BrandDataMap = {
+  innovationDevelopmentData: InnovationDevelopmentData;
+  maliksFlowerData: MaliksFlowerData;
+  origeneData: OrigeneData;
+  maliksFarmData: MaliksFarmData;
+  potatoSeedData: PotatoSeedData;
+  vegetableSeedsData: VegetableSeedsData;
+};
 
 // ============ GALLERY TYPES ============
 export interface GalleryItem {
@@ -701,6 +776,10 @@ export class MalikApiService {
     return this.http.get<OurBrandDetail>(`${this.apiUrl}/our-brands/brands/${slug}/detail`);
   }
 
+  getBrandDetail(slug: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/our-brands/brands/${slug}/detail`);
+  }
+
   // ============ GALLERY ============
   getGalleryItems(): Observable<GalleryItem[]> {
     return this.http.get<GalleryItem[]>(`${this.apiUrl}/our-gallery/items`);
@@ -733,10 +812,13 @@ export class MalikApiService {
   }
 
   // ============ RESUME MANAGEMENT ============
-  getResumes(resumeType?: string): Observable<ResumeUpload[]> {
+  getResumes(resumeType?: string, position?: string): Observable<ResumeUpload[]> {
     let params = new HttpParams();
     if (resumeType) {
       params = params.set('resume_type', resumeType);
+    }
+    if (position) {
+      params = params.set('position', position);
     }
     return this.http.get<ResumeUpload[]>(`${this.apiUrl}/admin/resume`, { params });
   }

@@ -6,23 +6,28 @@
 
 /* Fix Quill editor list styles: use native markers and prevent double bullets/numbers */
 .ql-editor {
-    ul,
-    ol {
-        padding-left: 1.5em;
+    ol,
+    ul {
+        padding-left: 1.5rem !important;
         margin-bottom: 0.5em;
     }
 
-    ul > li,
+    ol li,
+    ul li,
+    li[data-list="ordered"],
     li[data-list="bullet"] {
-        list-style-type: disc;
+        list-style-type: decimal !important;
     }
 
-    ol > li,
-    li[data-list="ordered"] {
-        list-style-type: decimal;
+    ul li,
+    li[data-list="bullet"] {
+        list-style-type: disc !important;
     }
 
-    li::before {
+    ol li::before,
+    ul li::before,
+    li[data-list="ordered"]::before,
+    li[data-list="bullet"]::before {
         content: none !important;
     }
 }

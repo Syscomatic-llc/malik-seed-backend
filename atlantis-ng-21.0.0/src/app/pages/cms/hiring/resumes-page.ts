@@ -1,13 +1,14 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MalikApiService, ResumeUpload } from '@/app/services/malik-api.service';
+import { MalikApiService, ResumeUpload, JobPosition } from '@/app/services/malik-api.service';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { ToolbarModule } from 'primeng/toolbar';
+import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -19,7 +20,7 @@ import { environment } from '@/environments/environment';
     standalone: true,
     imports: [
         CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
-        ToastModule, ToolbarModule, TagModule, ToggleSwitchModule, ConfirmDialogModule
+        ToastModule, ToolbarModule, SelectModule, TagModule, ToggleSwitchModule, ConfirmDialogModule
     ],
     providers: [MessageService, ConfirmationService],
     template: `
@@ -31,6 +32,9 @@ import { environment } from '@/environments/environment';
                     <h5 class="m-0">All Uploaded Resumes / CVs</h5>
                 </ng-template>
                 <ng-template #end>
+                    <p-select [options]="jobPositions()" [(ngModel)]="selectedPosition" optionLabel="title" optionValue="title"
+                        placeholder="Filter by Position" [showClear]="true" styleClass="w-64 mr-2"
+                        (ngModelChange)="onPositionFilterChange()" appendTo="body" />
                     <p-button label="Refresh" icon="pi pi-refresh" (onClick)="loadResumes()" />
                 </ng-template>
             </p-toolbar>
@@ -83,6 +87,8 @@ import { environment } from '@/environments/environment';
 })
 export class ResumesPage implements OnInit {
     resumes = signal<ResumeUpload[]>([]);
+    jobPositions = signal<JobPosition[]>([]);
+    selectedPosition: string | null = null;
     mediaBaseUrl = environment.mediaBaseUrl;
 
     constructor(
@@ -92,14 +98,26 @@ export class ResumesPage implements OnInit {
     ) {}
 
     ngOnInit() {
+        this.loadJobPositions();
         this.loadResumes();
     }
 
+    loadJobPositions() {
+        this.api.getJobPositions().subscribe({
+            next: (data) => this.jobPositions.set(data),
+            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load job positions' })
+        });
+    }
+
     loadResumes() {
-        this.api.getResumes().subscribe({
+        this.api.getResumes(undefined, this.selectedPosition || undefined).subscribe({
             next: (data) => this.resumes.set(data),
             error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load resumes' })
         });
+    }
+
+    onPositionFilterChange() {
+        this.loadResumes();
     }
 
     toggleReviewed(item: ResumeUpload) {

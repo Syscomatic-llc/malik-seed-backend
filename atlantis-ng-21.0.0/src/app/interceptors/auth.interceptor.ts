@@ -21,14 +21,19 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
     return next(req).pipe(
         catchError((err) => {
-            // If the API rejects the token, log the user out immediately so they
-            // don't get stuck in a broken authenticated state. Show a clear message
-            // so the admin knows the token was rejected rather than a network error.
-            if (err.status === 401) {
+            // If the API rejects the token or the user is forbidden, log the user
+            // out immediately so they don't get stuck in a broken authenticated state.
+            // Show a clear message so the admin knows the token was rejected rather
+            // than a network error. Clearing localStorage and redirecting to login
+            // avoids stale-token cache issues.
+            if (err.status === 401 || err.status === 403) {
+                const isForbidden = err.status === 403;
                 messageService?.add({
                     severity: 'error',
-                    summary: 'Session Expired',
-                    detail: 'Your session is no longer valid. Please log in again.',
+                    summary: isForbidden ? 'Access Denied' : 'Session Expired',
+                    detail: isForbidden
+                        ? 'You do not have permission to perform this action. Please log in again.'
+                        : 'Your session is no longer valid. Please log in again.',
                     life: 5000
                 });
                 auth.logout();

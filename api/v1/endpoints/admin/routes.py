@@ -407,12 +407,18 @@ def _log_activity(
 @router.get("/resume")
 def list_resumes(
     resume_type: Optional[str] = None,
+    position: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """List resume uploads with optional resume_type filter."""
+    """List resume uploads with optional resume_type and position filters."""
     query = db.query(ResumeUpload)
     if resume_type:
         query = query.filter(ResumeUpload.resume_type == resume_type)
+    if position:
+        query = query.filter(
+            (ResumeUpload.position_name.ilike(f"%{position}%")) |
+            (ResumeUpload.position.ilike(f"%{position}%"))
+        )
     resumes = query.order_by(ResumeUpload.created_at.desc()).all()
     return [{"id": item.id, **_model_to_dict(item)} for item in resumes]
 
@@ -1022,8 +1028,12 @@ def delete_item(resource: str, item_id: int, db: Session = Depends(get_db), user
         db.commit()
 
         # Compact sort_order for resources that support it so there are no gaps after deletion.
+        # This is best-effort: if compaction fails, the delete should still succeed.
         if hasattr(model_class, 'sort_order'):
-            _compact_sort_order(db, model_class)
+            try:
+                _compact_sort_order(db, model_class)
+            except Exception:
+                db.rollback()
 
     except SQLAlchemyError as e:
         db.rollback()

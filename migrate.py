@@ -441,6 +441,7 @@ def main():
 
     # Ensure brand category enum includes 'features' for PostgreSQL
     add_enum_value("brandcategory", "features")
+    add_enum_value("brandcategory", "origene")
 
     # Hero global CTA buttons
     add_column("site_settings", "hero_primary_cta_text", "VARCHAR(100)")
