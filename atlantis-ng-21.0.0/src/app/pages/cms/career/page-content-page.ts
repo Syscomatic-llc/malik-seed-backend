@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MalikApiService, HiringPageContent } from '@/app/services/malik-api.service';
 import { ImageUpload } from '@/app/components/image-upload';
+import { ImageGalleryUpload } from '@/app/components/image-gallery-upload';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -12,10 +13,40 @@ import { MessageService } from 'primeng/api';
 import { DividerModule } from 'primeng/divider';
 import { environment } from '@/environments/environment';
 
+function ensureDefaults(content: HiringPageContent): HiringPageContent {
+    return {
+        hero_title: 'Join Our Team',
+        cta_button_text: 'View Open Positions',
+        cta_button_link: '/hiring/positions',
+        ...content,
+        career_hero_section: {
+            badge: '',
+            ctaSecondary: { label: '', href: '' },
+            teamImage: '',
+            ...(content.career_hero_section || {})
+        },
+        career_manifesto: {
+            badge: '',
+            images: [],
+            ...(content.career_manifesto || {})
+        },
+        career_team_culture: {
+            badge: '',
+            images: [],
+            ...(content.career_team_culture || {})
+        },
+        career_future_program: {
+            badge: '',
+            image: '',
+            ...(content.career_future_program || {})
+        }
+    };
+}
+
 @Component({
     selector: 'app-career-page-content-page',
     standalone: true,
-    imports: [CommonModule, FormsModule, CardModule, ButtonModule, InputTextModule, TextareaModule, ToastModule, ImageUpload, DividerModule],
+    imports: [CommonModule, FormsModule, CardModule, ButtonModule, InputTextModule, TextareaModule, ToastModule, ImageUpload, ImageGalleryUpload, DividerModule],
     providers: [MessageService],
     template: `
         <p-toast position="top-right" />
@@ -85,6 +116,68 @@ import { environment } from '@/environments/environment';
                             <label class="block font-bold mb-2">CTA Button Link</label>
                             <input type="text" pInputText [(ngModel)]="content.cta_button_link" fluid />
                         </div>
+
+                        <p-divider />
+
+                        <h3 class="text-lg font-bold">Career Hero Section</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block font-bold mb-2">Badge</label>
+                                <input type="text" pInputText [(ngModel)]="content.career_hero_section!.badge" fluid />
+                            </div>
+                            <div>
+                                <app-image-upload label="Team Image" folder="hiring"
+                                    [(currentImage)]="content.career_hero_section!.teamImage" />
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block font-bold mb-2">Secondary CTA Label</label>
+                                <input type="text" pInputText [(ngModel)]="content.career_hero_section!.ctaSecondary!.label" fluid />
+                            </div>
+                            <div>
+                                <label class="block font-bold mb-2">Secondary CTA Link</label>
+                                <input type="text" pInputText [(ngModel)]="content.career_hero_section!.ctaSecondary!.href" fluid />
+                            </div>
+                        </div>
+
+                        <p-divider />
+
+                        <h3 class="text-lg font-bold">Career Manifesto</h3>
+                        <div>
+                            <label class="block font-bold mb-2">Badge</label>
+                            <input type="text" pInputText [(ngModel)]="content.career_manifesto!.badge" fluid />
+                        </div>
+                        <div>
+                            <app-image-gallery-upload label="Manifesto Images" folder="hiring"
+                                [(images)]="content.career_manifesto!.images" />
+                        </div>
+
+                        <p-divider />
+
+                        <h3 class="text-lg font-bold">Team Culture</h3>
+                        <div>
+                            <label class="block font-bold mb-2">Badge</label>
+                            <input type="text" pInputText [(ngModel)]="content.career_team_culture!.badge" fluid />
+                        </div>
+                        <div>
+                            <app-image-gallery-upload label="Culture Images" folder="hiring"
+                                [(images)]="content.career_team_culture!.images" />
+                        </div>
+
+                        <p-divider />
+
+                        <h3 class="text-lg font-bold">Future Leader Program</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block font-bold mb-2">Badge</label>
+                                <input type="text" pInputText [(ngModel)]="content.career_future_program!.badge" fluid />
+                            </div>
+                            <div>
+                                <app-image-upload label="Program Image" folder="hiring"
+                                    [(currentImage)]="content.career_future_program!.image" />
+                            </div>
+                        </div>
                     </div>
                 </p-card>
             </div>
@@ -107,11 +200,7 @@ import { environment } from '@/environments/environment';
     `
 })
 export class CareerPageContentPage implements OnInit {
-    content: HiringPageContent = {
-        hero_title: 'Join Our Team',
-        cta_button_text: 'View Open Positions',
-        cta_button_link: '/hiring/positions'
-    };
+    content: HiringPageContent = ensureDefaults({});
     saving = false;
     mediaBaseUrl = environment.mediaBaseUrl;
 
@@ -127,7 +216,7 @@ export class CareerPageContentPage implements OnInit {
     loadContent() {
         this.api.adminList('hiring-page-content').subscribe({
             next: (data: any[]) => {
-                this.content = data[0] || this.content;
+                this.content = ensureDefaults(data[0] || {});
             },
             error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load career page content' })
         });

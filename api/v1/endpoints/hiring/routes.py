@@ -205,6 +205,10 @@ def get_hiring_page_content(db: Session = Depends(get_db)):
     def col_value(col_name: str):
         return getattr(content, col_name)
 
+    def _section(name: str, defaults: dict):
+        value = col_value(name) or {}
+        return {**defaults, **(value if isinstance(value, dict) else {})}
+
     return {
         "id": col_value("id"),
         "hero_badge": col_value("hero_title"),
@@ -220,6 +224,23 @@ def get_hiring_page_content(db: Session = Depends(get_db)):
         "cta_description": col_value("cta_description"),
         "cta_button_text": col_value("cta_button_text"),
         "cta_button_link": col_value("cta_button_link"),
+        "heroSection": _section("career_hero_section", {
+            "badge": "",
+            "ctaSecondary": {"label": "", "href": ""},
+            "teamImage": ""
+        }),
+        "careerManifesto": _section("career_manifesto", {
+            "badge": "",
+            "images": []
+        }),
+        "teamCulture": _section("career_team_culture", {
+            "badge": "",
+            "images": []
+        }),
+        "futureProgram": _section("career_future_program", {
+            "badge": "",
+            "image": ""
+        }),
         "is_active": col_value("is_active"),
         "created_at": col_value("created_at"),
         "updated_at": col_value("updated_at"),

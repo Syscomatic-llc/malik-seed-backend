@@ -316,6 +316,12 @@ class HiringPageContent(Base):
     cta_button_text = Column(String(100), nullable=True, default="View Open Positions")
     cta_button_link = Column(String(500), nullable=True, default="/hiring/positions")
 
+    # Career page sections (structured content)
+    career_hero_section = Column(JSON, default=dict)
+    career_manifesto = Column(JSON, default=dict)
+    career_team_culture = Column(JSON, default=dict)
+    career_future_program = Column(JSON, default=dict)
+
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

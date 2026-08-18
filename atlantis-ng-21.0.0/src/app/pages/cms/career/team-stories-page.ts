@@ -36,11 +36,10 @@ import { ConfirmationService } from 'primeng/api';
                 </ng-template>
             </p-toolbar>
 
-            <p-table [value]="testimonials()" (onRowReorder)="onRowReorder($event)"
-                [rows]="100" [tableStyle]="{ 'min-width': '60rem' }">
+            <p-table [value]="testimonials()" [rows]="10" [paginator]="true"
+                [tableStyle]="{ 'min-width': '60rem' }">
                 <ng-template #header>
                     <tr>
-                        <th style="width: 3rem"></th>
                         <th>Order</th>
                         <th>Profile</th>
                         <th>Name</th>
@@ -51,10 +50,7 @@ import { ConfirmationService } from 'primeng/api';
                     </tr>
                 </ng-template>
                 <ng-template #body let-item let-i="rowIndex">
-                    <tr [pReorderableRow]="i">
-                        <td>
-                            <span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span>
-                        </td>
+                    <tr>
                         <td><span class="font-bold text-primary">{{i + 1}}</span></td>
                         <td>
                             <img *ngIf="item.avatar_url" [src]="mediaBaseUrl + item.avatar_url"
@@ -197,17 +193,4 @@ export class TeamStoriesPage implements OnInit {
         });
     }
 
-    onRowReorder(event: any) {
-        const order = this.testimonials().map(t => t.id!).filter(id => id !== undefined);
-        if (!order.length) return;
-        this.api.reorder('hiring-testimonial', order).subscribe({
-            next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Reordered', detail: 'Testimonial order saved', life: 2000 });
-            },
-            error: (err) => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to reorder testimonials' });
-                this.loadTestimonials();
-            }
-        });
-    }
 }

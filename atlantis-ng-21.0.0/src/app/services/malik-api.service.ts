@@ -295,6 +295,7 @@ export interface CareerBenefit {
   title: string;
   description?: string;
   icon?: string;
+  sort_order?: number;
 }
 
 export interface HiringTestimonial {
@@ -305,6 +306,27 @@ export interface HiringTestimonial {
   content: string;
   avatar_url?: string;
   sort_order?: number;
+}
+
+export interface CareerHeroSection {
+  badge?: string;
+  ctaSecondary?: { label?: string; href?: string };
+  teamImage?: string;
+}
+
+export interface CareerManifesto {
+  badge: string;
+  images: string[];
+}
+
+export interface CareerTeamCulture {
+  badge: string;
+  images: string[];
+}
+
+export interface CareerFutureProgram {
+  badge: string;
+  image: string;
 }
 
 export interface HiringPageContent {
@@ -323,6 +345,10 @@ export interface HiringPageContent {
   cta_description?: string;
   cta_button_text?: string;
   cta_button_link?: string;
+  career_hero_section?: CareerHeroSection;
+  career_manifesto?: CareerManifesto;
+  career_team_culture?: CareerTeamCulture;
+  career_future_program?: CareerFutureProgram;
   is_active?: boolean;
 }
 

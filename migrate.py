@@ -383,6 +383,12 @@ def main():
     # Hiring page content hero badge
     add_column("hiring_page_contents", "hero_badge", "VARCHAR(200)")
 
+    # Career page structured sections
+    add_json_column("hiring_page_contents", "career_hero_section")
+    add_json_column("hiring_page_contents", "career_manifesto")
+    add_json_column("hiring_page_contents", "career_team_culture")
+    add_json_column("hiring_page_contents", "career_future_program")
+
     # Homepage news items icon
     add_column("homepage_news_items", "icon", "VARCHAR(100)")
 

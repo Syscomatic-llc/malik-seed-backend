@@ -1,7 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MalikApiService, CareerBenefit } from '@/app/services/malik-api.service';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
@@ -9,6 +8,7 @@ import { TableModule } from 'primeng/table';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
+import { InputNumberModule } from 'primeng/inputnumber';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { ToolbarModule } from 'primeng/toolbar';
@@ -19,8 +19,8 @@ import { ConfirmationService } from 'primeng/api';
     selector: 'app-benefits-page',
     standalone: true,
     imports: [
-        CommonModule, FormsModule, CardModule, ButtonModule, TableModule, DragDropModule,
-        DialogModule, InputTextModule, TextareaModule, ToastModule, ToolbarModule,
+        CommonModule, FormsModule, CardModule, ButtonModule, TableModule,
+        DialogModule, InputTextModule, TextareaModule, InputNumberModule, ToastModule, ToolbarModule,
         ConfirmDialogModule
     ],
     providers: [MessageService, ConfirmationService],
@@ -34,11 +34,10 @@ import { ConfirmationService } from 'primeng/api';
                 </ng-template>
             </p-toolbar>
 
-            <p-table [value]="benefits()" (onRowReorder)="onRowReorder($event)" [rows]="100"
+            <p-table [value]="benefits()" [rows]="10" [paginator]="true"
                 [tableStyle]="{ 'min-width': '75rem' }">
                 <ng-template #header>
                     <tr>
-                        <th style="width: 3rem"></th>
                         <th>Order</th>
                         <th>Title</th>
                         <th>Description</th>
@@ -46,8 +45,7 @@ import { ConfirmationService } from 'primeng/api';
                     </tr>
                 </ng-template>
                 <ng-template #body let-item let-i="rowIndex">
-                    <tr [pReorderableRow]="i">
-                        <td><span class="pi pi-bars" pReorderableRowHandle style="cursor: move"></span></td>
+                    <tr>
                         <td><span class="font-bold text-primary">{{i + 1}}</span></td>
                         <td>{{item.title}}</td>
                         <td>{{item.description}}</td>
@@ -77,6 +75,10 @@ import { ConfirmationService } from 'primeng/api';
                         <label class="block font-bold mb-2">Icon (pi-*)</label>
                         <input type="text" pInputText [(ngModel)]="benefit.icon" placeholder="e.g. heart, dollar, clock" fluid />
                     </div>
+                    <div>
+                        <label class="block font-bold mb-2">Sort Order</label>
+                        <p-inputnumber [(ngModel)]="benefit.sort_order" [min]="0" fluid />
+                    </div>
                 </div>
             </ng-template>
             <ng-template #footer>
@@ -104,14 +106,14 @@ export class BenefitsPage implements OnInit {
     }
 
     loadBenefits() {
-        this.api.getBenefits().subscribe({
+        this.api.adminList('career-benefit').subscribe({
             next: (data) => this.benefits.set(data),
             error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load benefits' })
         });
     }
 
     openNew() {
-        this.benefit = { title: '' };
+        this.benefit = { title: '', sort_order: this.benefits().length };
         this.dialog = true;
     }
 
@@ -165,18 +167,6 @@ export class BenefitsPage implements OnInit {
                         this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to delete benefit' });
                     }
                 });
-            }
-        });
-    }
-
-    onRowReorder(event: any) {
-        const order = this.benefits().map(t => t.id!).filter(id => id !== undefined);
-        if (!order.length) return;
-        this.api.reorder(this.resourceName, order).subscribe({
-            next: () => this.messageService.add({ severity: 'success', summary: 'Reordered', detail: 'Order saved', life: 2000 }),
-            error: (err) => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.detail || 'Failed to reorder', life: 3000 });
-                this.loadBenefits();
             }
         });
     }
