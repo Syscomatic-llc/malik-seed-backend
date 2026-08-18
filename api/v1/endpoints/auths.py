@@ -298,6 +298,46 @@ def logout():
     }
 
 
+# ============== REFRESH TOKEN ==============
+@router.post("/refresh", response_model=AuthResponse)
+def refresh_token(request: Request, db: Session = Depends(get_db)):
+    """Issue a new token for the currently authenticated user. Useful when the
+    signing secret changes and admins need a fresh token without clearing cache."""
+    from core.security import verify_token
+    auth_header = request.headers.get("Authorization")
+    token = None
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+    if not token:
+        raise HTTPException(status_code=401, detail="Token required")
+
+    payload = verify_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    user = db.query(User).filter(User.id == int(payload["sub"])).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    new_token = create_access_token({"sub": str(user.id), "email": user.email, "role": user.role.value})
+
+    return {
+        "status": "success",
+        "message": "Token refreshed successfully",
+        "data": {
+            "token": new_token,
+            "user": {
+                "id": user.id,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "email": user.email,
+                "role": user.role.value,
+                "email_verified": user.email_verified
+            }
+        }
+    }
+
+
 # ============== GET CURRENT USER ==============
 @router.get("/me")
 def get_me(request: Request, db: Session = Depends(get_db)):

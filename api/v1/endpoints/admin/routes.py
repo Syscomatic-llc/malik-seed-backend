@@ -1004,26 +1004,40 @@ def delete_item(resource: str, item_id: int, db: Session = Depends(get_db), user
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
 
-    if resource == "news-category":
-        # Cascade delete: remove all articles linked to this category automatically.
-        linked_articles = db.query(NewsArticle).filter(NewsArticle.category == item.name).all()
-        for article in linked_articles:
-            db.delete(article)
+    try:
+        if resource == "news-category":
+            # Cascade delete: remove all articles linked to this category automatically.
+            linked_articles = db.query(NewsArticle).filter(NewsArticle.category == item.name).all()
+            for article in linked_articles:
+                db.delete(article)
 
-    if resource == "job-position":
-        # Preserve job applications by clearing their position reference.
-        # Assessment questions are removed via SQLAlchemy cascade.
-        db.query(JobApplication).filter(JobApplication.position_id == item_id).update({"position_id": None})
-        db.query(ResumeUpload).filter(ResumeUpload.position_id == item_id).update({"position_id": None})
+        if resource == "job-position":
+            # Preserve job applications and resume uploads by clearing their position reference.
+            # Assessment questions are removed via SQLAlchemy cascade.
+            db.query(JobApplication).filter(JobApplication.position_id == item_id).update({"position_id": None})
+            db.query(ResumeUpload).filter(ResumeUpload.position_id == item_id).update({"position_id": None})
+            db.flush()
 
-    db.delete(item)
-    db.commit()
+        db.delete(item)
+        db.commit()
 
-    # Compact sort_order for resources that support it so there are no gaps after deletion.
-    if resource in MODEL_REGISTRY:
-        model_class, _ = MODEL_REGISTRY[resource]
+        # Compact sort_order for resources that support it so there are no gaps after deletion.
         if hasattr(model_class, 'sort_order'):
             _compact_sort_order(db, model_class)
+
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error while deleting {resource}: {str(e)}"
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Unexpected error while deleting {resource}: {str(e)}"
+        )
+
     _log_activity(
         db, user, "delete", resource, item_id,
         resource_name=_get_resource_name({}, item),

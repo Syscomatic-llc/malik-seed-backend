@@ -600,6 +600,10 @@ export class MalikApiService {
     return this.http.get<AuthResponse>(`${this.apiUrl}/auth/me`);
   }
 
+  refreshToken(): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/auth/refresh`, {});
+  }
+
   // ============ HOMEPAGE ============
   getHeroSlides(): Observable<{ slides: HeroSlide[]; cta_buttons: HeroCTAButton[] }> {
     return this.http.get<{ slides: HeroSlide[]; cta_buttons: HeroCTAButton[] }>(`${this.apiUrl}/homepage/hero`);

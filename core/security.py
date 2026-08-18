@@ -12,6 +12,15 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 ALGORITHM = "HS256"
 
+if not SECRET_KEY:
+    import warnings
+    warnings.warn(
+        "SECRET_KEY is not set. JWT tokens will be invalid after each deployment. "
+        "Set a persistent SECRET_KEY in your environment to prevent users from being logged out unexpectedly.",
+        RuntimeWarning,
+        stacklevel=2,
+    )
+
 
 def generate_otp(length: int = 6) -> str:
     """Generate a random numeric OTP"""

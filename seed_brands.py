@@ -337,7 +337,12 @@ BRAND_DEFAULTS = {
 }
 
 
-def seed_brands():
+def seed_brands(force_update: bool = False):
+    """Seed the default Malik Seed brand pages.
+
+    By default only creates missing brands so existing admin edits are preserved.
+    Pass force_update=True to overwrite existing brand content from defaults.
+    """
     db: Session = SessionLocal()
     try:
         Base.metadata.create_all(bind=engine)
@@ -347,13 +352,14 @@ def seed_brands():
         for category_key, defaults in BRAND_DEFAULTS.items():
             existing = db.query(OurBrand).filter(OurBrand.slug == defaults["slug"]).first()
             if existing:
-                existing.name = defaults["name"]
-                existing.category = BrandCategory(category_key)
-                existing.tagline = defaults["tagline"]
-                existing.description = defaults["description"]
-                existing.content = defaults["content"]
-                existing.is_active = True
-                updated += 1
+                if force_update:
+                    existing.name = defaults["name"]
+                    existing.category = BrandCategory(category_key)
+                    existing.tagline = defaults["tagline"]
+                    existing.description = defaults["description"]
+                    existing.content = defaults["content"]
+                    existing.is_active = True
+                    updated += 1
             else:
                 brand = OurBrand(
                     name=defaults["name"],
@@ -370,7 +376,8 @@ def seed_brands():
                 created += 1
 
         db.commit()
-        print(f"✓ Brand seed complete: {created} created, {updated} updated.")
+        action = f"{created} created" + (f", {updated} updated" if force_update else "")
+        print(f"✓ Brand seed complete: {action}.")
     except Exception as e:
         db.rollback()
         print(f"✗ Brand seed failed: {e}")

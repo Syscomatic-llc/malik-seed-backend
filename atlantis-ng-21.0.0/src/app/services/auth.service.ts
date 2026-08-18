@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, switchMap, of, catchError } from 'rxjs';
 import { MalikApiService, LoginRequest, AuthResponse } from './malik-api.service';
 
 @Injectable({
@@ -25,6 +25,27 @@ export class AuthService {
                     localStorage.setItem(this.USER_KEY, JSON.stringify(res.data.user ?? null));
                     this.user.set(res.data.user ?? null);
                 }
+            })
+        );
+    }
+
+    refreshToken(): Observable<AuthResponse | null> {
+        const token = this.getToken();
+        if (!token) {
+            this.logout();
+            return of(null);
+        }
+        return this.api.refreshToken().pipe(
+            tap((res) => {
+                if (res.data?.token) {
+                    localStorage.setItem(this.TOKEN_KEY, res.data.token);
+                    localStorage.setItem(this.USER_KEY, JSON.stringify(res.data.user ?? null));
+                    this.user.set(res.data.user ?? null);
+                }
+            }),
+            catchError(() => {
+                this.logout();
+                return of(null);
             })
         );
     }

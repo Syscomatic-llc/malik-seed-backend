@@ -337,7 +337,7 @@ class ResumeUpload(Base):
 
     # New resume upload metadata
     resume_type = Column(String(50), nullable=True)
-    position_id = Column(Integer, ForeignKey("job_positions.id"), nullable=True)
+    position_id = Column(Integer, ForeignKey("job_positions.id", ondelete="SET NULL"), nullable=True)
     position_name = Column(String(300), nullable=True)
     applicant_name = Column(String(300), nullable=True)
 

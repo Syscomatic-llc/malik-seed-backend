@@ -329,6 +329,24 @@ def backfill_job_positions_sort_order():
     print("  ✓ Backfilled job_positions.sort_order")
 
 
+def seed_brands_if_empty():
+    """Seed default brand pages only if the our_brands table is empty."""
+    if not table_exists("our_brands"):
+        return
+
+    with engine.connect() as conn:
+        count = conn.execute(text("SELECT COUNT(*) FROM our_brands")).scalar() or 0
+        if count > 0:
+            print("  ✓ our_brands already has data, skipping brand seed")
+            return
+
+    try:
+        import seed_brands
+        seed_brands.seed_brands()
+    except Exception as e:
+        print(f"  ✗ Brand seed failed: {e}")
+
+
 def main():
     print("Running migrations...")
 
@@ -408,8 +426,9 @@ def main():
     # Job applications admin manual scoring for short/long answers
     add_json_column("job_applications", "admin_scores")
 
-    # Make job application position_id nullable so deleting a position can preserve applications
+    # Make job application and resume upload position_id nullable so deleting a position can preserve related records
     make_column_nullable("job_applications", "position_id")
+    make_column_nullable("resume_uploads", "position_id")
 
     # Our brands rich page content
     add_json_column("our_brands", "content")
@@ -555,6 +574,9 @@ def main():
         print("  ✓ hiring_dropdown_options table already exists")
 
     seed_hiring_dropdown_options()
+
+    # Seed default Our Brands pages only when the table is empty
+    seed_brands_if_empty()
 
     print("Migrations complete.")
 
