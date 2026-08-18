@@ -83,23 +83,6 @@ function ensureDefaults(content: HiringPageContent): HiringPageContent {
 
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block font-bold mb-2">Initiative Title</label>
-                                <input type="text" pInputText [(ngModel)]="content.initiative_title" fluid />
-                            </div>
-                            <div>
-                                <app-image-upload label="Initiative Image" folder="hiring"
-                                    [(currentImage)]="content.initiative_image" />
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block font-bold mb-2">Initiative Description</label>
-                            <textarea pTextarea [(ngModel)]="content.initiative_description" rows="3" fluid></textarea>
-                        </div>
-
-                        <p-divider />
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
                                 <label class="block font-bold mb-2">CTA Title</label>
                                 <input type="text" pInputText [(ngModel)]="content.cta_title" fluid />
                             </div>
